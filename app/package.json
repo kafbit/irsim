@@ -1,0 +1,32 @@
+{
+  "name": "@bond/design",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "canvas": "next dev --port ${DESIGN_PORT:-3200}",
+    "lint": "oxlint src/ public/runtime/",
+    "typecheck": "tsc --noEmit",
+    "canvas:build": "bun scripts/build-canvas.ts",
+    "test": "node ../../scripts/bun-test.mjs",
+    "canvas:thumbs": "bun scripts/thumbs.ts",
+    "canvas:comments": "bun scripts/canvas-comments.ts"
+  },
+  "dependencies": {
+    "@bond/i18n": "workspace:*",
+    "@bond/ui": "workspace:*",
+    "next": "^16.3.3",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "sharp": "^0.35.3",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.7.2",
+    "vitest": "^4.0.18"
+  }
+}

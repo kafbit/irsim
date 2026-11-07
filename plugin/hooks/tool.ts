@@ -1,0 +1,97 @@
+import { CanvasError, api, oneLine } from './api'
+import type { Comment, Engine, Page } from './api'
+import { openCanvas } from './canvas'
+
+export const TOOL_NAME = 'design_canvas'
+export const TOOL_MATCH = /^mcp__.*__design_canvas$/
+
+export const TOOL_SCHEMA = {
+  type: 'object',
+  properties: {
+    action: { type: 'string', enum: ['open', 'page', 'comments', 'reply', 'resolve'] },
+    page: { type: 'string', description: 'Page id, for open, page and comments.' },
+    board: { type: 'string', description: 'Board name, for open.' },
+    status: {
+      type: 'string',
+      enum: ['draft', 'queued', 'delivered', 'resolved'],
+      description: 'Filter for comments.',
+    },
+    id: { type: 'string', description: 'Comment id, for reply and resolve.' },
+    body: { type: 'string', description: 'Reply text, for reply and resolve.' },
+  },
+  required: ['action'],
+}
+
+function commentLine(comment: Comment): string {
+  const replies = comment.replies.length
+  const tail = replies > 0 ? ` (${replies} ${replies === 1 ? 'reply' : 'replies'})` : ''
+  return oneLine(
+    `${comment.id} ${comment.status} ${comment.file}:${comment.line} "${comment.element.text}" ${comment.body}${tail}`,
+  )
+}
+
+async function listComments($: Engine, status?: string, page?: string): Promise<string> {
+  const query = new URLSearchParams()
+  if (status) query.set('status', status)
+  if (page) query.set('page', page)
+  const suffix = query.toString() ? `?${query}` : ''
+  const comments = await api<Comment[]>($, `/api/comments${suffix}`)
+  const shown = status ? comments : comments.filter((comment) => comment.status !== 'resolved')
+  return shown.length > 0 ? shown.map(commentLine).join('\n') : 'No comments.'
+}
+
+async function pageManifest($: Engine, pageId: string): Promise<string> {
+  const page = await api<Page>($, `/api/pages/${encodeURIComponent(pageId)}`)
+  const lines = page.boards.map((board) => {
+    const closure =
+      board.closure && board.closure.length > 0 ? `  closure: ${board.closure.join(', ')}` : ''
+    return `${board.name}  ${board.width}x${board.height}${closure}`
+  })
+  return [`${page.id}: ${page.title}`, ...lines].join('\n')
+}
+
+function need(args: Record<string, unknown>, key: string): string {
+  const value = args[key]
+  if (typeof value !== 'string' || !value)
+    throw new CanvasError(`${String(args.action)} needs ${key}`)
+  return value
+}
+
+function optional(args: Record<string, unknown>, key: string): string | undefined {
+  const value = args[key]
+  return typeof value === 'string' && value ? value : undefined
+}
+
+export async function runTool($: Engine, args: Record<string, unknown>): Promise<string> {
+  const id = args.action === 'reply' || args.action === 'resolve' ? need(args, 'id') : ''
+  switch (args.action) {
+    case 'open': {
+      const page = optional(args, 'page')
+      const board = optional(args, 'board')
+      return openCanvas($, page && board ? { page, board } : (page ?? board ?? ''))
+    }
+    case 'page':
+      return pageManifest($, need(args, 'page'))
+    case 'comments':
+      return listComments($, optional(args, 'status'), optional(args, 'page'))
+    case 'reply':
+      await api($, `/api/comments/${id}/reply`, {
+        method: 'POST',
+        body: { body: need(args, 'body'), author: 'claude' },
+      })
+      return `Replied to ${id}.`
+    case 'resolve': {
+      const body = optional(args, 'body')
+      if (body) {
+        await api($, `/api/comments/${id}/reply`, {
+          method: 'POST',
+          body: { body, author: 'claude' },
+        })
+      }
+      await api($, `/api/comments/${id}`, { method: 'PATCH', body: { status: 'resolved' } })
+      return `Resolved ${id}.`
+    }
+    default:
+      throw new CanvasError(`unknown action ${String(args.action)}`)
+  }
+}

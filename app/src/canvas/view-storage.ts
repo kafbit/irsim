@@ -1,0 +1,42 @@
+import type { View } from './geometry'
+
+const key = (pageId: string) => `canvas:view:${pageId}`
+
+const isView = (value: unknown): value is View => {
+  if (typeof value !== 'object' || value === null) return false
+  const { x, y, k } = value as Record<string, unknown>
+  return (
+    [x, y, k].every((part) => typeof part === 'number' && Number.isFinite(part)) && Number(k) > 0
+  )
+}
+
+export function readStoredView(pageId: string): View | null {
+  try {
+    const parsed: unknown = JSON.parse(sessionStorage.getItem(key(pageId)) ?? 'null')
+    return isView(parsed) ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+export function writeStoredView(pageId: string, view: View) {
+  try {
+    sessionStorage.setItem(key(pageId), JSON.stringify(view))
+  } catch {}
+}
+
+const MINIMAP_KEY = 'canvas:minimap'
+
+export function readMinimap(): boolean {
+  try {
+    return sessionStorage.getItem(MINIMAP_KEY) !== 'off'
+  } catch {
+    return true
+  }
+}
+
+export function writeMinimap(on: boolean) {
+  try {
+    sessionStorage.setItem(MINIMAP_KEY, on ? 'on' : 'off')
+  } catch {}
+}

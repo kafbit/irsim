@@ -1,0 +1,6 @@
+{
+  "name": "design-canvas",
+  "version": "0.1.0",
+  "author": { "name": "Bond CRM" },
+  "description": "Opens the Bond design canvas and delivers its comments to the session."
+}
