@@ -1,6 +1,6 @@
-export {}
+import { canvasPort, repoRoot } from '../src/lib/port'
 
-const base = `http://localhost:${process.env.DESIGN_PORT ?? 3200}`
+const base = `http://localhost:${await canvasPort(repoRoot())}`
 const POLL_MS = 2000
 
 const args = process.argv.slice(2)
