@@ -87,4 +87,4 @@
 
 - [x] Boards synced from the live artifact (205 boards, 15 pages with boards), `design/canvas.json` rebuilt
 - [x] AGENTS 5.21, CLAUDE.md, docs 13, 14, 15, README and the PR template point at `design/`; ADR 0045
-- [ ] Remove `canvas-guard.py` and its `.claude/settings.json` entries (needs the user's yes: it edits agent config)
+- [x] `canvas-guard.py` and its `.claude/settings.json` entries removed
