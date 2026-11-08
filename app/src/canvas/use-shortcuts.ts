@@ -3,7 +3,8 @@
 import { useEffect } from 'react'
 import { type Command, commandFor } from './keymap'
 
-export type CommandHandlers = Partial<Record<Command, () => void>>
+/** A handler that returns `false` did not handle the key, so the browser keeps its default action. */
+export type CommandHandlers = Partial<Record<Command, () => unknown>>
 
 const EDITABLE = 'input, textarea, select, [contenteditable=""], [contenteditable="true"]'
 const OVERLAYS = '[role="menu"], [role="dialog"], [role="listbox"]'
@@ -36,8 +37,7 @@ export function useShortcuts(handlers: CommandHandlers, onSpace: (held: boolean)
       const command = commandFor(event)
       const handler = command && handlers[command]
       if (!handler) return
-      event.preventDefault()
-      handler()
+      if (handler() !== false) event.preventDefault()
     }
     const onKeyUp = (event: KeyboardEvent) => event.key === ' ' && onSpace(false)
     const onBlur = () => onSpace(false)

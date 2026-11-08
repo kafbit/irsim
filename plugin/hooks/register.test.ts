@@ -13,9 +13,18 @@ const run = ($: Engine, command: string, args: string) =>
     presentation: { isFullscreen: false, columns: 80 },
   })
 
-type Call = { method: string; path: string; body: unknown }
+type Call = { method: string; path: string; body: unknown; port: string }
+type Worktrees = Record<string, { root: string; port: number }>
 
-function world(on: On, claim: { count: number; text?: string } = { count: 0 }) {
+const DEFAULT_WORKTREES: Worktrees = { '/work/design-app': { root: '/work', port: 3238 } }
+
+function world(
+  on: On,
+  claim: { count: number; text?: string } = { count: 0 },
+  options: { worktrees?: Worktrees; env?: string } = {},
+) {
+  const worktrees = options.worktrees ?? DEFAULT_WORKTREES
+  const session = { cwd: '/work/design-app' }
   const calls: Call[] = []
   const processes: (readonly string[])[] = []
   const submitted: string[] = []
@@ -28,9 +37,9 @@ function world(on: On, claim: { count: number; text?: string } = { count: 0 }) {
   })
 
   on('session.start', (_, e) => ({ cwd: e.cwd }))
-  on('env.get', () => ({ value: undefined }))
+  on('env.get', () => ({ value: options.env }))
   on('session.id', () => ({ value: SESSION }))
-  on('session.cwd', () => ({ value: '/work/design-app' }))
+  on('session.cwd', () => ({ value: session.cwd }))
   on('command.register', (_, e) => ({ value: { command: e.name } }))
   on('tool.register', (_, e) => ({ value: { tool: `mcp__design-canvas__${e.name}` } }))
   on('ui.status', (_, e) => {
@@ -43,10 +52,13 @@ function world(on: On, claim: { count: number; text?: string } = { count: 0 }) {
   })
   on('process.run', (_, e) => {
     processes.push(e.argv)
+    const here = worktrees[session.cwd]
+    const root = e.argv.includes('--root') ? e.argv[e.argv.indexOf('--root') + 1] : undefined
+    const port = Object.values(worktrees).find((one) => one.root === root)?.port
     return {
       value: {
         exitCode: 0,
-        stdout: '/work',
+        stdout: e.argv.includes('rev-parse') ? (here?.root ?? '/work') : String(port ?? ''),
         stderr: '',
         isStdoutTruncated: false,
         isStderrTruncated: false,
@@ -57,7 +69,7 @@ function world(on: On, claim: { count: number; text?: string } = { count: 0 }) {
     const url = new URL(e.url)
     const method = e.init?.method ?? 'GET'
     const body = e.init?.body ? JSON.parse(e.init.body) : undefined
-    calls.push({ method, path: url.pathname, body })
+    calls.push({ method, path: url.pathname, body, port: url.port })
     if (url.pathname === '/api/health') return json({ ok: true, version: 1, root: '/work' })
     if (url.pathname === '/api/pages') {
       return json([
@@ -93,7 +105,7 @@ function world(on: On, claim: { count: number; text?: string } = { count: 0 }) {
     return json({ ok: true })
   })
 
-  return { calls, processes, submitted, statuses, clock }
+  return { calls, processes, submitted, statuses, clock, session }
 }
 
 test('/canvas Leads resolves the board to its page and registers the session', async ($, on) => {
@@ -102,7 +114,7 @@ test('/canvas Leads resolves the board to its page and registers the session', a
 
   const { text } = await run($, 'canvas', 'Leads')
 
-  const url = `http://localhost:3200/p/sales?board=Leads&session=${SESSION}`
+  const url = `http://localhost:3238/p/sales?board=Leads&session=${SESSION}`
   expect(text).toBe(`Canvas open at ${url}, listening for comments.`)
   const session = w.calls.find((call) => call.method === 'POST' && call.path === '/api/sessions')
   expect(session?.body).toEqual({
@@ -127,6 +139,7 @@ test('the poll submits one prompt when claim returns comments and none when it r
     method: 'POST',
     path: '/api/comments/claim',
     body: { sessionId: SESSION },
+    port: '3238',
   })
 })
 
@@ -160,7 +173,9 @@ test('the reply and resolve tool calls hit the right routes', async ($, on) => {
   const resolved = await $.tool.call({ tool: TOOL, action: 'resolve', id: 'c_2', body: 'Fixed.' })
   expect(resolved.result).toBe('Resolved c_2.')
 
-  const writes = w.calls.filter((call) => call.method !== 'GET')
+  const writes = w.calls
+    .filter((call) => call.method !== 'GET')
+    .map(({ method, path, body }) => ({ method, path, body }))
   expect(writes).toEqual([
     { method: 'POST', path: '/api/comments/c_1/reply', body: { body: 'Done.', author: 'claude' } },
     { method: 'POST', path: '/api/comments/c_2/reply', body: { body: 'Fixed.', author: 'claude' } },
@@ -175,4 +190,51 @@ test('the page action returns one line per board', async ($, on) => {
   const { result } = await $.tool.call({ tool: TOOL, action: 'page', page: 'sales' })
 
   expect(result).toBe('sales: Sales\nLeads  1440x900  closure: Table, Sidebar')
+})
+
+test('the port comes from the canvas-port script run in the session worktree', async ($, on) => {
+  const w = world(on)
+  await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
+
+  await run($, 'canvas', '')
+
+  expect(w.processes).toContainEqual([
+    'bun',
+    'apps/design/scripts/canvas-port.ts',
+    '--root',
+    '/work',
+  ])
+  expect(w.calls.every((call) => call.port === '3238')).toBe(true)
+})
+
+test('two worktrees talk to their own canvas port', async ($, on) => {
+  const worktrees: Worktrees = {
+    '/work/one/apps/web': { root: '/work/one', port: 3211 },
+    '/work/two': { root: '/work/two', port: 3277 },
+  }
+  const w = world(on, { count: 0 }, { worktrees })
+  await $.session.start({ cwd: '/work/one/apps/web', surface: 'terminal', isInteractive: true })
+  w.session.cwd = '/work/one/apps/web'
+  const first = await run($, 'canvas', '')
+  expect(first.text).toContain('http://localhost:3211/')
+
+  w.calls.length = 0
+  w.session.cwd = '/work/two'
+  const second = await run($, 'canvas', '')
+  expect(second.text).toContain('http://localhost:3277/')
+  expect(w.calls.every((call) => call.port === '3277')).toBe(true)
+})
+
+test('DESIGN_PORT wins and the canvas-port script is not run', async ($, on) => {
+  const worktrees: Worktrees = { '/work/forced': { root: '/work/forced', port: 3299 } }
+  const w = world(on, { count: 0 }, { worktrees, env: '4555' })
+  await $.session.start({ cwd: '/work/forced', surface: 'terminal', isInteractive: true })
+  w.session.cwd = '/work/forced'
+
+  const { text } = await run($, 'canvas', '')
+
+  expect(text).toContain('http://localhost:4555/')
+  expect(w.processes.some((argv) => argv.includes('apps/design/scripts/canvas-port.ts'))).toBe(
+    false,
+  )
 })

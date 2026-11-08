@@ -85,6 +85,35 @@ describe('comments store', () => {
     expect((await claim('s1')).count).toBe(1)
   })
 
+  it('two sessions each claim only the comments they sent, and never twice', async () => {
+    await createComment(input({ page: 'sales', body: 'for one' }))
+    await sendDrafts({ sessionId: 's1', page: 'sales' })
+    await createComment(input({ page: 'sales', body: 'for two' }))
+    await sendDrafts({ sessionId: 's2', page: 'sales' })
+    const one = await claim('s1')
+    const two = await claim('s2')
+    expect(one.comments.map((comment) => comment.body)).toEqual(['for one'])
+    expect(two.comments.map((comment) => comment.body)).toEqual(['for two'])
+    expect((await claim('s1')).count).toBe(0)
+    expect((await claim('s2')).count).toBe(0)
+  })
+
+  it('a data directory of another worktree never sees these comments', async () => {
+    await createComment(input())
+    await sendDrafts({ sessionId: 's1' })
+    const other = mkdtempSync(join(tmpdir(), 'canvas-data-other-'))
+    const here = process.env.CANVAS_DATA_DIR
+    process.env.CANVAS_DATA_DIR = other
+    try {
+      expect(await listComments({})).toEqual([])
+      expect((await claim('s1')).count).toBe(0)
+    } finally {
+      process.env.CANVAS_DATA_DIR = here
+      rmSync(other, { recursive: true, force: true })
+    }
+    expect((await claim('s1')).count).toBe(1)
+  })
+
   it('only a draft can be edited or deleted, a resolve works on any status', async () => {
     const comment = await createComment(input())
     expect(await updateComment(comment.id, { body: 'Edited' })).toMatchObject({

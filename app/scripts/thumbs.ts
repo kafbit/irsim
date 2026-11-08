@@ -4,6 +4,7 @@ import { chromium, type Browser } from '@playwright/test'
 import sharp from 'sharp'
 import { readCanvasPages, type CanvasBoard } from '../src/lib/canvas-pages'
 import { closureOf } from '../src/lib/closure'
+import { canvasPort, repoRoot } from '../src/lib/port'
 import { THUMB_WIDTH, thumbFile, thumbsDir } from '../src/lib/thumbs-dir'
 
 const CONCURRENCY = 3
@@ -17,7 +18,7 @@ const arg = (name: string): string | undefined => {
 }
 
 const force = process.argv.includes('--force')
-const base = arg('--base') ?? 'http://localhost:3200'
+const base = arg('--base') ?? `http://localhost:${await canvasPort(repoRoot())}`
 const pageId = arg('--page')
 const boardName = arg('--board')
 

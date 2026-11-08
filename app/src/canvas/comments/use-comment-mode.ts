@@ -15,10 +15,11 @@ const postMode = (win: Window | null | undefined, on: boolean) =>
  * While `active`, every mounted frame is told to run its comment mode, and so is each frame that
  * boots later (it announces `ready`). A `pick` from a frame goes to `onPick`, which must be stable.
  * The frames' wheel, middle-drag and tool keys are handed to the camera, see `attachFrameInput`.
+ * With no camera (one board alone) the frame keeps its own scrolling and only the mode is posted.
  */
 export function useCommentMode(
   active: boolean,
-  camera: Camera,
+  camera: Camera | null,
   onPick: (pick: PickedElement) => void,
 ) {
   // Syncs with the frame windows, an external system: the mode is posted to them, and removed on exit.
@@ -27,11 +28,11 @@ export function useCommentMode(
     const attached = new WeakSet<Window>()
     const cleanups: (() => void)[] = []
     const enter = (win: Window | null | undefined) => {
-      const viewport = camera.viewportElement()
-      if (!win || !viewport || attached.has(win)) return
+      const viewport = camera?.viewportElement()
+      if (!win || attached.has(win) || (camera && !viewport)) return
       attached.add(win)
       postMode(win, true)
-      cleanups.push(attachFrameInput(win, camera, viewport))
+      if (camera && viewport) cleanups.push(attachFrameInput(win, camera, viewport))
     }
     for (const frame of document.querySelectorAll<HTMLIFrameElement>(FRAMES)) {
       enter(frame.contentWindow)

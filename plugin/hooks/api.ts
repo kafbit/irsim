@@ -35,9 +35,34 @@ export const oneLine = (text: string): string => text.replace(/\s+/g, ' ').trim(
 export const messageOf = (error: unknown): string =>
   error instanceof Error ? error.message : String(error)
 
+const worktrees = new Map<string, { root: string; port: number }>()
+
+async function worktreeOf($: Engine): Promise<{ root: string; port: number }> {
+  const cwd = await $.session.cwd()
+  const known = worktrees.get(cwd)
+  if (known) return known
+  const top = await $.process.run(['git', 'rev-parse', '--show-toplevel'], { cwd })
+  const root = top.stdout.trim()
+  if (top.exitCode !== 0 || !root)
+    throw new CanvasError('the session is not inside the Kafbit repository')
+  const forced = Number(await $.env.get('DESIGN_PORT'))
+  let port = forced
+  if (!Number.isInteger(forced) || forced < 1) {
+    const resolved = await $.process.run(
+      ['bun', 'apps/design/scripts/canvas-port.ts', '--root', root],
+      { cwd: root },
+    )
+    port = Number(resolved.stdout.trim())
+    if (resolved.exitCode !== 0 || !Number.isInteger(port))
+      throw new CanvasError(`no canvas port for ${root}: ${oneLine(resolved.stderr)}`)
+  }
+  const found = { root, port }
+  worktrees.set(cwd, found)
+  return found
+}
+
 export async function baseUrl($: Engine): Promise<string> {
-  const port = await $.env.get('DESIGN_PORT')
-  return `http://localhost:${port || 3200}`
+  return `http://localhost:${(await worktreeOf($)).port}`
 }
 
 export async function api<T>(
@@ -85,10 +110,9 @@ async function isUp($: Engine): Promise<boolean> {
 
 export async function ensureServer($: Engine): Promise<void> {
   if (await isUp($)) return
-  const top = await $.process.run(['git', 'rev-parse', '--show-toplevel'])
-  const root = top.stdout.trim()
-  if (top.exitCode !== 0 || !root)
-    throw new CanvasError('the session is not inside the Bond repository')
+  worktrees.delete(await $.session.cwd())
+  if (await isUp($)) return
+  const { root } = await worktreeOf($)
   await $.process.run(
     [
       'sh',

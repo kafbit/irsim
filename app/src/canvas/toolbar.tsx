@@ -1,7 +1,7 @@
 'use client'
 
-import { IconButton } from '@bond/ui'
-import { Hand, MessageSquare, MousePointer2 } from '@bond/ui/icons'
+import { IconButton } from '@kafbit/ui'
+import { Hand, MessageSquare, MousePointer2 } from '@kafbit/ui/icons'
 
 export type Tool = 'move' | 'hand' | 'comment'
 

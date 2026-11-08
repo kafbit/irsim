@@ -7,7 +7,7 @@ import { stepZoom } from './navigation'
 import { readStoredView, writeStoredView } from './view-storage'
 
 const ORIGIN: View = { x: 0, y: 0, k: 1 }
-const FOCUS_PADDING = 80
+export const FOCUS_PADDING = 80
 
 type Options = {
   layout: Layout

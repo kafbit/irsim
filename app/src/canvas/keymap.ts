@@ -12,11 +12,31 @@ export type Command =
   | 'tool-move'
   | 'tool-hand'
   | 'tool-comment'
+  | 'nudge-left'
+  | 'nudge-right'
+  | 'nudge-up'
+  | 'nudge-down'
+  | 'nudge-far-left'
+  | 'nudge-far-right'
+  | 'nudge-far-up'
+  | 'nudge-far-down'
+
+const NUDGES = new Map<string, [Command, Command]>([
+  ['ArrowLeft', ['nudge-left', 'nudge-far-left']],
+  ['ArrowRight', ['nudge-right', 'nudge-far-right']],
+  ['ArrowUp', ['nudge-up', 'nudge-far-up']],
+  ['ArrowDown', ['nudge-down', 'nudge-far-down']],
+])
+
+const nudgeFor = (key: string, far: boolean): Command | null =>
+  NUDGES.get(key)?.[far ? 1 : 0] ?? null
 
 export type KeyInput = { key: string; code: string; shiftKey: boolean }
 
 /** Shift+digit is read from `code`, because `key` holds `!` or `@` on some layouts. Plain `0` and `1` stay as aliases. */
 export function commandFor({ key, code, shiftKey }: KeyInput): Command | null {
+  const arrow = nudgeFor(key, shiftKey)
+  if (arrow) return arrow
   if (shiftKey) {
     if (code === 'Digit1') return 'fit-page'
     if (code === 'Digit2') return 'fit-selection'

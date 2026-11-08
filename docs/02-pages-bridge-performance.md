@@ -113,6 +113,8 @@ Added 2026-11-08 at the user's request ("better UI/UX and enhanced rendering"). 
 | `N` / `Shift+N` | Next / previous board in reading order, focused |
 | `Enter` / `Esc` | Interact with the selected board / leave it, then deselect |
 | `/` | Focus board search |
+| Drag a frame title / drag a handle of the selected frame | Move / resize the frame (minimum 240 x 160), saved to `design/canvas.json`; `Esc` during the drag restores it |
+| `Arrow` / `Shift+Arrow` | Nudge the selected frame by 10 / 50 units, saved after 400 ms |
 
 - Camera moves from a button, a key or the list animate over 300 ms with ease-in-out cubic. Any pointer or wheel input stops the animation.
 - Frame labels keep a constant screen size (counter-scaled by `1/k`) and hide below zoom 0.05.

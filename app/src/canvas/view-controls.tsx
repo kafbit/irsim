@@ -8,12 +8,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   IconButton,
-} from '@bond/ui'
-import { ChevronDown, MapIcon } from '@bond/ui/icons'
+} from '@kafbit/ui'
+import { ChevronDown, MapIcon } from '@kafbit/ui/icons'
 import type { ReactNode } from 'react'
 import type { Camera } from './camera'
 import type { Layout } from './geometry'
 import { Minimap } from './minimap'
+import { useTheme } from './use-theme'
 
 type Actions = {
   zoomTo: (k: number) => void
@@ -58,6 +59,7 @@ export function ViewControls({
   minimap: boolean
   onToggleMinimap: () => void
 }) {
+  const { theme, toggle: toggleTheme } = useTheme()
   return (
     <div
       className="absolute end-4 bottom-4 flex flex-col items-end gap-2"
@@ -100,6 +102,10 @@ export function ViewControls({
               Fit selection
               <span className="ms-auto ps-6 text-xs text-muted-foreground">Shift+2</span>
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <Item onSelect={toggleTheme}>
+              {theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+            </Item>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
