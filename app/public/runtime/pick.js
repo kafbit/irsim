@@ -4,11 +4,37 @@
  * it to the parent. Stamps come from `stampLines` in stamp.js.
  */
 
-const OUTLINE =
-  'position:fixed;pointer-events:none;z-index:2147483647;outline:2px solid #2563eb;outline-offset:-2px;display:none'
+const BASE = 'position:fixed;pointer-events:none;z-index:2147483647;outline-offset:0'
+const FALLBACK_PICK = '#14161a'
 const SWALLOWED = ['pointerdown', 'mousedown', 'mouseup']
 const MAX_PATH = 4
 const MAX_TEXT = 80
+
+/**
+ * The canvas's own `--pick`, the colour of the box around a picked element, so the hover outline and
+ * the picked box match. A frame opened on its own has no parent and takes the fallback.
+ * @returns {string}
+ */
+const ringColor = () => {
+  try {
+    const value = getComputedStyle(parent.document.documentElement).getPropertyValue('--pick')
+    return value.trim() || FALLBACK_PICK
+  } catch {
+    return FALLBACK_PICK
+  }
+}
+
+/**
+ * The outline width that reads as 2 screen pixels: the canvas scales the frame, and the box around
+ * a picked element is drawn outside it at a constant width.
+ * @returns {number}
+ */
+const lineWidth = () => {
+  const frame = window.frameElement
+  const scale =
+    frame && window.innerWidth ? frame.getBoundingClientRect().width / window.innerWidth : 1
+  return scale > 0 ? 2 / scale : 2
+}
 
 /**
  * @param {EventTarget | null} target
@@ -82,7 +108,7 @@ export const createPicker = (post) => {
       return
     }
     const box = element.getBoundingClientRect()
-    outline.style.cssText = `${OUTLINE};left:${box.left}px;top:${box.top}px;width:${box.width}px;height:${box.height}px`
+    outline.style.cssText = `${BASE};outline:${lineWidth()}px solid ${ringColor()};left:${box.left}px;top:${box.top}px;width:${box.width}px;height:${box.height}px`
   }
 
   /** @param {Event} event */
@@ -116,7 +142,7 @@ export const createPicker = (post) => {
     window[action]('scroll', refresh, true)
     if (on && !outline) {
       outline = document.createElement('div')
-      outline.style.cssText = OUTLINE
+      outline.style.cssText = `${BASE};display:none`
       cursor = document.createElement('style')
       cursor.textContent = '*{cursor:crosshair!important}'
       document.documentElement.append(outline, cursor)

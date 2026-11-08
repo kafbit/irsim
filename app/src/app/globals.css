@@ -19,3 +19,66 @@ body {
   margin: 0;
   background: var(--surface);
 }
+
+/*
+ * The comment outline and the picked box sit on top of a board, which keeps its own light colours
+ * in either theme, so they take a fixed ink instead of `--ring`, which turns light in dark mode.
+ */
+@theme inline {
+  --color-pick: var(--pick);
+}
+
+:root {
+  --pick: #14161a;
+}
+
+/*
+ * The canvas chrome in dark. Dark is the default and light is the stored exception, see
+ * `src/lib/theme.ts`. Only the chrome changes: each board draws itself in its own frame.
+ * Every token the chrome reads is redefined here, so none of it falls back to the light value.
+ */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --background: #111214;
+  --foreground: #ecece8;
+  --card: #1a1b1e;
+  --card-foreground: #ecece8;
+  --popover: #1a1b1e;
+  --popover-foreground: #ecece8;
+  --brand: #ecece8;
+  --primary: #ecece8;
+  --primary-foreground: #14161a;
+  --secondary: #26272b;
+  --secondary-foreground: #ecece8;
+  --muted: #26272b;
+  --muted-foreground: #a3a7ae;
+  --accent: #26272b;
+  --accent-foreground: #ecece8;
+  --destructive: #ff8f80;
+  --destructive-foreground: #14161a;
+  --destructive-solid: #d92d20;
+  --success: #15301f;
+  --success-foreground: #86d6a6;
+  --warning: #3b2a14;
+  --warning-foreground: #f3b66f;
+  --info: #14263e;
+  --info-foreground: #93bcf0;
+  --rented: #281f3b;
+  --rented-foreground: #bda7ec;
+  --note: #3a3312;
+  --note-foreground: #e9d88c;
+  --shell: #0b0c0d;
+  --surface: #121315;
+  --border: #2d2e33;
+  --border-strong: #3b3c42;
+  --input: #666b74;
+  --ring: #ecece8;
+  --sidebar: #0b0c0d;
+  --sidebar-foreground: #d9dbd8;
+  --sidebar-primary: #ecece8;
+  --sidebar-primary-foreground: #14161a;
+  --sidebar-accent: #1a1b1e;
+  --sidebar-accent-foreground: #ecece8;
+  --sidebar-border: #2d2e33;
+  --sidebar-ring: #ecece8;
+}

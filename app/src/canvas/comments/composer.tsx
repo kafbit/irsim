@@ -68,7 +68,7 @@ export function Composer({
       <div
         ref={box}
         aria-hidden="true"
-        className="pointer-events-none absolute start-0 top-0 outline-2 outline-ring"
+        className="outline-pick pointer-events-none absolute start-0 top-0 outline-2"
       />
       <div
         ref={panel}
