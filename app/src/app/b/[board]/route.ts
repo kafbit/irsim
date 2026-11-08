@@ -44,7 +44,8 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ board: string }> },
 ): Promise<Response> {
-  const { board } = await params
+  // Boards link to each other as `X.dc.html`, and a click loads that URL into the frame.
+  const board = (await params).board.replace(/\.dc\.html$/, '')
   if (!/^[A-Za-z][A-Za-z0-9]*$/.test(board)) {
     return new Response('invalid board name', { status: 400 })
   }
