@@ -1,0 +1,21 @@
+@import 'tailwindcss';
+@import '@bond/ui/styles.css';
+@source '../../../../packages/ui/src';
+
+/*
+ * The boards ship their own colours and fonts inside each frame, so the chrome takes the palette
+ * from `@bond/ui` instead of the tokens the canvas is editing: a preview tool that changes colour
+ * when the colour variable changes cannot be used to judge the change.
+ */
+@theme {
+  --font-sans: system-ui, sans-serif;
+}
+
+html {
+  font-family: var(--font-sans);
+}
+
+body {
+  margin: 0;
+  background: var(--surface);
+}

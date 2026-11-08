@@ -1,0 +1,55 @@
+export type Command =
+  | 'fit-page'
+  | 'fit-selection'
+  | 'actual-size'
+  | 'zoom-in'
+  | 'zoom-out'
+  | 'next-board'
+  | 'previous-board'
+  | 'interact'
+  | 'escape'
+  | 'search'
+  | 'tool-move'
+  | 'tool-hand'
+  | 'tool-comment'
+
+export type KeyInput = { key: string; code: string; shiftKey: boolean }
+
+/** Shift+digit is read from `code`, because `key` holds `!` or `@` on some layouts. Plain `0` and `1` stay as aliases. */
+export function commandFor({ key, code, shiftKey }: KeyInput): Command | null {
+  if (shiftKey) {
+    if (code === 'Digit1') return 'fit-page'
+    if (code === 'Digit2') return 'fit-selection'
+    if (code === 'Digit0') return 'actual-size'
+    if (key === 'N') return 'previous-board'
+    if (key === '+') return 'zoom-in'
+    return null
+  }
+  switch (key) {
+    case '0':
+      return 'fit-page'
+    case '1':
+      return 'actual-size'
+    case '+':
+    case '=':
+      return 'zoom-in'
+    case '-':
+      return 'zoom-out'
+    case 'n':
+      return 'next-board'
+    case 'Enter':
+      return 'interact'
+    case 'Escape':
+      return 'escape'
+    case '/':
+      return 'search'
+    case 'v':
+      return 'tool-move'
+    case 'h':
+      return 'tool-hand'
+    case 'c':
+      return 'tool-comment'
+    default:
+      return null
+  }
+}
