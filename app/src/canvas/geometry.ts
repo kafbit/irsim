@@ -14,25 +14,34 @@ export type Layout = { boards: PlacedBoard[]; all: Rect }
 
 export const clampScale = (k: number) => Math.min(MAX_SCALE, Math.max(MIN_SCALE, k))
 
-/** Positions come from the manifest, already page-local. `all` reaches up over the page label and frame titles. */
-export function buildPageLayout(manifest: PageManifest): Layout {
-  const boards = manifest.boards.map(({ name, title, x, y, width, height, hash }) => ({
-    name,
-    title,
-    hash,
-    x,
-    y,
-    width,
-    height,
-  }))
-  let width = 0
-  let height = 0
+/** The extents of `boards`. `all` reaches up over the page label and frame titles, and out to a board moved below zero. */
+export function layoutOf(boards: PlacedBoard[]): Layout {
+  let left = 0
+  let right = 0
+  let top = -(TITLE_BAR + PAGE_LABEL_ROOM)
+  let bottom = 0
   for (const board of boards) {
-    width = Math.max(width, board.x + board.width)
-    height = Math.max(height, board.y + board.height)
+    left = Math.min(left, board.x)
+    right = Math.max(right, board.x + board.width)
+    top = Math.min(top, board.y - TITLE_BAR - PAGE_LABEL_ROOM)
+    bottom = Math.max(bottom, board.y + board.height)
   }
-  const top = -(TITLE_BAR + PAGE_LABEL_ROOM)
-  return { boards, all: { x: 0, y: top, width, height: height - top } }
+  return { boards, all: { x: left, y: top, width: right - left, height: bottom - top } }
+}
+
+/** Positions come from the manifest, already page-local. */
+export function buildPageLayout(manifest: PageManifest): Layout {
+  return layoutOf(
+    manifest.boards.map(({ name, title, x, y, width, height, hash }) => ({
+      name,
+      title,
+      hash,
+      x,
+      y,
+      width,
+      height,
+    })),
+  )
 }
 
 /**

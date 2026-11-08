@@ -88,7 +88,7 @@ export async function ensureServer($: Engine): Promise<void> {
   const top = await $.process.run(['git', 'rev-parse', '--show-toplevel'])
   const root = top.stdout.trim()
   if (top.exitCode !== 0 || !root)
-    throw new CanvasError('the session is not inside the Bond repository')
+    throw new CanvasError('the session is not inside the Kafbit repository')
   await $.process.run(
     [
       'sh',

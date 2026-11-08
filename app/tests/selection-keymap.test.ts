@@ -66,8 +66,18 @@ describe('commandFor', () => {
     expect(key('1')).toBe('actual-size')
   })
 
+  it('maps the arrow keys to a near nudge, and with Shift to a far one', () => {
+    expect(key('ArrowLeft')).toBe('nudge-left')
+    expect(key('ArrowRight')).toBe('nudge-right')
+    expect(key('ArrowUp')).toBe('nudge-up')
+    expect(key('ArrowDown')).toBe('nudge-down')
+    expect(key('ArrowLeft', { shiftKey: true })).toBe('nudge-far-left')
+    expect(key('ArrowDown', { shiftKey: true })).toBe('nudge-far-down')
+  })
+
   it('ignores other keys', () => {
     expect(key('q')).toBeNull()
     expect(key('Q', { shiftKey: true })).toBeNull()
+    expect(key('constructor')).toBeNull()
   })
 })

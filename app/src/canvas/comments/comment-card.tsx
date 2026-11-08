@@ -1,7 +1,7 @@
 'use client'
 
-import { Badge, Button, IconButton, Textarea } from '@bond/ui'
-import { Check, DeleteIcon, EditIcon } from '@bond/ui/icons'
+import { Badge, Button, IconButton, Textarea } from '@kafbit/ui'
+import { Check, DeleteIcon, EditIcon } from '@kafbit/ui/icons'
 import { useState } from 'react'
 import type { Comment } from './types'
 

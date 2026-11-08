@@ -4,6 +4,7 @@
  * tell the parent. This file is the `./support.js` every board already points at.
  */
 
+import { installCaptureTracking } from './capture.js'
 import { applyEnv, applyTokens } from './env.js'
 import { parseBoard, prepareSource } from './parse.js'
 import { createPicker } from './pick.js'
@@ -97,6 +98,7 @@ const start = async () => {
   }
 }
 
+installCaptureTracking(window)
 const picker = createPicker(post)
 window.addEventListener('message', (event) => {
   if (event.source !== parent || event.data?.type !== 'comment-mode') return

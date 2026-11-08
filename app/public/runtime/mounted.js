@@ -5,6 +5,7 @@
  * and arrives through the context, so this file has no import cycle to rely on.
  */
 
+import { carryCaptures, takeCaptures } from './capture.js'
 import { sameProps } from './eval.js'
 
 /** @typedef {import('./parse.js').Node} Node */
@@ -84,7 +85,9 @@ export class Mounted {
       return
     }
     const fresh = Array.from(frag.childNodes)
+    const captures = takeCaptures(this.nodes)
     this.end.parentNode.insertBefore(frag, this.end)
+    carryCaptures(captures, fresh)
     for (const node of this.nodes) if (!fresh.includes(node)) node.remove()
     this.nodes = fresh
     for (const [key, child] of this.children) if (!rs.children.has(key)) child.destroy()

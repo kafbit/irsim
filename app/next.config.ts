@@ -5,7 +5,7 @@ const config: NextConfig = {
   // Next writes AGENTS.md and CLAUDE.md next to the config; this package is a dev tool with no
   // agent instructions of its own, and the files are noise in every diff.
   agentRules: false,
-  transpilePackages: ['@bond/contracts', '@bond/domain', '@bond/i18n', '@bond/ui'],
+  transpilePackages: ['@kafbit/contracts', '@kafbit/domain', '@kafbit/i18n', '@kafbit/ui'],
 }
 
 export default config

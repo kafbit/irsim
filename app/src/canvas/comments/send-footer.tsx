@@ -1,7 +1,7 @@
 'use client'
 
-import { Button, Select } from '@bond/ui'
-import { Send } from '@bond/ui/icons'
+import { Button, Select } from '@kafbit/ui'
+import { Send } from '@kafbit/ui/icons'
 import { useState } from 'react'
 import { sendLabel } from './model'
 import type { Session } from './types'

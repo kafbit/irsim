@@ -1,6 +1,6 @@
 'use client'
 
-import { Button, Textarea } from '@bond/ui'
+import { Button, Textarea } from '@kafbit/ui'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Camera } from '../camera'
 import type { PlacedBoard } from '../geometry'

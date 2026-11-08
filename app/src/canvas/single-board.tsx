@@ -1,6 +1,6 @@
 'use client'
 
-import { Button } from '@bond/ui'
+import { Button } from '@kafbit/ui'
 import Link from 'next/link'
 import type { ManifestBoard } from './types'
 

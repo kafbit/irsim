@@ -8,8 +8,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   IconButton,
-} from '@bond/ui'
-import { ChevronDown, MapIcon } from '@bond/ui/icons'
+} from '@kafbit/ui'
+import { ChevronDown, MapIcon } from '@kafbit/ui/icons'
 import type { ReactNode } from 'react'
 import type { Camera } from './camera'
 import type { Layout } from './geometry'

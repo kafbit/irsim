@@ -1,7 +1,7 @@
 'use client'
 
-import { formatNumber } from '@bond/i18n'
-import { Input } from '@bond/ui'
+import { formatNumber } from '@kafbit/i18n'
+import { Input } from '@kafbit/ui'
 import Link from 'next/link'
 import { type Ref, useCallback, useState } from 'react'
 import { CHROME_FORMAT } from './chrome-format'

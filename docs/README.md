@@ -120,7 +120,7 @@ Added 2026-11-08. Specified in `02-pages-bridge-performance.md`: one route per a
 
 | Decision | Why | Rejected |
 | --- | --- | --- |
-| Local dev app `apps/design`, no `build`/`dev` script | Needs local FS, `@bond/ui` and Tailwind; a workspace package gets lint, typecheck, arch and test discovery for free, while no `build` keeps it out of turbo, CI images and deploys | `tools/`: untyped, ungated, and a hand-rolled control set breaks 5.17 |
+| Local dev app `apps/design`, no `build`/`dev` script | Needs local FS, `@kafbit/ui` and Tailwind; a workspace package gets lint, typecheck, arch and test discovery for free, while no `build` keeps it out of turbo, CI images and deploys | `tools/`: untyped, ungated, and a hand-rolled control set breaks 5.17 |
 | Own runtime in `public/runtime/` | The referenced `./support.js` is not in the repo; the vocabulary is five tags and 15 `onX` handlers | Vendoring Tingly Design: a whole studio, off-stack, still no language modes |
 | Variables applied at render time | `design/` stays a mirror; a publish never conflicts | Rewriting 181 boards to `var(--token)` / `{{t.key}}`: forks the mirror |
 | Token source of truth is `packages/ui/src/tokens.css` | One palette; the override lives beside the canvas, not in a copy | A duplicated palette inside the tool |
@@ -164,7 +164,7 @@ Added 2026-11-08. Specified in `02-pages-bridge-performance.md`: one route per a
 
 ## Exit criteria
 
-- `bun run canvas` opens the canvas on a fresh worktree with no prior build of `@bond/i18n`.
+- `bun run canvas` opens the canvas on a fresh worktree with no prior build of `@kafbit/i18n`.
 - All 11 pages and 181 boards render; the sweep reports zero console errors and zero empty
   boards.
 - Editing a colour, a radius and a type size changes the mounted frames without a page reload,

@@ -22,8 +22,11 @@ import { Overlay } from './overlay'
 import { PageLabel } from './page-label'
 import { NO_SELECTION, reduceSelection } from './selection'
 import { Sidebar } from './sidebar'
+import { Toast } from './toast'
 import { type Tool, Toolbar } from './toolbar'
 import type { PageManifest, PageSummary } from './types'
+import { useBoardEditing } from './use-board-editing'
+import { useBoardLayout } from './use-board-layout'
 import { useFrameEscape } from './use-frame-escape'
 import { useMounts } from './use-mounts'
 import { type CommandHandlers, useShortcuts } from './use-shortcuts'
@@ -53,8 +56,10 @@ export function PageCanvas({
   focus: string | null
 }) {
   const layout = useMemo(() => buildPageLayout(manifest), [manifest])
-  const order = useMemo(() => readingOrder(layout.boards), [layout])
-  const placed = useMemo(() => new Set(layout.boards.map((board) => board.name)), [layout])
+  const edit = useBoardLayout(manifest.id, layout.boards)
+  const boards = edit.boards
+  const order = useMemo(() => readingOrder(boards), [boards])
+  const onPage = useMemo(() => new Set(boards.map((board) => board.name)), [boards])
   const [selection, dispatch] = useReducer(reduceSelection, NO_SELECTION)
   const [tool, setTool] = useState<Tool>('move')
   const [hovered, setHovered] = useState<string | null>(null)
@@ -63,13 +68,21 @@ export function PageCanvas({
   const [activeComment, setActiveComment] = useState<string | null>(null)
   const [minimap, setMinimap] = useState(readMinimap)
   const searchRef = useRef<HTMLInputElement>(null)
-  const mounts = useMounts(layout.boards)
+  const mounts = useMounts(boards)
   const onTap = useCallback(
     (name: string | null, double: boolean) =>
       dispatch(double && name ? { type: 'interact', name } : { type: 'select', name }),
     [],
   )
-  const { camera, view, viewportRef, worldRef, handlers, actions, setSpace } = useViewport({
+  const {
+    camera,
+    view,
+    viewportRef,
+    worldRef,
+    handlers,
+    actions: cameraActions,
+    setSpace,
+  } = useViewport({
     layout,
     pageId: manifest.id,
     focus,
@@ -101,6 +114,15 @@ export function PageCanvas({
   }, [])
 
   const select = useCallback((name: string) => dispatch({ type: 'select', name }), [])
+  const moving = tool === 'move'
+  const { placedLayout, selectedRect, frameEdit, actions, nudges } = useBoardEditing({
+    camera,
+    cameraActions,
+    edit,
+    selection,
+    moving,
+    onSelect: select,
+  })
   const focusBoard = useCallback(
     (name: string) => {
       dispatch({ type: 'select', name })
@@ -144,8 +166,9 @@ export function PageCanvas({
       'tool-move': () => changeTool('move'),
       'tool-hand': () => changeTool('hand'),
       'tool-comment': () => changeTool(commenting ? 'move' : 'comment'),
+      ...nudges,
     }
-  }, [actions, changeTool, commenting, focusBoard, order, selection.name])
+  }, [actions, changeTool, commenting, focusBoard, nudges, order, selection.name])
   useShortcuts(commands, setSpace)
 
   return (
@@ -173,11 +196,12 @@ export function PageCanvas({
           ref={worldRef}
           data-hand={tool === 'hand' ? '' : undefined}
           className="absolute start-0 top-0 origin-top-left"
+          onPointerDown={frameEdit.onTitleDown}
           onPointerOver={(event) => event.buttons === 0 && setHovered(boardOf(event.target))}
           onPointerLeave={() => setHovered(null)}
         >
           <PageLabel title={manifest.title} k={view.k} />
-          {layout.boards.map((board) => {
+          {boards.map((board) => {
             const entry = mounts.state.entries[board.name]
             return (
               <Frame
@@ -194,7 +218,7 @@ export function PageCanvas({
             )
           })}
           <CommentLayer
-            boards={layout.boards}
+            boards={boards}
             comments={comments.comments}
             numbers={numbers}
             activeId={activeComment}
@@ -203,15 +227,17 @@ export function PageCanvas({
         </div>
         <Overlay
           camera={camera}
-          boards={layout.boards}
+          boards={boards}
           hovered={hovered}
           selected={selection.name}
+          editable={moving && !selection.interacting}
+          onResizeStart={frameEdit.onResizeDown}
         />
         {commenting && pick ? (
           <Composer
             key={`${pick.board}:${pick.file}:${pick.line}:${pick.rect.x}:${pick.rect.y}`}
             camera={camera}
-            boards={layout.boards}
+            boards={boards}
             pick={pick}
             onSave={async (body) => {
               await comments.create({ ...pick, page: manifest.id, body })
@@ -221,9 +247,10 @@ export function PageCanvas({
           />
         ) : null}
         <Toolbar tool={tool} onTool={changeTool} />
+        <Toast message={edit.error} />
         <ViewControls
           camera={camera}
-          layout={layout}
+          layout={placedLayout}
           k={view.k}
           actions={actions}
           selected={selection.name}
@@ -247,10 +274,10 @@ export function PageCanvas({
         />
       ) : selectedBoard ? (
         <Inspector
-          board={selectedBoard}
+          board={{ ...selectedBoard, ...selectedRect }}
           pageId={manifest.id}
           pages={pages}
-          placed={placed}
+          placed={onPage}
           onFocusBoard={focusBoard}
         />
       ) : null}

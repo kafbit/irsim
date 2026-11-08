@@ -1,7 +1,7 @@
 'use client'
 
-import { IconButton } from '@bond/ui'
-import { X } from '@bond/ui/icons'
+import { IconButton } from '@kafbit/ui'
+import { X } from '@kafbit/ui/icons'
 import { useEffect } from 'react'
 import { CommentCard } from './comment-card'
 import { groupComments } from './model'
