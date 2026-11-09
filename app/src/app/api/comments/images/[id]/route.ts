@@ -14,6 +14,7 @@ export async function GET(
   return new Response(Buffer.from(image.bytes), {
     headers: {
       'content-type': image.type,
+      'x-content-type-options': 'nosniff',
       'cache-control': 'public, max-age=31536000, immutable',
     },
   })
