@@ -54,7 +54,7 @@ export function useGestures({ camera, hand, onTap }: Options) {
         const frame = element.querySelector<HTMLIFrameElement>(
           `[data-board="${CSS.escape(data.board)}"] iframe`,
         )
-        if (!frame) return
+        if (!frame || event.source !== frame.contentWindow) return
         const box = frame.getBoundingClientRect()
         const scale = frame.offsetWidth ? box.width / frame.offsetWidth : 1
         const rect = element.getBoundingClientRect()
