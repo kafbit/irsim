@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { type Command, commandFor } from './keymap'
+import { type Command, commandFor, zoomChord } from './keymap'
 
 /** A handler that returns `false` did not handle the key, so the browser keeps its default action. */
 export type CommandHandlers = Partial<Record<Command, () => unknown>>
@@ -28,6 +28,12 @@ export function useShortcuts(handlers: CommandHandlers, onSpace: (held: boolean)
   // Syncs with the window's key events, an external system. Re-subscribes when a handler changes.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      const chord = zoomChord(event)
+      if (chord) {
+        event.preventDefault()
+        handlers[chord]?.()
+        return
+      }
       if (belongsElsewhere(event)) return
       if (event.key === ' ') {
         event.preventDefault()
@@ -41,6 +47,13 @@ export function useShortcuts(handlers: CommandHandlers, onSpace: (held: boolean)
     }
     const onKeyUp = (event: KeyboardEvent) => event.key === ' ' && onSpace(false)
     const onBlur = () => onSpace(false)
+    const onMessage = (event: MessageEvent) => {
+      const data = event.data as { type?: string; details?: { command?: string } } | null
+      if (data?.type !== 'zoom-chord') return
+      const command = data.details?.command
+      if (command === 'zoom-in' || command === 'zoom-out') handlers[command]?.()
+    }
+    window.addEventListener('message', onMessage)
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
     window.addEventListener('blur', onBlur)
@@ -48,6 +61,7 @@ export function useShortcuts(handlers: CommandHandlers, onSpace: (held: boolean)
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
       window.removeEventListener('blur', onBlur)
+      window.removeEventListener('message', onMessage)
     }
   }, [handlers, onSpace])
 }

@@ -105,6 +105,27 @@ window.addEventListener('message', (event) => {
   picker.setOn(event.data.on === true)
 })
 window.addEventListener('keydown', (event) => event.key === 'Escape' && post('escape'))
+window.addEventListener('keydown', (event) => {
+  if (!(event.ctrlKey || event.metaKey) || event.altKey) return
+  const command = '+='.includes(event.key)
+    ? 'zoom-in'
+    : '-_'.includes(event.key)
+      ? 'zoom-out'
+      : null
+  if (!command || event.key.length !== 1) return
+  event.preventDefault()
+  post('zoom-chord', { command })
+})
+window.addEventListener(
+  'wheel',
+  (event) => {
+    if (!(event.ctrlKey || event.metaKey)) return
+    event.preventDefault()
+    const { deltaX, deltaY, deltaMode, ctrlKey, metaKey, clientX, clientY } = event
+    post('wheel', { deltaX, deltaY, deltaMode, ctrlKey, metaKey, clientX, clientY })
+  },
+  { passive: false },
+)
 window.addEventListener('error', (event) => onError(event.error ?? event.message, 'window'))
 
 void start()

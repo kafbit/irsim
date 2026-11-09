@@ -14,7 +14,7 @@ export const PAGES: Page[] = [
     id: 'general',
     title: 'الشركة · عام — الرئيسية حتى التقارير',
     boards: names(`
-      MainEmpty MainSales MainSalesEmpty MainLimited MainLimitedEmpty HomeRules FollowUps
+      MainEmpty MainLoading MainSales MainSalesEmpty MainLimited MainLimitedEmpty HomeRules FollowUps
       FollowUpsEmpty Calendar CalendarEmpty CalendarWeekly CalendarWeeklyEmpty CalendarWeekPanel
       Notifications NotificationsEmpty ReportsOverviewEmpty ReportsAbsorption ReportsForecast
       ReportsStock ReportsFloors ReportsPerformance ReportsRent ReportsRentEmpty Profile PhoneMain

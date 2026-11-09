@@ -31,6 +31,24 @@ const NUDGES = new Map<string, [Command, Command]>([
 const nudgeFor = (key: string, far: boolean): Command | null =>
   NUDGES.get(key)?.[far ? 1 : 0] ?? null
 
+/** Ctrl or Cmd with `+`, `=`, `-` or `_` zooms the canvas instead of the browser page. */
+export function zoomChord({
+  key,
+  ctrlKey,
+  metaKey,
+  altKey,
+}: {
+  key: string
+  ctrlKey: boolean
+  metaKey: boolean
+  altKey: boolean
+}): 'zoom-in' | 'zoom-out' | null {
+  if (!(ctrlKey || metaKey) || altKey) return null
+  if (key === '+' || key === '=') return 'zoom-in'
+  if (key === '-' || key === '_') return 'zoom-out'
+  return null
+}
+
 export type KeyInput = { key: string; code: string; shiftKey: boolean }
 
 /** Shift+digit is read from `code`, because `key` holds `!` or `@` on some layouts. Plain `0` and `1` stay as aliases. */

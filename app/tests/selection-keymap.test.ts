@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { commandFor } from '../src/canvas/keymap'
+import { commandFor, zoomChord } from '../src/canvas/keymap'
 import { NO_SELECTION, reduceSelection } from '../src/canvas/selection'
 
 const key = (key: string, extra: { code?: string; shiftKey?: boolean } = {}) =>
@@ -79,5 +79,25 @@ describe('commandFor', () => {
     expect(key('q')).toBeNull()
     expect(key('Q', { shiftKey: true })).toBeNull()
     expect(key('constructor')).toBeNull()
+  })
+})
+
+describe('zoomChord', () => {
+  const chord = (key: string, mods: Partial<Record<'ctrlKey' | 'metaKey' | 'altKey', boolean>>) =>
+    zoomChord({ key, ctrlKey: false, metaKey: false, altKey: false, ...mods })
+
+  it('zooms in on Ctrl or Cmd with + or =', () => {
+    expect(chord('=', { ctrlKey: true })).toBe('zoom-in')
+    expect(chord('+', { metaKey: true })).toBe('zoom-in')
+  })
+
+  it('zooms out on Ctrl or Cmd with - or _', () => {
+    expect(chord('-', { ctrlKey: true })).toBe('zoom-out')
+    expect(chord('_', { metaKey: true })).toBe('zoom-out')
+  })
+
+  it('ignores the keys without Ctrl or Cmd, and with Alt', () => {
+    expect(chord('=', {})).toBeNull()
+    expect(chord('-', { ctrlKey: true, altKey: true })).toBeNull()
   })
 })

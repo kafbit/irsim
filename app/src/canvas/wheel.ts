@@ -6,6 +6,8 @@ export type WheelInput = {
   deltaMode: number
   ctrlKey: boolean
   metaKey: boolean
+  clientX?: number
+  clientY?: number
 }
 
 /** Ctrl, Cmd or a pinch zooms around the screen point `(px, py)`; anything else pans. Line-mode deltas count 16 px. */
