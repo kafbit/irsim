@@ -1,11 +1,11 @@
-import { mkdir, readdir, rm, stat } from 'node:fs/promises'
+import { mkdir, readdir, rm, stat, utimes } from 'node:fs/promises'
 import { join } from 'node:path'
 import { chromium, type Browser } from '@playwright/test'
 import sharp from 'sharp'
 import { readCanvasPages, type CanvasBoard } from '../src/lib/canvas-pages'
 import { closureOf } from '../src/lib/closure'
 import { canvasPort, repoRoot } from '../src/lib/port'
-import { THUMB_WIDTH, thumbFile, thumbsDir } from '../src/lib/thumbs-dir'
+import { THUMB_MAX_AGE_MS, THUMB_WIDTH, thumbFile, thumbsDir } from '../src/lib/thumbs-dir'
 
 const CONCURRENCY = 3
 const READY_TIMEOUT_MS = 15_000
@@ -28,13 +28,13 @@ const exists = (path: string): Promise<boolean> =>
     () => false,
   )
 
-const dropOlder = async (dir: string, board: string, keep: string): Promise<void> => {
-  const prefix = `${board}.`
+/** The directory is shared by every worktree, so an older hash may still be another one's current. Age decides. */
+const pruneStale = async (dir: string): Promise<void> => {
+  const cutoff = Date.now() - THUMB_MAX_AGE_MS
   for (const file of await readdir(dir)) {
-    const hash = file.slice(prefix.length, -'.webp'.length)
-    if (file.startsWith(prefix) && file.endsWith('.webp') && /^[0-9a-f]{12}$/.test(hash)) {
-      if (file !== keep) await rm(join(dir, file), { force: true })
-    }
+    if (!file.endsWith('.webp')) continue
+    const path = join(dir, file)
+    if ((await stat(path)).mtimeMs < cutoff) await rm(path, { force: true })
   }
 }
 
@@ -115,12 +115,13 @@ const main = async (): Promise<void> => {
         const file = thumbFile(target.name, hash)
         const out = join(dir, file)
         if (!force && (await exists(out))) {
+          const now = new Date()
+          await utimes(out, now, now)
           done('skip')
           continue
         }
         launching ??= chromium.launch()
         await render(await launching, target, out)
-        await dropOlder(dir, target.name, file)
         done('new')
       } catch (error) {
         done('fail', error instanceof Error ? error.message.split('\n')[0] : String(error))
@@ -130,6 +131,7 @@ const main = async (): Promise<void> => {
   const started = performance.now()
   await Promise.all(Array.from({ length: CONCURRENCY }, () => worker()))
   await (await launching)?.close()
+  await pruneStale(dir)
   results.sort((a, b) => (a.board < b.board ? -1 : 1))
   const width = Math.max(...results.map((result) => result.board.length), 5)
   console.log(`${'board'.padEnd(width)}  status  ms`)

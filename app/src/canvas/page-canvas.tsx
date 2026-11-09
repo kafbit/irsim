@@ -239,8 +239,8 @@ export function PageCanvas({
             camera={camera}
             boards={boards}
             pick={pick}
-            onSave={async (body) => {
-              await comments.create({ ...pick, page: manifest.id, body })
+            onSave={async (body, images) => {
+              await comments.create({ ...pick, page: manifest.id, body, images })
               setPick(null)
             }}
             onCancel={() => setPick(null)}
@@ -270,6 +270,7 @@ export function PageCanvas({
           onEdit={comments.edit}
           onDelete={comments.remove}
           onResolve={comments.resolve}
+          onReply={comments.reply}
           onSend={comments.send}
         />
       ) : selectedBoard ? (

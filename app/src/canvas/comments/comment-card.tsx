@@ -1,9 +1,13 @@
 'use client'
 
+/* oxlint-disable next/no-img-element -- comment images come from /api/comments/images, no optimiser */
+
 import { Badge, Button, IconButton, Textarea } from '@kafbit/ui'
 import { Check, DeleteIcon, EditIcon } from '@kafbit/ui/icons'
 import { useState } from 'react'
+import { ImageStrip, imageUrl } from './image-strip'
 import type { Comment } from './types'
+import { usePastedImages } from './use-pasted-images'
 
 const STATUS = {
   draft: 'Draft',
@@ -19,9 +23,11 @@ type Props = {
   number: number
   active: boolean
   onLocate: (comment: Comment) => void
-  onEdit: (id: string, body: string) => Promise<void>
+  onEdit: (id: string, body: string, images: string[]) => Promise<void>
   onDelete: (id: string) => Promise<void>
   onResolve: (id: string) => Promise<void>
+  onReply: (id: string, body: string) => Promise<void>
+  sessionEnded?: boolean
 }
 
 /** One comment: where it points, what was said, the replies, and the actions its status allows. */
@@ -33,10 +39,14 @@ export function CommentCard({
   onEdit,
   onDelete,
   onResolve,
+  onReply,
+  sessionEnded = false,
 }: Props) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(comment.body)
   const [busy, setBusy] = useState(false)
+  const [replyDraft, setReplyDraft] = useState('')
+  const pasted = usePastedImages(comment.images)
 
   const run = async (action: () => Promise<void>) => {
     setBusy(true)
@@ -52,8 +62,19 @@ export function CommentCard({
 
   const saveEdit = async () => {
     const body = draft.trim()
+    if (!body || pasted.uploading > 0) return
+    if (await run(() => onEdit(comment.id, body, pasted.images))) setEditing(false)
+  }
+
+  const sendReply = async () => {
+    const body = replyDraft.trim()
     if (!body) return
-    if (await run(() => onEdit(comment.id, body))) setEditing(false)
+    if (await run(() => onReply(comment.id, body))) setReplyDraft('')
+  }
+
+  const cancelEdit = () => {
+    pasted.reset(comment.images)
+    setEditing(false)
   }
 
   const { element } = comment
@@ -94,17 +115,29 @@ export function CommentCard({
             value={draft}
             disabled={busy}
             onChange={(event) => setDraft(event.target.value)}
+            onPaste={pasted.onPaste}
             onKeyDown={(event) => {
-              if (event.key === 'Escape') setEditing(false)
+              if (event.key === 'Escape') cancelEdit()
               else if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) void saveEdit()
             }}
             className="min-h-16 text-sm focus-visible:ring-0"
           />
+          <ImageStrip
+            images={pasted.images}
+            uploading={pasted.uploading}
+            message={pasted.message}
+            onRemove={pasted.remove}
+          />
           <div className="flex justify-end gap-2">
-            <Button variant="secondary" size="sm" onClick={() => setEditing(false)}>
+            <Button variant="secondary" size="sm" onClick={cancelEdit}>
               Cancel
             </Button>
-            <Button size="sm" disabled={!draft.trim()} pending={busy} onClick={saveEdit}>
+            <Button
+              size="sm"
+              disabled={!draft.trim() || pasted.uploading > 0}
+              pending={busy}
+              onClick={saveEdit}
+            >
               Save
             </Button>
           </div>
@@ -114,6 +147,21 @@ export function CommentCard({
           {comment.body}
         </p>
       )}
+      {!editing && comment.images.length > 0 ? (
+        <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
+          {comment.images.slice(0, 4).map((id, index) => (
+            <li key={id}>
+              <a href={imageUrl(id)} target="_blank" rel="noreferrer">
+                <img
+                  src={imageUrl(id)}
+                  alt={`Attachment ${index + 1}`}
+                  className="size-16 rounded-md border border-border object-cover"
+                />
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : null}
       {comment.replies.length > 0 ? (
         <ul className="m-0 flex list-none flex-col gap-1.5 border-s-2 border-border p-0 ps-2">
           {comment.replies.map((reply) => (
@@ -122,6 +170,14 @@ export function CommentCard({
               <span dir="auto" className="whitespace-pre-wrap">
                 {reply.body}
               </span>
+              {reply.author === 'user' && !reply.seen ? (
+                <>
+                  {' '}
+                  <Badge size="sm" tone="neutral">
+                    Waiting
+                  </Badge>
+                </>
+              ) : null}
             </li>
           ))}
         </ul>
@@ -134,6 +190,7 @@ export function CommentCard({
             disabled={busy}
             onClick={() => {
               setDraft(comment.body)
+              pasted.reset(comment.images)
               setEditing(true)
             }}
           />
@@ -143,6 +200,36 @@ export function CommentCard({
             disabled={busy}
             onClick={() => void run(() => onDelete(comment.id))}
           />
+        </div>
+      ) : null}
+      {comment.status !== 'draft' ? (
+        <div className="flex flex-col gap-2">
+          {sessionEnded ? (
+            <p className="m-0 text-xs text-muted-foreground">
+              The session has ended. A reply waits until it returns.
+            </p>
+          ) : null}
+          {comment.status === 'resolved' ? (
+            <p className="m-0 text-xs text-muted-foreground">Replying reopens this comment.</p>
+          ) : null}
+          <Textarea
+            aria-label="Reply"
+            dir="auto"
+            placeholder="Reply to Claude"
+            value={replyDraft}
+            disabled={busy}
+            onChange={(event) => setReplyDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') setReplyDraft('')
+              else if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) void sendReply()
+            }}
+            className="min-h-12 text-sm focus-visible:ring-0"
+          />
+          <div className="flex justify-end">
+            <Button size="sm" disabled={!replyDraft.trim()} pending={busy} onClick={sendReply}>
+              Reply
+            </Button>
+          </div>
         </div>
       ) : null}
       {comment.status === 'queued' || comment.status === 'delivered' ? (

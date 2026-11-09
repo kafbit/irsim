@@ -18,7 +18,7 @@ export function FrameComposer({
 }: {
   size: { width: number; height: number }
   pick: PickedElement
-  onSave: (body: string) => Promise<void>
+  onSave: (body: string, images: string[]) => Promise<void>
   onCancel: () => void
 }) {
   const at = placePanel(pick.rect, size, PANEL)

@@ -11,6 +11,7 @@ const comment = (overrides: Partial<Comment>): Comment => ({
   element: { tag: 'button', path: 'button', text: 'عميل جديد' },
   rect: { x: 0, y: 0, width: 1, height: 1 },
   body: 'Use the primary button.',
+  images: [],
   status: 'delivered',
   sessionId: 's1',
   batch: 'b_1',
@@ -56,5 +57,68 @@ describe('buildTurnText', () => {
       comment({ id: 'c_b', page: 'inventory', batch: 'b_2' }),
     ])
     expect(text.split('\n')[0]).toContain('on pages sales, inventory (batches b_1, b_2)')
+  })
+
+  it('adds one image line per image that has a path', () => {
+    const text = buildTurnText([comment({ images: ['i_a', 'i_b', 'i_gone'] })], {
+      i_a: '/data/images/i_a.png',
+      i_b: '/data/images/i_b.jpg',
+    })
+    expect(text).toContain(
+      '\n   Use the primary button.\n   image: /data/images/i_a.png\n   image: /data/images/i_b.jpg\nReply to each',
+    )
+    expect(text).not.toContain('i_gone')
+  })
+
+  describe('follow-ups', () => {
+    const at = '2026-11-08T11:00:00.000Z'
+    const followUp = (overrides: Partial<Comment> = {}) =>
+      comment({
+        id: 'c_f',
+        replies: [
+          { author: 'user', body: 'First ask', at, seen: true },
+          { author: 'claude', body: 'Done', at, seen: true },
+          { author: 'user', body: 'Still wrong\nsecond line', at, seen: false },
+        ],
+        ...overrides,
+      })
+
+    it('renders the original body, earlier replies and the new reply', () => {
+      const text = buildTurnText([followUp()])
+      expect(text).toBe(
+        [
+          'Design canvas: 1 comment (0 new, 1 follow-up) on page sales (batch b_1). Read only the lines named; boards live in design/.',
+          '1. design/Leads.dc.html:57 · button "عميل جديد" · follow-up',
+          '   Use the primary button.',
+          '   You: First ask',
+          '   Claude: Done',
+          '   NEW You: Still wrong',
+          '      second line',
+          'Reply to each with design_canvas {action: "reply", id, body}; resolve with {action: "resolve", id}.',
+          'Ids: c_f',
+        ].join('\n'),
+      )
+    })
+
+    it('adds the count breakdown only when a follow-up exists', () => {
+      const mixed = buildTurnText([comment({ id: 'c_a' }), followUp()])
+      expect(mixed.split('\n')[0]).toContain('2 comments (1 new, 1 follow-up) on page sales')
+      const fresh = buildTurnText([comment({ id: 'c_a' }), comment({ id: 'c_b' })])
+      expect(fresh.split('\n')[0]).toStartWith('Design canvas: 2 comments on page sales')
+    })
+
+    it('notes a comment that was resolved', () => {
+      const text = buildTurnText([followUp({ reopened: true })])
+      expect(text).toContain(
+        '· follow-up (was resolved, resolve it again if the new reply is handled)',
+      )
+    })
+
+    it('keeps the image lines of the comment before the replies', () => {
+      const text = buildTurnText([followUp({ images: ['i_a'] })], { i_a: '/data/i_a.png' })
+      expect(text).toContain(
+        '   Use the primary button.\n   image: /data/i_a.png\n   You: First ask',
+      )
+    })
   })
 })

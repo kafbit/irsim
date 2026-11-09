@@ -128,8 +128,8 @@ export function SingleBoard({
                 key={`${pick.file}:${pick.line}:${pick.rect.x}:${pick.rect.y}`}
                 size={board}
                 pick={pick}
-                onSave={async (body) => {
-                  await comments.create({ ...pick, page: pageId, body })
+                onSave={async (body, images) => {
+                  await comments.create({ ...pick, page: pageId, body, images })
                   setPick(null)
                 }}
                 onCancel={() => setPick(null)}
@@ -149,6 +149,7 @@ export function SingleBoard({
           onEdit={comments.edit}
           onDelete={comments.remove}
           onResolve={comments.resolve}
+          onReply={comments.reply}
           onSend={comments.send}
         />
       ) : null}

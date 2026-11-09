@@ -1,4 +1,4 @@
-import { bad, parseNewComment, readBody } from '../../../lib/comments-input'
+import { bad, hasUnknownImage, parseNewComment, readBody } from '../../../lib/comments-input'
 import { createComment, listComments } from '../../../lib/comments-store'
 
 export const dynamic = 'force-dynamic'
@@ -21,5 +21,6 @@ export async function POST(request: Request): Promise<Response> {
   if (body instanceof Response) return body
   const input = parseNewComment(body)
   if (typeof input === 'string') return bad(input)
+  if (await hasUnknownImage(input.images ?? [])) return bad('unknown image')
   return Response.json(await createComment(input), { status: 201 })
 }

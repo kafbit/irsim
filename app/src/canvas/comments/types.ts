@@ -2,7 +2,7 @@ import type { Rect } from '../geometry'
 
 export type CommentStatus = 'draft' | 'queued' | 'delivered' | 'resolved'
 
-export type Reply = { author: 'claude' | 'user'; body: string; at: string }
+export type Reply = { author: 'claude' | 'user'; body: string; at: string; seen: boolean }
 
 export type CommentElement = { tag: string; path: string; text: string }
 
@@ -15,6 +15,7 @@ export type Comment = {
   element: CommentElement
   rect: Rect
   body: string
+  images: string[]
   status: CommentStatus
   sessionId: string | null
   batch: string | null
@@ -32,4 +33,4 @@ export type PickedElement = {
   rect: Rect
 }
 
-export type NewComment = PickedElement & { page: string; body: string }
+export type NewComment = PickedElement & { page: string; body: string; images?: string[] }

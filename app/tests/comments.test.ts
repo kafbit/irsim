@@ -23,6 +23,7 @@ const comment = (id: string, status: Comment['status'], createdAt: string): Comm
   element: { tag: 'td', path: 'td', text: '' },
   rect: { x: 0, y: 0, width: 1, height: 1 },
   body: 'b',
+  images: [],
   status,
   sessionId: null,
   batch: null,

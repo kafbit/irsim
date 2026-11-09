@@ -18,6 +18,32 @@ async function request(method: string, url: string, body?: unknown): Promise<voi
   throw new Error(typeof message === 'string' ? message : `HTTP ${response.status}`)
 }
 
+export class UploadError extends Error {
+  constructor(
+    message: string,
+    readonly refused: boolean,
+  ) {
+    super(message)
+  }
+}
+
+/** Sends the bytes of a pasted image and returns its id. Throws an `UploadError`, `refused` for a type or size refusal. */
+export async function uploadImage(file: Blob): Promise<string> {
+  const response = await fetch('/api/comments/images', {
+    method: 'POST',
+    cache: 'no-store',
+    headers: { 'content-type': file.type || 'application/octet-stream' },
+    body: file,
+  })
+  const detail = (await response.json().catch(() => null)) as {
+    id?: unknown
+    error?: unknown
+  } | null
+  if (response.ok && typeof detail?.id === 'string') return detail.id
+  const message = typeof detail?.error === 'string' ? detail.error : `HTTP ${response.status}`
+  throw new UploadError(message, response.status === 413 || response.status === 415)
+}
+
 /**
  * The comments of one page, newest first. `refetch` is stable and ignores a response that a later
  * request has overtaken. Every write refetches; a failed write sets `error` and rethrows.
@@ -62,11 +88,14 @@ export function useComments(pageId: string) {
 
   const actions = {
     create: (input: NewComment) => write('POST', '/api/comments', input),
-    edit: (id: string, body: string) => write('PATCH', `/api/comments/${id}`, { body }),
+    edit: (id: string, body: string, images: string[]) =>
+      write('PATCH', `/api/comments/${id}`, { body, images }),
     resolve: (id: string) => write('PATCH', `/api/comments/${id}`, { status: 'resolved' }),
+    reply: (id: string, body: string) =>
+      write('POST', `/api/comments/${id}/reply`, { author: 'user', body }),
     remove: (id: string) => write('DELETE', `/api/comments/${id}`),
     send: (sessionId: string) => write('POST', '/api/comments/send', { sessionId, page: pageId }),
   }
 
-  return { comments, error, refetch, ...actions }
+  return { comments, error, refetch, uploadImage, ...actions }
 }

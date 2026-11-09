@@ -16,9 +16,10 @@ type Props = {
   error: string | null
   onClose: () => void
   onLocate: (comment: Comment) => void
-  onEdit: (id: string, body: string) => Promise<void>
+  onEdit: (id: string, body: string, images: string[]) => Promise<void>
   onDelete: (id: string) => Promise<void>
   onResolve: (id: string) => Promise<void>
+  onReply: (id: string, body: string) => Promise<void>
   onSend: (sessionId: string) => Promise<void>
 }
 
@@ -79,6 +80,13 @@ export function ThreadPanel({
                     onEdit={actions.onEdit}
                     onDelete={actions.onDelete}
                     onResolve={actions.onResolve}
+                    onReply={actions.onReply}
+                    sessionEnded={
+                      session.loaded &&
+                      comment.status === 'queued' &&
+                      comment.sessionId !== null &&
+                      !session.sessions.some((live) => live.id === comment.sessionId)
+                    }
                   />
                 ))}
               </ul>

@@ -1,3 +1,4 @@
+import { IMAGE_ID, imagePath } from './comment-images'
 import type { NewComment } from './comments-store'
 
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -21,6 +22,23 @@ export const readBody = async (request: Request): Promise<Record<string, unknown
   return isRecord(body) ? body : bad('body must be an object')
 }
 
+export const MAX_IMAGES = 4
+
+export const parseImages = (value: unknown): string[] | string => {
+  if (value === undefined) return []
+  if (
+    !Array.isArray(value) ||
+    value.length > MAX_IMAGES ||
+    !value.every((id) => typeof id === 'string' && IMAGE_ID.test(id))
+  ) {
+    return `images must be up to ${MAX_IMAGES} image ids`
+  }
+  return [...new Set(value as string[])]
+}
+
+export const hasUnknownImage = async (ids: string[]): Promise<boolean> =>
+  (await Promise.all(ids.map(imagePath))).some((path) => path === null)
+
 export const parseNewComment = (body: Record<string, unknown>): NewComment | string => {
   const { page, board, file, line, element, rect } = body
   if (!isText(page) || !isText(board) || !isText(file)) return 'page, board and file must be text'
@@ -43,6 +61,8 @@ export const parseNewComment = (body: Record<string, unknown>): NewComment | str
   ) {
     return 'rect must hold x, y, width and height'
   }
+  const images = parseImages(body.images)
+  if (typeof images === 'string') return images
   return {
     page,
     board,
@@ -51,5 +71,6 @@ export const parseNewComment = (body: Record<string, unknown>): NewComment | str
     element: { tag: element.tag, path: element.path, text: element.text },
     rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
     body: body.body,
+    images,
   }
 }

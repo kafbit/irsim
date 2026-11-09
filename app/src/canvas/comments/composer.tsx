@@ -25,7 +25,7 @@ export function Composer({
   camera: Camera
   boards: PlacedBoard[]
   pick: PickedElement
-  onSave: (body: string) => Promise<void>
+  onSave: (body: string, images: string[]) => Promise<void>
   onCancel: () => void
 }) {
   const frame = useMemo(() => boards.find((board) => board.name === pick.board), [boards, pick])

@@ -1,7 +1,8 @@
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { imagePath, saveImage } from '../src/lib/comment-images'
 import {
   addReply,
   claim,
@@ -151,11 +152,119 @@ describe('comments store', () => {
     )
     expect(result).toMatchObject({
       ok: true,
-      value: { replies: [{ author: 'claude', body: 'Done', at: '2026-11-08T10:00:00.000Z' }] },
+      value: {
+        replies: [{ author: 'claude', body: 'Done', at: '2026-11-08T10:00:00.000Z', seen: true }],
+      },
     })
     expect(await addReply('c_missing', { author: 'user', body: 'x' })).toEqual({
       ok: false,
       reason: 'not_found',
+    })
+  })
+
+  describe('replies from the user', () => {
+    const sent = async (sessionId = 's1') => {
+      const comment = await createComment(input())
+      await sendDrafts({ sessionId })
+      return comment
+    }
+
+    it('a user reply on a queued or delivered comment queues it again, unseen, keeping the session', async () => {
+      const comment = await sent()
+      const queued = await addReply(comment.id, { author: 'user', body: 'More' })
+      expect(queued).toMatchObject({
+        ok: true,
+        value: { status: 'queued', sessionId: 's1', replies: [{ author: 'user', seen: false }] },
+      })
+      const batch = queued.ok ? queued.value.batch : null
+      await claim('s1')
+      const again = await addReply(comment.id, { author: 'user', body: 'Again' })
+      expect(again).toMatchObject({ ok: true, value: { status: 'queued', sessionId: 's1', batch } })
+    })
+
+    it('a user reply reopens a resolved comment', async () => {
+      const comment = await sent()
+      await updateComment(comment.id, { status: 'resolved' })
+      const result = await addReply(comment.id, { author: 'user', body: 'Not fixed' })
+      expect(result).toMatchObject({ ok: true, value: { status: 'queued', reopened: true } })
+    })
+
+    it('a user reply on a draft is refused', async () => {
+      const comment = await createComment(input())
+      expect(await addReply(comment.id, { author: 'user', body: 'x' })).toEqual({
+        ok: false,
+        reason: 'is_draft',
+      })
+    })
+
+    it('a user reply on a comment with no session is refused', async () => {
+      const comment = await sent()
+      const stored = JSON.parse(readFileSync(join(dir, 'comments.json'), 'utf8'))
+      stored[0].sessionId = null
+      writeFileSync(join(dir, 'comments.json'), JSON.stringify(stored))
+      expect(await addReply(comment.id, { author: 'user', body: 'x' })).toEqual({
+        ok: false,
+        reason: 'no_session',
+      })
+    })
+
+    it('a claude reply leaves the status as it was', async () => {
+      const comment = await sent()
+      await claim('s1')
+      const result = await addReply(comment.id, { author: 'claude', body: 'Done' })
+      expect(result).toMatchObject({ ok: true, value: { status: 'delivered' } })
+    })
+
+    it('a stored reply with no seen field reads as seen', async () => {
+      const comment = await sent()
+      const stored = JSON.parse(readFileSync(join(dir, 'comments.json'), 'utf8'))
+      stored[0].replies = [{ author: 'user', body: 'Old', at: '2026-11-08T10:00:00.000Z' }]
+      writeFileSync(join(dir, 'comments.json'), JSON.stringify(stored))
+      expect((await listComments())[0]?.replies[0]?.seen).toBe(true)
+      expect(comment.id).toBe((await listComments())[0]?.id)
+    })
+
+    it('claim delivers a follow-up once, marks its replies seen and delivers it', async () => {
+      const comment = await sent()
+      await claim('s1')
+      await addReply(comment.id, { author: 'user', body: 'One more thing' })
+      const claimed = await claim('s1')
+      expect(claimed.count).toBe(1)
+      expect(claimed.comments[0]).toMatchObject({
+        followUp: true,
+        status: 'delivered',
+        newReplies: [{ body: 'One more thing' }],
+      })
+      expect(claimed.text).toContain('· follow-up')
+      expect(claimed.text).toContain('   NEW You: One more thing')
+      expect((await listComments())[0]?.replies.every((reply) => reply.seen)).toBe(true)
+      expect((await claim('s1')).count).toBe(0)
+    })
+
+    it('claim returns a fresh comment and a follow-up together', async () => {
+      const first = await sent()
+      await claim('s1')
+      await addReply(first.id, { author: 'user', body: 'Follow' })
+      await createComment(input({ body: 'Fresh one' }))
+      await sendDrafts({ sessionId: 's1' })
+      const claimed = await claim('s1')
+      expect(claimed.comments.map((c) => [c.body, c.followUp])).toEqual([
+        ['Use the primary button.', true],
+        ['Fresh one', false],
+      ])
+      expect(claimed.comments[1]?.newReplies).toEqual([])
+      expect(claimed.text).toContain('2 comments (1 new, 1 follow-up)')
+    })
+
+    it('a reopened comment is delivered with the resolved note, once', async () => {
+      const comment = await sent()
+      await claim('s1')
+      await updateComment(comment.id, { status: 'resolved' })
+      await addReply(comment.id, { author: 'user', body: 'Still wrong' })
+      const claimed = await claim('s1')
+      expect(claimed.text).toContain('· follow-up (was resolved, resolve it again')
+      await addReply(comment.id, { author: 'user', body: 'And again' })
+      expect((await claim('s1')).text).not.toContain('was resolved')
     })
   })
 
@@ -188,5 +297,67 @@ describe('comments store', () => {
     expect((await listSessions()).map((s) => s.id)).toEqual(['cli'])
     expect(await removeSession('cli')).toBe(true)
     expect(await removeSession('cli')).toBe(false)
+  })
+
+  describe('images', () => {
+    const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3])
+    const stored = async (): Promise<string> => {
+      const saved = await saveImage(PNG)
+      if (!saved.ok) throw new Error('expected the image to be saved')
+      return saved.id
+    }
+
+    it('create keeps the image ids, and a comment without any reads as []', async () => {
+      const id = await stored()
+      expect((await createComment(input({ images: [id] }))).images).toEqual([id])
+      expect((await createComment(input())).images).toEqual([])
+    })
+
+    it('a stored comment with no images field reads as []', async () => {
+      const comment = await createComment(input())
+      const { images: _images, ...old } = comment
+      writeFileSync(join(dir, 'comments.json'), JSON.stringify([old]))
+      expect((await listComments())[0]?.images).toEqual([])
+      const updated = await updateComment(comment.id, { body: 'Edited' })
+      expect(updated.ok && updated.value.images).toEqual([])
+    })
+
+    it('patch replaces the images of a draft and deletes the dropped files', async () => {
+      const one = await stored()
+      const two = await stored()
+      const comment = await createComment(input({ images: [one, two] }))
+      const result = await updateComment(comment.id, { images: [two] })
+      expect(result.ok && result.value.images).toEqual([two])
+      expect(await imagePath(one)).toBeNull()
+      expect(await imagePath(two)).not.toBeNull()
+    })
+
+    it('patch of images on a queued comment is not_draft and keeps the files', async () => {
+      const id = await stored()
+      const comment = await createComment(input({ images: [id] }))
+      await sendDrafts({ sessionId: 's1' })
+      expect(await updateComment(comment.id, { images: [] })).toEqual({
+        ok: false,
+        reason: 'not_draft',
+      })
+      expect(await imagePath(id)).not.toBeNull()
+    })
+
+    it('deleteComment removes the image files', async () => {
+      const id = await stored()
+      const comment = await createComment(input({ images: [id] }))
+      expect((await deleteComment(comment.id)).ok).toBe(true)
+      expect(await imagePath(id)).toBeNull()
+    })
+
+    it('claim returns the absolute image paths in the text and per comment', async () => {
+      const id = await stored()
+      await createComment(input({ images: [id] }))
+      await sendDrafts({ sessionId: 's1' })
+      const claimed = await claim('s1')
+      const path = await imagePath(id)
+      expect(claimed.comments[0]?.imagePaths).toEqual([path])
+      expect(claimed.text).toContain(`   image: ${path}`)
+    })
   })
 })
