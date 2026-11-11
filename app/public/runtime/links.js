@@ -7,6 +7,8 @@
 
 const BOARD_LINK = /(?:^|\/)([A-Za-z][A-Za-z0-9]*)\.dc\.html$/
 const EXTERNAL = /^(?:https?:|mailto:|tel:)/i
+// `https://site/Cart.dc.html` or `//site/Cart.dc.html` is another site, not a board.
+const OTHER_ORIGIN = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i
 
 /**
  * The board an `href` points at, or `null`. The href is relative to the board or starts at the
@@ -17,6 +19,7 @@ const EXTERNAL = /^(?:https?:|mailto:|tel:)/i
  */
 export const boardOfHref = (href) => {
   const path = href.trim().split(/[?#]/)[0] ?? ''
+  if (OTHER_ORIGIN.test(path)) return null
   return BOARD_LINK.exec(path)?.[1] ?? null
 }
 

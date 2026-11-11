@@ -58,6 +58,12 @@ export function PlayView({
       aria-modal="true"
       aria-label={`Playing ${board.title || board.name}`}
       className="fixed inset-0 z-40 flex flex-col bg-surface"
+      // Canvas shortcuts skip keys inside a dialog, so the header's own Esc closes the view.
+      onKeyDown={(event) => {
+        if (event.key !== 'Escape') return
+        event.preventDefault()
+        onClose()
+      }}
     >
       <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-card px-3">
         <Button

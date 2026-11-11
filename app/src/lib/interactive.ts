@@ -1,5 +1,5 @@
 const HANDLER = /\son[A-Z][A-Za-z]*\s*=\s*["']\s*\{\{/
-const BOARD_LINK = /<a\s[^>]*href\s*=\s*["'][^"'#?]*\.dc\.html/i
+const BOARD_LINK = /<a\s[^>]*href\s*=\s*["'](?![a-z][a-z0-9+.-]*:|\/\/)[^"'#?]*\.dc\.html/i
 
 /**
  * True when a board works when played: its own markup binds an event handler (`onClick="{{…}}"`)

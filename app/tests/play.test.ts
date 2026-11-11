@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { boardOfHref, isExternalHref } from '../public/runtime/links.js'
 import { playScale } from '../src/canvas/play-view'
-import { playHref } from '../src/canvas/use-play-links'
+import { linkProblem, playHref } from '../src/canvas/use-play-links'
 import { isInteractive, looksInteractive } from '../src/lib/interactive'
 import { fillsWindow, hasFluidRoot, rootStyleOf } from '../src/lib/page-fill'
 
@@ -19,6 +19,12 @@ describe('boardOfHref', () => {
     expect(boardOfHref('https://example.com')).toBeNull()
     expect(boardOfHref('Cart.html')).toBeNull()
     expect(boardOfHref('1Cart.dc.html')).toBeNull()
+  })
+
+  it('never reads a board from another site', () => {
+    expect(boardOfHref('https://other.com/docs/Cart.dc.html')).toBeNull()
+    expect(boardOfHref('//other.com/Cart.dc.html')).toBeNull()
+    expect(isExternalHref('https://other.com/docs/Cart.dc.html')).toBe(true)
   })
 })
 
@@ -42,6 +48,7 @@ describe('looksInteractive', () => {
   it('is false for a static board', () => {
     expect(looksInteractive('<div style="color: red">Hello</div>')).toBe(false)
     expect(looksInteractive('<a href="#top">Top</a>')).toBe(false)
+    expect(looksInteractive('<a href="https://other.com/Cart.dc.html">x</a>')).toBe(false)
     expect(looksInteractive('<dc-import name="Table" rows="{{rows}}"></dc-import>')).toBe(false)
   })
 })
@@ -97,5 +104,12 @@ describe('fillsWindow', () => {
   it('takes expand from canvas.json first', () => {
     expect(fillsWindow('fill', page('<div style="width: 390px">x</div>'), 390)).toBe(true)
     expect(fillsWindow('none', page('<main>x</main>'), 1440)).toBe(false)
+  })
+})
+
+describe('linkProblem', () => {
+  it('tells a missing board from a failed lookup', () => {
+    expect(linkProblem('Cart')).toBe('No board named Cart.')
+    expect(linkProblem('Cart', new Error('HTTP 500'))).toBe('Could not open Cart: Error: HTTP 500')
   })
 })

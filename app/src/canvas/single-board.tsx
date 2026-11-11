@@ -16,8 +16,9 @@ import { useComments } from './comments/use-comments'
 import { useEvents } from './comments/use-events'
 import type { ManifestBoard } from './types'
 import { useFrameEscape } from './use-frame-escape'
+import { Toast, useNotice } from './toast'
 import { useMountEffect } from './use-mount-effect'
-import { findBoardPage, usePlayLinks } from './use-play-links'
+import { findBoardPage, linkProblem, usePlayLinks } from './use-play-links'
 
 const EDITABLE = 'input, textarea, select, [contenteditable=""], [contenteditable="true"]'
 
@@ -50,17 +51,17 @@ export function SingleBoard({
   const placed = useMemo(() => (board ? [{ ...board, x: 0, y: 0 }] : []), [board])
 
   const router = useRouter()
+  const [notice, setNotice] = useNotice()
   useEvents({ onBoard: reloads.reload, onComments: comments.refetch })
   // The board is live here, so a link to another board opens that board alone.
   usePlayLinks((from, target) => {
     if (from !== name) return
-    void findBoardPage(target).then((page) => {
-      if (page) {
-        router.push(
-          `/p/${encodeURIComponent(page)}?board=${encodeURIComponent(target)}&alone=1`,
-        )
-      }
-    })
+    findBoardPage(target)
+      .then((page) => {
+        if (!page) return setNotice(linkProblem(target))
+        router.push(`/p/${encodeURIComponent(page)}?board=${encodeURIComponent(target)}&alone=1`)
+      })
+      .catch((error: unknown) => setNotice(linkProblem(target, error)))
   })
   useCommentMode(commenting && Boolean(board), null, setPick)
 
@@ -151,6 +152,7 @@ export function SingleBoard({
             ) : null}
           </div>
         </div>
+        <Toast message={notice} />
       </div>
       {panelOpen ? (
         <ThreadPanel

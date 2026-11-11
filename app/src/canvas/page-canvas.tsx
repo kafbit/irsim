@@ -24,14 +24,21 @@ import { PageLabel } from './page-label'
 import { PlayView } from './play-view'
 import { NO_SELECTION, reduceSelection, type Selection } from './selection'
 import { Sidebar } from './sidebar'
-import { Toast } from './toast'
+import { Toast, useNotice } from './toast'
 import { type Tool, Toolbar } from './toolbar'
 import type { PageManifest, PageSummary } from './types'
 import { useBoardEditing } from './use-board-editing'
 import { useBoardLayout } from './use-board-layout'
 import { useFrameEscape } from './use-frame-escape'
 import { useMounts } from './use-mounts'
-import { findBoardPage, type PlayMode, playHref, usePlayLinks } from './use-play-links'
+import {
+  findBoardPage,
+  linkProblem,
+  type PlayMode,
+  playHref,
+  usePlayFlags,
+  usePlayLinks,
+} from './use-play-links'
 import { type CommandHandlers, useShortcuts } from './use-shortcuts'
 import { useViewport } from './use-viewport'
 import { ViewControls } from './view-controls'
@@ -72,7 +79,7 @@ export function PageCanvas({
     (initial: Selection) => initial,
   )
   const [fullPlay, setFullPlay] = useState<string | null>(play === 'full' ? focus : null)
-  const [notice, setNotice] = useState<string | null>(null)
+  const [notice, setNotice] = useNotice()
   const router = useRouter()
   const [tool, setTool] = useState<Tool>('move')
   const [hovered, setHovered] = useState<string | null>(null)
@@ -107,7 +114,18 @@ export function PageCanvas({
   const reloads = useBoardReloads()
   const numbers = useMemo(() => numberComments(comments.comments), [comments.comments])
   const commenting = tool === 'comment'
-  useEvents({ onBoard: reloads.reload, onComments: comments.refetch })
+  const playFlags = usePlayFlags(manifest.id)
+  const { reload: reloadBoard } = reloads
+  const { refresh: refreshFlags } = playFlags
+  // A changed board may gain or lose its handlers and links, so its Play chip is read again.
+  const onBoardChange = useCallback(
+    (name: string) => {
+      reloadBoard(name)
+      refreshFlags()
+    },
+    [reloadBoard, refreshFlags],
+  )
+  useEvents({ onBoard: onBoardChange, onComments: comments.refetch })
   useCommentMode(commenting, camera, setPick)
   useFrameEscape(() => {
     if (fullPlay) {
@@ -147,17 +165,12 @@ export function PageCanvas({
     },
     [actions],
   )
-  const playOnCanvas = useCallback(
-    (name: string) => {
-      setTool('move')
-      setPick(null)
-      dispatch({ type: 'interact', name })
-      document
-        .querySelector<HTMLIFrameElement>(`[data-board="${CSS.escape(name)}"] iframe`)
-        ?.contentWindow?.focus()
-    },
-    [],
-  )
+  // The frame takes the keyboard itself once it plays and is ready (see `Frame`).
+  const playOnCanvas = useCallback((name: string) => {
+    setTool('move')
+    setPick(null)
+    dispatch({ type: 'interact', name })
+  }, [])
   const playBoard = useCallback(
     (name: string, mode: PlayMode) => (mode === 'full' ? setFullPlay(name) : playOnCanvas(name)),
     [playOnCanvas],
@@ -165,15 +178,21 @@ export function PageCanvas({
   const playFull = useCallback((name: string) => setFullPlay(name), [])
   const stopPlay = select
   /** Back to the canvas on the board that was playing last, so a walk through a flow ends there. */
-  const closeFullPlay = () => {
-    const last = fullPlay
+  const closeFullPlay = useCallback(() => {
+    if (fullPlay) focusBoard(fullPlay)
     setFullPlay(null)
-    if (last) focusBoard(last)
-  }
+  }, [focusBoard, fullPlay])
+  // Bumped whenever what plays changes, so a slow cross-page lookup that Stop or Esc overtook
+  // does not move the page afterwards.
+  const playRun = useRef(0)
+  const playing = fullPlay ?? (selection.interacting ? selection.name : null)
+  useEffect(() => {
+    playRun.current += 1
+  }, [playing])
   // A link in a played board moves Play to its target: in place on this page, else on its page.
   usePlayLinks((from, target) => {
     const full = fullPlay === from
-    if (!full && !(selection.interacting && selection.name === from)) return
+    if (playing !== from) return
     if (onPage.has(target)) {
       if (full) {
         setFullPlay(target)
@@ -183,17 +202,15 @@ export function PageCanvas({
       actions.focusBoard(target)
       return
     }
-    void findBoardPage(target).then((page) => {
-      if (page) router.push(playHref(page, target, full ? 'full' : 'canvas'))
-      else setNotice(`No board named ${target}.`)
-    })
+    const run = playRun.current
+    findBoardPage(target)
+      .then((page) => {
+        if (run !== playRun.current) return
+        if (page) router.push(playHref(page, target, full ? 'full' : 'canvas'))
+        else setNotice(linkProblem(target))
+      })
+      .catch((error: unknown) => run === playRun.current && setNotice(linkProblem(target, error)))
   })
-  // Hides the notice after a few seconds; the timer is the external system.
-  useEffect(() => {
-    if (!notice) return
-    const timer = window.setTimeout(() => setNotice(null), 4000)
-    return () => window.clearTimeout(timer)
-  }, [notice])
 
   const locate = (comment: Comment) => {
     setActiveComment(comment.id)
@@ -220,11 +237,7 @@ export function PageCanvas({
       'next-board': () => step(1),
       'previous-board': () => step(-1),
       interact: () => {
-        if (!selection.name) return
-        dispatch({ type: 'interact' })
-        document
-          .querySelector<HTMLIFrameElement>(`[data-board="${CSS.escape(selection.name)}"] iframe`)
-          ?.contentWindow?.focus()
+        if (selection.name) dispatch({ type: 'interact' })
       },
       escape: () => (commenting ? changeTool('move') : dispatch({ type: 'escape' })),
       search: () => searchRef.current?.focus(),
@@ -234,16 +247,27 @@ export function PageCanvas({
       ...nudges,
     }
   }, [actions, changeTool, commenting, focusBoard, nudges, order, selection.name])
-  // Full screen play owns the keyboard: only Esc, which closes it.
-  useShortcuts(fullPlay ? { escape: closeFullPlay } : commands, setSpace)
-  const fullBoard = fullPlay ? boards.find((board) => board.name === fullPlay) : undefined
-  const ordered = useMemo(
+  // Boards with the flags read again after a change; the same objects when nothing changed.
+  const shown = useMemo(
     () =>
-      order
-        .map((name) => boards.find((board) => board.name === name))
-        .filter((board) => board !== undefined),
-    [boards, order],
+      boards.map((board) => {
+        const flags = playFlags.flags.get(board.name)
+        return flags && (flags.interactive !== board.interactive || flags.fill !== board.fill)
+          ? { ...board, ...flags }
+          : board
+      }),
+    [boards, playFlags.flags],
   )
+  const byName = useMemo(() => new Map(shown.map((board) => [board.name, board])), [shown])
+  const ordered = useMemo(
+    () => order.map((name) => byName.get(name)).filter((board) => board !== undefined),
+    [byName, order],
+  )
+  const fullBoard = fullPlay ? byName.get(fullPlay) : undefined
+  const playCommands = useMemo<CommandHandlers>(() => ({ escape: closeFullPlay }), [closeFullPlay])
+  // Full screen play owns the keyboard: only Esc, which closes it. A name with no board on this
+  // page shows no view, so the canvas keeps its shortcuts.
+  useShortcuts(fullBoard ? playCommands : commands, setSpace)
 
   return (
     <div className="flex h-screen">
@@ -275,7 +299,7 @@ export function PageCanvas({
           onPointerLeave={() => setHovered(null)}
         >
           <PageLabel title={manifest.title} k={view.k} />
-          {boards.map((board) => {
+          {shown.map((board) => {
             const entry = mounts.state.entries[board.name]
             return (
               <Frame
@@ -287,7 +311,6 @@ export function PageCanvas({
                 interacting={selection.interacting && selection.name === board.name}
                 commenting={commenting}
                 reload={reloads.counters[board.name] ?? 0}
-                playing={selection.interacting && selection.name === board.name}
                 onSelect={select}
                 onPlay={playBoard}
                 onStop={stopPlay}

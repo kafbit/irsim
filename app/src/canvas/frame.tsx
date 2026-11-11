@@ -1,6 +1,6 @@
 'use client'
 
-import { memo, useState } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import { FramePlay } from './frame-play'
 import { labelMaxInline, type PlacedBoard } from './geometry'
 import type { Report } from './mount-policy'
@@ -35,7 +35,6 @@ export const Frame = memo(function Frame({
   interacting,
   commenting,
   reload,
-  playing,
   onSelect,
   onPlay,
   onStop,
@@ -47,14 +46,21 @@ export const Frame = memo(function Frame({
   interacting: boolean
   commenting: boolean
   reload: number
-  /** Playing on the canvas: the frame is live and outlined in blue. */
-  playing: boolean
   onSelect: (name: string) => void
   onPlay: (name: string, mode: PlayMode) => void
   onStop: (name: string) => void
 }) {
   const failed = report?.state === 'error'
   const ready = report?.state === 'ready'
+  // Interacting is Play on the canvas: the frame is live, outlined in blue, and has a Stop chip.
+  const playing = interacting
+  const frame = useRef<HTMLIFrameElement>(null)
+  // Gives the keyboard to the board once it plays and has loaded, so its inputs and Esc work even
+  // when Play reached it through a link and the frame was not mounted yet. The frame is the
+  // external system.
+  useEffect(() => {
+    if (playing && ready) frame.current?.contentWindow?.focus()
+  }, [playing, ready])
   return (
     <div
       data-board={board.name}
@@ -97,6 +103,7 @@ export const Frame = memo(function Frame({
         <Placeholder board={board} />
         {mounted ? (
           <iframe
+            ref={frame}
             key={reload}
             src={`/b/${encodeURIComponent(board.name)}`}
             title={board.name}
