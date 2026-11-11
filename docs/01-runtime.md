@@ -112,6 +112,25 @@ whose props changed is re-rendered in place, not remounted.
 The runtime posts `{type:'ready'|'error'|'strings', board, details}` to `parent`; the canvas
 uses `ready` to stop the loading skeleton and `strings` to fill the coverage panel.
 
+## Play
+
+A board whose own markup binds an `onX` handler or links to another board is a prototype: it
+gets a blue dot and a Play chip (Play on canvas, Play full screen). `"interactive": true|false` on
+the board's entry in `canvas.json` overrides that guess. The toolbar's Play menu lists every board
+of the page, prototypes first, and plays the pick full screen. `/p/<page>?board=<B>&play=canvas|full`
+opens a board already playing.
+
+In full screen play, a web page fills the window and scrolls like a site; every other board keeps
+its size and shrinks to fit. `"expand": "fill"` on the board's entry in `canvas.json` makes it a
+page, and any other `expand` value does not. Without `expand`, a board at least 1024 px wide whose
+root element (the first one after `<helmet>`) has no `width: <n>px` in its inline style is a page.
+
+Inside a played board, `<a href="Cart.dc.html">` (relative, or from the root as
+`/sub/Cart.dc.html`) moves Play to `Cart`: in place on the canvas, or in the full screen view. A
+board on another page opens on that page. `href="#id"` scrolls inside the board, and an `https:`,
+`mailto:` or `tel:` link opens a new tab. Each board keeps its own `state`. Esc, Stop or "Back to
+canvas" ends Play.
+
 ## Limits, deliberately
 
 - No `else` branch, no expression language, no host component protocol beyond the five tags.

@@ -97,6 +97,8 @@ export const buildCanvas = (designDir) => {
         y: kept?.y ?? rowY,
         width: board.width,
         height: board.height,
+        ...(typeof kept?.interactive === 'boolean' ? { interactive: kept.interactive } : {}),
+        ...(typeof kept?.expand === 'string' ? { expand: kept.expand } : {}),
       })
       cursorX += board.width + GAP
       rowHeight = Math.max(rowHeight, board.height)

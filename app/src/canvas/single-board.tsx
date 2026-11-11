@@ -3,6 +3,7 @@
 import { Button, IconButton } from '../ui'
 import { MessageSquare } from '../ui/icons'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useCallback, useMemo, useState } from 'react'
 import { CommentLayer } from './comments/comment-layer'
 import { FrameComposer } from './comments/frame-composer'
@@ -16,6 +17,7 @@ import { useEvents } from './comments/use-events'
 import type { ManifestBoard } from './types'
 import { useFrameEscape } from './use-frame-escape'
 import { useMountEffect } from './use-mount-effect'
+import { findBoardPage, usePlayLinks } from './use-play-links'
 
 const EDITABLE = 'input, textarea, select, [contenteditable=""], [contenteditable="true"]'
 
@@ -47,7 +49,19 @@ export function SingleBoard({
   )
   const placed = useMemo(() => (board ? [{ ...board, x: 0, y: 0 }] : []), [board])
 
+  const router = useRouter()
   useEvents({ onBoard: reloads.reload, onComments: comments.refetch })
+  // The board is live here, so a link to another board opens that board alone.
+  usePlayLinks((from, target) => {
+    if (from !== name) return
+    void findBoardPage(target).then((page) => {
+      if (page) {
+        router.push(
+          `/p/${encodeURIComponent(page)}?board=${encodeURIComponent(target)}&alone=1`,
+        )
+      }
+    })
+  })
   useCommentMode(commenting && Boolean(board), null, setPick)
 
   const toggle = useCallback((on?: boolean) => {
