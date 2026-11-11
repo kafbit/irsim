@@ -1,6 +1,7 @@
 'use client'
 
 import { memo, useEffect, useRef, useState } from 'react'
+import type { ApprovalState } from './approvals/use-approvals'
 import { FramePlay } from './frame-play'
 import { labelMaxInline, type PlacedBoard } from './geometry'
 import type { Report } from './mount-policy'
@@ -35,6 +36,7 @@ export const Frame = memo(function Frame({
   interacting,
   commenting,
   reload,
+  approval,
   onSelect,
   onPlay,
   onStop,
@@ -46,6 +48,7 @@ export const Frame = memo(function Frame({
   interacting: boolean
   commenting: boolean
   reload: number
+  approval?: ApprovalState | undefined
   onSelect: (name: string) => void
   onPlay: (name: string, mode: PlayMode) => void
   onStop: (name: string) => void
@@ -80,6 +83,17 @@ export const Frame = memo(function Frame({
             aria-label="Prototype"
             className="size-2 shrink-0 self-center rounded-full bg-blue-600"
           />
+        ) : null}
+        {/* Before the title, so a narrow board truncates the title and keeps the approval state. */}
+        {approval === 'approved' ? (
+          <span className="shrink-0 font-medium text-success-foreground">Approved</span>
+        ) : approval === 'changed' ? (
+          <span
+            title="Changed since approval"
+            className="shrink-0 font-medium text-warning-foreground"
+          >
+            Changed
+          </span>
         ) : null}
         <span dir="auto" className="truncate font-medium">
           {board.title}

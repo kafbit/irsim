@@ -1,10 +1,12 @@
 'use client'
 
 import { Button, IconButton } from '../ui'
-import { MessageSquare } from '../ui/icons'
+import { Check, MessageSquare } from '../ui/icons'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useMemo, useState } from 'react'
+import { ApproveBox } from './approvals/approve-box'
+import { approvalStateOf, useApprovals } from './approvals/use-approvals'
 import { CommentLayer } from './comments/comment-layer'
 import { FrameComposer } from './comments/frame-composer'
 import { numberComments } from './comments/model'
@@ -52,7 +54,25 @@ export function SingleBoard({
 
   const router = useRouter()
   const [notice, setNotice] = useNotice()
-  useEvents({ onBoard: reloads.reload, onComments: comments.refetch })
+  const approvals = useApprovals(pageId)
+  // The board it is open for: a link to another board keeps this view, and the popover closes.
+  const [approvingBoard, setApprovingBoard] = useState<string | null>(null)
+  const approving = approvingBoard === name
+  const { reload } = reloads
+  const { refetch: refetchApprovals } = approvals
+  const onBoardChange = useCallback(
+    (changed: string) => {
+      reload(changed)
+      void refetchApprovals()
+    },
+    [reload, refetchApprovals],
+  )
+  useEvents({
+    onBoard: onBoardChange,
+    onComments: comments.refetch,
+    onApprovals: refetchApprovals,
+  })
+  const approval = approvalStateOf(approvals.approvals.get(name))
   // The board is live here, so a link to another board opens that board alone.
   usePlayLinks((from, target) => {
     if (from !== name) return
@@ -115,7 +135,31 @@ export function SingleBoard({
             className={commenting ? 'bg-secondary text-foreground' : 'bg-card'}
             onClick={() => toggle()}
           />
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<Check className="size-4" />}
+            aria-expanded={approving}
+            disabled={!board}
+            onClick={() => setApprovingBoard(approving ? null : name)}
+          >
+            {approval === 'approved'
+              ? 'Approved'
+              : approval === 'changed'
+                ? 'Changed since approval'
+                : 'Approve'}
+          </Button>
         </div>
+        {approving && board ? (
+          <div className="absolute start-3 top-14 z-10 w-72 rounded-xl border border-border bg-card p-4 shadow-lg">
+            <ApproveBox
+              key={name}
+              board={name}
+              approval={approvals.approvals.get(name)}
+              onApprove={approvals.approve}
+            />
+          </div>
+        ) : null}
         <div className="flex size-full overflow-auto">
           <div
             data-board={name}

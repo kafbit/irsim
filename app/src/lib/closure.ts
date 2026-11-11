@@ -3,7 +3,16 @@ import { readFile, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import { designDir } from './design-dir'
 
-export type Closure = { boards: Record<string, string>; missing: string[]; hash: string }
+/**
+ * `hash` follows file stamps (mtime and size), cheap for caching. `content` follows the sources
+ * only, so a touch, a checkout or a save with no change leaves it as it was.
+ */
+export type Closure = {
+  boards: Record<string, string>
+  missing: string[]
+  hash: string
+  content: string
+}
 
 type Entry = { closure: Closure; stamps: Map<string, string> }
 
@@ -65,7 +74,16 @@ const build = async (dir: string, board: string): Promise<Entry> => {
     )
     .digest('hex')
     .slice(0, 12)
-  return { closure: { boards, missing, hash }, stamps }
+  const content = createHash('sha1')
+    .update(
+      Object.keys(boards)
+        .sort()
+        .map((name) => `${name}\n${boards[name]}`)
+        .join('\n\0'),
+    )
+    .digest('hex')
+    .slice(0, 12)
+  return { closure: { boards, missing, hash, content }, stamps }
 }
 
 /**
