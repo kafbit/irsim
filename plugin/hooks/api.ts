@@ -23,6 +23,14 @@ export type Comment = {
   status: 'draft' | 'queued' | 'delivered' | 'resolved'
   replies: { author: string; body: string }[]
 }
+export type CheckResult = {
+  board: string
+  ok: boolean
+  ms: number
+  errors: string[]
+  warnings: string[]
+  screenshot?: string
+}
 export type Claim = { count: number; text?: string }
 
 const START_TIMEOUT_MS = 30_000

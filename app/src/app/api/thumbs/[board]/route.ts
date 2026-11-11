@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { BOARD_NAME } from '../../../../lib/board-name'
 import { closureOf } from '../../../../lib/closure'
 import { thumbFile, thumbsDir } from '../../../../lib/thumbs-dir'
 
@@ -16,7 +17,7 @@ export async function GET(
   { params }: { params: Promise<{ board: string }> },
 ): Promise<Response> {
   const { board } = await params
-  if (!/^[A-Za-z][A-Za-z0-9]*$/.test(board)) {
+  if (!BOARD_NAME.test(board)) {
     return new Response('invalid board name', { status: 400 })
   }
   const { boards, hash } = await closureOf(board)

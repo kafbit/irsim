@@ -1,19 +1,19 @@
 import { CanvasError, api, oneLine } from './api'
-import type { Comment, Engine, Page } from './api'
+import type { CheckResult, Comment, Engine, Page } from './api'
 import { openCanvas } from './canvas'
 
 export const TOOL_NAME = 'design_canvas'
 export const TOOL_DESCRIPTION =
-  'Reads and answers design canvas comments. Actions: open, page, comments, reply, resolve. Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.'
+  'Reads and answers design canvas comments, and checks boards. Actions: open, page, comments, reply, resolve, check. check renders a board (or every board of a page) in headless Chromium and returns errors, warnings and a screenshot path to look at. Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.'
 
 export const TOOL_MATCH = /^mcp__.*__design_canvas$/
 
 export const TOOL_SCHEMA = {
   type: 'object',
   properties: {
-    action: { type: 'string', enum: ['open', 'page', 'comments', 'reply', 'resolve'] },
-    page: { type: 'string', description: 'Page id, for open, page and comments.' },
-    board: { type: 'string', description: 'Board name, for open.' },
+    action: { type: 'string', enum: ['open', 'page', 'comments', 'reply', 'resolve', 'check'] },
+    page: { type: 'string', description: 'Page id, for open, page, comments and check.' },
+    board: { type: 'string', description: 'Board name, for open and check.' },
     status: {
       type: 'string',
       enum: ['draft', 'queued', 'delivered', 'resolved'],
@@ -52,6 +52,33 @@ async function pageManifest($: Engine, pageId: string): Promise<string> {
     return `${board.name}  ${board.width}x${board.height}${closure}`
   })
   return [`${page.id}: ${page.title}`, ...lines].join('\n')
+}
+
+export function checkLines(results: CheckResult[]): string {
+  if (results.length === 0) return 'No boards to check.'
+  const lines = results.flatMap((result) => {
+    const head = `${result.board} ${result.ok ? 'ok' : 'FAIL'} ${result.ms} ms`
+    const shot = result.screenshot ? `screenshot: ${result.screenshot}` : 'no screenshot'
+    if (result.ok) return [`${head} · ${shot}`]
+    return [
+      head,
+      ...result.errors.map((error) => `  error: ${oneLine(error)}`),
+      ...result.warnings.map((warning) => `  warning: ${oneLine(warning)}`),
+      `  ${shot}`,
+    ]
+  })
+  const failed = results.filter((result) => !result.ok).length
+  if (results.length > 1) lines.push(`${results.length - failed} ok, ${failed} failed`)
+  return lines.join('\n')
+}
+
+async function check($: Engine, board?: string, page?: string): Promise<string> {
+  if (!board && !page) throw new CanvasError('check needs board or page')
+  if (board && page) throw new CanvasError('check takes board or page, not both')
+  const path = board
+    ? `/api/boards/${encodeURIComponent(board)}/check`
+    : `/api/pages/${encodeURIComponent(page ?? '')}/check`
+  return checkLines(await api<CheckResult[]>($, path, { method: 'POST' }))
 }
 
 function need(args: Record<string, unknown>, key: string): string {
@@ -95,6 +122,8 @@ export async function runTool($: Engine, args: Record<string, unknown>): Promise
       await api($, `/api/comments/${id}`, { method: 'PATCH', body: { status: 'resolved' } })
       return `Resolved ${id}.`
     }
+    case 'check':
+      return check($, optional(args, 'board'), optional(args, 'page'))
     default:
       throw new CanvasError(`unknown action ${String(args.action)}`)
   }
