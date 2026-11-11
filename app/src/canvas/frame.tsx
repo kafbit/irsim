@@ -1,6 +1,7 @@
 'use client'
 
 import { memo, useEffect, useRef, useState } from 'react'
+import type { ApprovalState } from './approvals/use-approvals'
 import { FramePlay } from './frame-play'
 import { labelMaxInline, type PlacedBoard } from './geometry'
 import type { Report } from './mount-policy'
@@ -35,6 +36,7 @@ export const Frame = memo(function Frame({
   interacting,
   commenting,
   reload,
+  approval,
   onSelect,
   onPlay,
   onStop,
@@ -46,6 +48,7 @@ export const Frame = memo(function Frame({
   interacting: boolean
   commenting: boolean
   reload: number
+  approval?: ApprovalState | undefined
   onSelect: (name: string) => void
   onPlay: (name: string, mode: PlayMode) => void
   onStop: (name: string) => void
@@ -85,6 +88,11 @@ export const Frame = memo(function Frame({
           {board.title}
         </span>
         <span className="shrink-0 text-muted-foreground">{board.name}</span>
+        {approval === 'approved' ? (
+          <span className="shrink-0 font-medium text-success-foreground">Approved</span>
+        ) : approval === 'changed' ? (
+          <span className="shrink-0 font-medium text-warning-foreground">Changed since approval</span>
+        ) : null}
       </button>
       {board.interactive || playing ? (
         <FramePlay

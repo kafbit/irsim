@@ -25,12 +25,15 @@ export function Inspector({
   pages,
   placed,
   onFocusBoard,
+  children,
 }: {
   board: ManifestBoard
   pageId: string
   pages: PageSummary[]
   placed: ReadonlySet<string>
   onFocusBoard: (name: string) => void
+  /** Actions on the board, shown above Open alone. */
+  children?: React.ReactNode
 }) {
   const [copied, setCopied] = useState(false)
   const path = `design/${board.name}.dc.html`
@@ -104,6 +107,7 @@ export function Inspector({
           )}
         </Row>
       </dl>
+      {children}
       <Button asChild variant="secondary" size="sm">
         <Link
           href={`/p/${encodeURIComponent(pageId)}?board=${encodeURIComponent(board.name)}&alone=1`}

@@ -1,4 +1,4 @@
-import type { Comment, Reply } from './comments-types'
+import type { Approval, Comment, Reply } from './comments-types'
 
 export const REPLY_RULE =
   'Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.'
@@ -68,4 +68,26 @@ export const buildTurnText = (
     REPLY_RULE,
     `Ids: ${comments.map((comment) => comment.id).join(', ')}`,
   ].join('\n')
+}
+
+/**
+ * The turn for approvals: each one is the user's confirmation to build that board (step 4 of the
+ * irsim workflow). `current` maps an approval id to whether the board is still as approved.
+ */
+export const buildApprovalText = (
+  approvals: Approval[],
+  current: Record<string, boolean>,
+  designFolder = 'design',
+): string => {
+  const lines = approvals.flatMap((approval) => {
+    const file = `${designFolder}/${approval.board}.dc.html`
+    return [
+      `Design canvas: the user approved board ${approval.board} (page ${approval.page}). This is the confirmation to build it.`,
+      ...(approval.note ? [indent(approval.note)] : []),
+      current[approval.id] === false
+        ? `   The board changed after the approval. Ask the user to approve it again before you build.`
+        : `   Read ${file} again first, because the user may have edited it, then build the app from it and compare the board and the screen with screenshots.`,
+    ]
+  })
+  return lines.join('\n')
 }

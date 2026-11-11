@@ -5,6 +5,8 @@
 
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
+import { ApproveBox } from './approvals/approve-box'
+import { approvalStateOf, useApprovals } from './approvals/use-approvals'
 import { CommentLayer } from './comments/comment-layer'
 import { Composer } from './comments/composer'
 import { numberComments } from './comments/model'
@@ -115,17 +117,27 @@ export function PageCanvas({
   const numbers = useMemo(() => numberComments(comments.comments), [comments.comments])
   const commenting = tool === 'comment'
   const playFlags = usePlayFlags(manifest.id)
+  const approvals = useApprovals(manifest.id)
   const { reload: reloadBoard } = reloads
   const { refresh: refreshFlags } = playFlags
-  // A changed board may gain or lose its handlers and links, so its Play chip is read again.
+  const { refetch: refetchApprovals } = approvals
+  const { refetch: refetchComments } = comments
+  // A changed board may gain or lose its handlers and links, so its Play chip is read again, and
+  // an approval of it may no longer hold.
   const onBoardChange = useCallback(
     (name: string) => {
       reloadBoard(name)
       refreshFlags()
+      void refetchApprovals()
     },
-    [reloadBoard, refreshFlags],
+    [reloadBoard, refreshFlags, refetchApprovals],
   )
-  useEvents({ onBoard: onBoardChange, onComments: comments.refetch })
+  // Approvals are written in the same store as comments and share its change event.
+  const onCommentsChange = useCallback(() => {
+    void refetchComments()
+    void refetchApprovals()
+  }, [refetchComments, refetchApprovals])
+  useEvents({ onBoard: onBoardChange, onComments: onCommentsChange })
   useCommentMode(commenting, camera, setPick)
   useFrameEscape(() => {
     if (fullPlay) {
@@ -311,6 +323,7 @@ export function PageCanvas({
                 interacting={selection.interacting && selection.name === board.name}
                 commenting={commenting}
                 reload={reloads.counters[board.name] ?? 0}
+                approval={approvalStateOf(approvals.approvals.get(board.name))}
                 onSelect={select}
                 onPlay={playBoard}
                 onStop={stopPlay}
@@ -380,7 +393,14 @@ export function PageCanvas({
           pages={pages}
           placed={onPage}
           onFocusBoard={focusBoard}
-        />
+        >
+          <ApproveBox
+            key={selectedBoard.name}
+            board={selectedBoard.name}
+            state={approvalStateOf(approvals.approvals.get(selectedBoard.name))}
+            onApprove={approvals.approve}
+          />
+        </Inspector>
       ) : null}
       {fullBoard ? (
         <PlayView
