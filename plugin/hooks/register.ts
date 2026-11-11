@@ -2,37 +2,36 @@ import type { Register } from 'claude-code'
 import { api, listenKey, messageOf, registerSession } from './api'
 import { commentCounts, openCanvas, stopCanvas } from './canvas'
 import { stopPolling, syncPoll } from './poll'
-import { TOOL_MATCH, TOOL_NAME, TOOL_SCHEMA, runTool } from './tool'
+import { TOOL_DESCRIPTION, TOOL_MATCH, TOOL_NAME, TOOL_SCHEMA, runTool } from './tool'
 
 export const register: Register = (on) => {
   on('session.start', async ($, e, next) => {
     const started = await next(e)
     await $.command.register({
-      name: 'canvas',
-      description: 'Open the design canvas and listen for its comments',
+      name: 'irsim',
+      description: 'Open irsim and listen for its comments',
       argumentHint: '[page or board]',
       immediate: true,
     })
     await $.command.register({
-      name: 'canvas-stop',
-      description: 'Stop listening for design canvas comments',
+      name: 'irsim-stop',
+      description: 'Stop listening for irsim comments',
       immediate: true,
     })
     await $.command.register({
-      name: 'canvas-comments',
-      description: 'Count the open design canvas comments per page',
+      name: 'irsim-comments',
+      description: 'Count the open irsim comments per page',
       immediate: true,
     })
     await $.tool
       .register({
         name: TOOL_NAME,
-        description:
-          'Reads and answers design canvas comments. Actions: open, page, comments, reply, resolve.',
+        description: TOOL_DESCRIPTION,
         inputSchema: TOOL_SCHEMA,
         isDeferred: false,
       })
       .catch((error: unknown) =>
-        $.ui.log(`design-canvas: tool not registered, ${messageOf(error)}`),
+        $.ui.log(`irsim: tool not registered, ${messageOf(error)}`),
       )
     const sessionId = await $.session.id()
     if (await $.store.get(listenKey(sessionId))) {
@@ -42,13 +41,13 @@ export const register: Register = (on) => {
     return started
   })
 
-  on('command.run', { command: ['canvas', 'canvas-stop', 'canvas-comments'] }, async ($, e) => {
+  on('command.run', { command: ['irsim', 'irsim-stop', 'irsim-comments'] }, async ($, e) => {
     try {
-      if (e.command === 'canvas') return { text: await openCanvas($, e.args) }
-      if (e.command === 'canvas-stop') return { text: await stopCanvas($) }
+      if (e.command === 'irsim') return { text: await openCanvas($, e.args) }
+      if (e.command === 'irsim-stop') return { text: await stopCanvas($) }
       return { text: await commentCounts($) }
     } catch (error) {
-      return { text: `Canvas: ${messageOf(error)}` }
+      return { text: `irsim: ${messageOf(error)}` }
     }
   })
 

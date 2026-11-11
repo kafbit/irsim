@@ -1,4 +1,3 @@
-import { execFileSync } from 'node:child_process'
 import { mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
 import { connect } from 'node:net'
 import { dirname, join } from 'node:path'
@@ -36,7 +35,7 @@ const sameRoot = (a: string, b: string): boolean => {
 }
 
 /**
- * Picks the port for one worktree. `DESIGN_PORT` wins. Otherwise it walks the recorded port, then
+ * Picks the port for one worktree. `IRSIM_PORT` (or legacy `DESIGN_PORT`) wins. Otherwise it walks the recorded port, then
  * the hashed port and the ports after it, and takes the first that is free or already serves this
  * worktree's canvas. Throws when all 100 ports are taken by something else.
  */
@@ -88,7 +87,9 @@ export const probePort: Probe = async (port) => {
   return { state: 'busy' }
 }
 
-export const portFile = (root: string): string => join(root, 'apps/design/.data/port')
+const envPort = (): string | undefined => process.env.IRSIM_PORT || process.env.DESIGN_PORT
+
+export const portFile = (root: string): string => join(root, '.irsim/port')
 
 const readRecorded = (root: string): number | null => {
   try {
@@ -98,17 +99,14 @@ const readRecorded = (root: string): number | null => {
   }
 }
 
-/** Resolves the worktree's port and records it in `apps/design/.data/port` when it changed. */
+/** Resolves the worktree's port and records it in `<root>/.irsim/port` when it changed. */
 export const canvasPort = async (root: string): Promise<number> => {
   const recorded = readRecorded(root)
-  const port = await resolvePort({ root, env: process.env.DESIGN_PORT, recorded, probe: probePort })
-  if (port !== recorded && !validPort(process.env.DESIGN_PORT)) {
+  const env = envPort()
+  const port = await resolvePort({ root, env, recorded, probe: probePort })
+  if (port !== recorded && validPort(env) === null) {
     mkdirSync(dirname(portFile(root)), { recursive: true })
     writeFileSync(portFile(root), `${port}\n`)
   }
   return port
 }
-
-/** The git worktree root of a directory. Throws outside a repository. */
-export const repoRoot = (cwd: string = process.cwd()): string =>
-  execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd, encoding: 'utf8' }).trim()

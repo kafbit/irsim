@@ -1,0 +1,454 @@
+#!/usr/bin/env node
+import { spawn, spawnSync, execFileSync } from 'node:child_process'
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  realpathSync,
+  renameSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs'
+import { connect } from 'node:net'
+import { homedir, tmpdir } from 'node:os'
+import { basename, dirname, join, resolve } from 'node:path'
+import { createInterface } from 'node:readline'
+import { fileURLToPath } from 'node:url'
+
+const REPO = 'kafbit/irsim'
+const CONFIG_FILE = '.irsim.json'
+const PORT_MIN = 3200
+const PORT_COUNT = 100
+const START = '<!-- IRSIM_START -->'
+const END = '<!-- IRSIM_END -->'
+
+const ROOT = resolve(dirname(realpathSync(fileURLToPath(import.meta.url))), '..')
+const SERVER = join(ROOT, 'server', 'server.js')
+const APP = join(ROOT, 'app')
+
+const HELP = `irsim: design boards for your repository
+
+usage: irsim <command> [options]
+
+commands:
+  serve [--design-dir <path>] [--port <n>]   start the canvas
+  port                                       print the port serve would use here
+  init [--design-dir <path>] [--refresh-block]
+                                             write ${CONFIG_FILE}, ignore .irsim/, add the managed block to AGENTS.md and CLAUDE.md
+  update [--check]                           install the latest release (needs gh)
+  uninstall [--purge] [--yes] [--dry-run]    remove this install (--purge also removes the cache)
+  version                                    print the installed version
+  --help                                     print this text
+`
+
+const fail = (message, code = 1) => {
+  console.error(`irsim: ${message}`)
+  process.exit(code)
+}
+
+const parse = (args, spec) => {
+  const out = { _: [] }
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i]
+    const [name, inline] = arg.startsWith('--') ? arg.split(/=(.*)/s, 2) : [arg]
+    const kind = spec[name]
+    if (!kind) {
+      if (arg.startsWith('-')) fail(`unknown option ${arg}`, 2)
+      out._.push(arg)
+    } else if (kind === 'bool') {
+      out[name.slice(2)] = true
+    } else {
+      const value = inline ?? args[++i]
+      if (value === undefined || value === '') fail(`${name} needs a value`, 2)
+      out[name.slice(2)] = value
+    }
+  }
+  return out
+}
+
+const installedVersion = () => {
+  for (const file of [join(ROOT, 'VERSION'), join(APP, 'package.json')]) {
+    if (!existsSync(file)) continue
+    const text = readFileSync(file, 'utf8')
+    return file.endsWith('.json') ? JSON.parse(text).version : text.trim()
+  }
+  return 'unknown'
+}
+
+const findConfigDir = (from) => {
+  let dir = resolve(from)
+  for (;;) {
+    if (existsSync(join(dir, CONFIG_FILE))) return dir
+    const parent = dirname(dir)
+    if (parent === dir) return null
+    dir = parent
+  }
+}
+
+const gitToplevel = (cwd) => {
+  try {
+    return (
+      execFileSync('git', ['rev-parse', '--show-toplevel'], {
+        cwd,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+      }).trim() || null
+    )
+  } catch {
+    return null
+  }
+}
+
+const projectRoot = (cwd) => findConfigDir(cwd) ?? gitToplevel(resolve(cwd)) ?? resolve(cwd)
+
+const resolveDesignDir = (cwd, flag) => {
+  if (flag) return resolve(cwd, flag)
+  const override = process.env.IRSIM_DESIGN_DIR || process.env.CANVAS_DESIGN_DIR
+  if (override) return resolve(cwd, override)
+  const configDir = findConfigDir(cwd)
+  if (configDir) {
+    const value = JSON.parse(readFileSync(join(configDir, CONFIG_FILE), 'utf8'))?.designDir
+    return resolve(configDir, typeof value === 'string' && value ? value : 'design')
+  }
+  const fallback = join(resolve(cwd), 'design')
+  if (existsSync(fallback)) return fallback
+  fail(
+    `no design folder found: pass --design-dir, set IRSIM_DESIGN_DIR or add ${CONFIG_FILE} (irsim init)`,
+  )
+}
+
+const validPort = (value) => {
+  const port = Number(value)
+  return Number.isInteger(port) && port >= 1 && port <= 65535 ? port : null
+}
+
+const hashPort = (root) => {
+  let hash = 0x811c9dc5
+  for (const char of root) {
+    hash ^= char.codePointAt(0) ?? 0
+    hash = Math.imul(hash, 0x01000193) >>> 0
+  }
+  return PORT_MIN + (hash % PORT_COUNT)
+}
+
+const real = (path) => {
+  try {
+    return realpathSync(path)
+  } catch {
+    return path
+  }
+}
+
+const tcpOpen = (port) =>
+  new Promise((done) => {
+    const socket = connect({ port, host: 'localhost', timeout: 400 })
+    socket.once('connect', () => (socket.destroy(), done(true)))
+    socket.once('timeout', () => (socket.destroy(), done(true)))
+    socket.once('error', () => done(false))
+  })
+
+const probePort = async (port) => {
+  if (!(await tcpOpen(port))) return { state: 'free' }
+  try {
+    const response = await fetch(`http://localhost:${port}/api/health`, {
+      signal: AbortSignal.timeout(800),
+    })
+    const body = await response.json()
+    if (body.ok === true && typeof body.root === 'string')
+      return { state: 'canvas', root: body.root }
+  } catch {
+    return { state: 'busy' }
+  }
+  return { state: 'busy' }
+}
+
+const portFile = (root) => join(root, '.irsim', 'port')
+
+const readRecorded = (root) => {
+  try {
+    return validPort(readFileSync(portFile(root), 'utf8').trim())
+  } catch {
+    return null
+  }
+}
+
+const canvasPort = async (root) => {
+  const recorded = readRecorded(root)
+  const forced = validPort(process.env.IRSIM_PORT || process.env.DESIGN_PORT)
+  if (forced !== null) return { port: forced, serving: false }
+  const start = hashPort(root)
+  const candidates = [
+    ...(recorded ? [recorded] : []),
+    ...Array.from({ length: PORT_COUNT }, (_, step) => PORT_MIN + ((start - PORT_MIN + step) % PORT_COUNT)),
+  ]
+  for (const port of new Set(candidates)) {
+    const found = await probePort(port)
+    const mine = found.state === 'canvas' && real(found.root) === real(root)
+    if (found.state === 'free' || mine) {
+      if (port !== recorded) {
+        mkdirSync(dirname(portFile(root)), { recursive: true })
+        writeFileSync(portFile(root), `${port}\n`)
+      }
+      return { port, serving: mine }
+    }
+  }
+  fail(`no free canvas port in ${PORT_MIN}..${PORT_MIN + PORT_COUNT - 1}`)
+}
+
+const serve = async (args) => {
+  const opts = parse(args, { '--design-dir': 'value', '--port': 'value' })
+  const cwd = process.cwd()
+  const root = projectRoot(cwd)
+  const design = resolveDesignDir(cwd, opts['design-dir'])
+  let port
+  let serving = false
+  if (opts.port !== undefined) {
+    port = validPort(opts.port)
+    if (port === null) fail(`invalid port ${opts.port}`, 2)
+    serving = (await probePort(port)).state === 'canvas'
+  } else {
+    ;({ port, serving } = await canvasPort(root))
+  }
+  const url = `http://localhost:${port}`
+  if (serving) {
+    console.log(`irsim: ${url} (already running)`)
+    return
+  }
+  const env = {
+    ...process.env,
+    IRSIM_DESIGN_DIR: design,
+    IRSIM_ROOT: root,
+    PORT: String(port),
+    HOSTNAME: '127.0.0.1',
+  }
+  let command
+  let argv
+  let childCwd
+  if (existsSync(SERVER)) {
+    command = process.execPath
+    argv = [SERVER]
+    childCwd = dirname(SERVER)
+  } else if (existsSync(join(APP, 'package.json'))) {
+    const next = join(APP, 'node_modules', '.bin', 'next')
+    if (!existsSync(next)) fail(`run bun install in ${APP} first`)
+    command = next
+    argv = ['dev', '--port', String(port)]
+    childCwd = APP
+  } else {
+    fail(`no server found in ${ROOT}`)
+  }
+  console.log(`irsim: ${url}`)
+  const child = spawn(command, argv, { cwd: childCwd, env, stdio: 'inherit' })
+  for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP'])
+    process.on(signal, () => child.kill(signal))
+  child.on('exit', (code, signal) => process.exit(code ?? (signal ? 1 : 0)))
+}
+
+const block = () => {
+  const file = join(ROOT, 'templates', 'agents-block.md')
+  if (!existsSync(file)) fail(`missing template ${file}`)
+  return `${readFileSync(file, 'utf8').trim()}\n`
+}
+
+const withBlock = (text, managed, replaceOnly) => {
+  const start = text.indexOf(START)
+  const end = text.indexOf(END, start + 1)
+  if (start !== -1 && end !== -1)
+    return text.slice(0, start) + managed.trimEnd() + text.slice(end + END.length)
+  if (replaceOnly) return text
+  const body = text.replace(/\s+$/, '')
+  return `${body}${body ? '\n\n' : ''}${managed}`
+}
+
+const init = (args) => {
+  const opts = parse(args, { '--design-dir': 'value', '--refresh-block': 'bool' })
+  const dir = process.cwd()
+  const refreshOnly = opts['refresh-block'] === true
+  if (!refreshOnly) {
+    const config = join(dir, CONFIG_FILE)
+    if (existsSync(config)) {
+      console.log(`${CONFIG_FILE}: kept`)
+    } else {
+      const designDir = opts['design-dir'] ?? 'design'
+      writeFileSync(config, `${JSON.stringify({ designDir }, null, 2)}\n`)
+      console.log(`${CONFIG_FILE}: created (designDir ${designDir})`)
+    }
+    const ignore = join(dir, '.gitignore')
+    const current = existsSync(ignore) ? readFileSync(ignore, 'utf8') : ''
+    if (current.split(/\r?\n/).some((line) => line.trim() === '.irsim/' || line.trim() === '.irsim')) {
+      console.log('.gitignore: kept')
+    } else {
+      const separator = current && !current.endsWith('\n') ? '\n' : ''
+      writeFileSync(ignore, `${current}${separator}.irsim/\n`)
+      console.log('.gitignore: added .irsim/')
+    }
+  }
+  const managed = block()
+  for (const name of ['AGENTS.md', 'CLAUDE.md']) {
+    const file = join(dir, name)
+    if (!existsSync(file)) continue
+    const before = readFileSync(file, 'utf8')
+    const after = withBlock(before, managed, refreshOnly)
+    if (after === before) {
+      console.log(`${name}: unchanged`)
+    } else {
+      writeFileSync(file, after)
+      console.log(`${name}: block ${before.includes(START) ? 'refreshed' : 'added'}`)
+    }
+  }
+}
+
+const platformTag = () => {
+  const os = { linux: 'linux', darwin: 'darwin' }[process.platform]
+  const arch = { x64: 'x64', arm64: 'arm64' }[process.arch]
+  if (!os || !arch) fail(`no release for ${process.platform}-${process.arch}`)
+  return `${os}-${arch}`
+}
+
+const gh = (args, options = {}) => {
+  const result = spawnSync('gh', args, { encoding: 'utf8', ...options })
+  if (result.error) fail('gh is not installed or not on PATH')
+  if (result.status !== 0)
+    fail(`gh ${args.slice(0, 2).join(' ')} failed: ${(result.stderr || '').trim() || result.status}`)
+  return (result.stdout || '').trim()
+}
+
+const newer = (a, b) => {
+  const parts = (v) => v.split(/[.+-]/).map((n) => Number.parseInt(n, 10) || 0)
+  const [x, y] = [parts(a), parts(b)]
+  for (let i = 0; i < Math.max(x.length, y.length); i++) {
+    const d = (x[i] ?? 0) - (y[i] ?? 0)
+    if (d !== 0) return d > 0
+  }
+  return false
+}
+
+const prefixOf = () => {
+  const prefix = dirname(ROOT)
+  const current = join(prefix, 'current')
+  try {
+    if (lstatSync(current).isSymbolicLink() && real(current) === ROOT) return prefix
+  } catch {}
+  return null
+}
+
+const update = (args) => {
+  const opts = parse(args, { '--check': 'bool' })
+  const installed = installedVersion()
+  const tag = gh(['release', 'view', '--repo', REPO, '--json', 'tagName', '--jq', '.tagName'])
+  const latest = tag.replace(/^v/, '')
+  console.log(`installed: ${installed}`)
+  console.log(`latest:    ${latest}`)
+  if (!newer(latest, installed)) {
+    console.log('irsim is up to date')
+    return
+  }
+  if (opts.check) {
+    console.log(`update available: run irsim update`)
+    return
+  }
+  const prefix = prefixOf()
+  if (!prefix) fail(`${ROOT} is not a release install, reinstall with install.sh`)
+  const asset = `irsim-${latest}-${platformTag()}.tar.gz`
+  const work = mkdtempSync(join(tmpdir(), 'irsim-update-'))
+  try {
+    gh(['release', 'download', tag, '--repo', REPO, '--pattern', asset, '--dir', work])
+    const target = join(prefix, latest)
+    const staging = `${target}.partial`
+    rmSync(staging, { recursive: true, force: true })
+    mkdirSync(staging, { recursive: true })
+    const untar = spawnSync('tar', ['-xzf', join(work, asset), '-C', staging, '--strip-components=1'], {
+      stdio: 'inherit',
+    })
+    if (untar.status !== 0) fail('could not extract the release archive')
+    rmSync(target, { recursive: true, force: true })
+    renameSync(staging, target)
+    const link = join(prefix, '.current.new')
+    rmSync(link, { force: true })
+    symlinkSync(latest, link)
+    renameSync(link, join(prefix, 'current'))
+    for (const entry of readdirSync(prefix)) {
+      if (/^\d+\.\d+\.\d+/.test(entry) && entry !== latest && entry !== basename(ROOT))
+        rmSync(join(prefix, entry), { recursive: true, force: true })
+    }
+    console.log(`updated to ${latest}`)
+  } finally {
+    rmSync(work, { recursive: true, force: true })
+  }
+  const project = findConfigDir(process.cwd())
+  if (project) {
+    spawnSync(join(prefix, 'current', 'bin', 'irsim'), ['init', '--refresh-block'], {
+      cwd: project,
+      stdio: 'inherit',
+    })
+  }
+}
+
+const confirm = (question) =>
+  new Promise((done) => {
+    const rl = createInterface({ input: process.stdin, output: process.stdout })
+    rl.question(question, (answer) => {
+      rl.close()
+      done(/^y(es)?$/i.test(answer.trim()))
+    })
+  })
+
+const uninstall = async (args) => {
+  const opts = parse(args, { '--purge': 'bool', '--yes': 'bool', '--dry-run': 'bool' })
+  const prefix = prefixOf()
+  if (!prefix) fail(`${ROOT} is not a release install, nothing to uninstall`)
+  const targets = [prefix]
+  const binLink = join(homedir(), '.local', 'bin', 'irsim')
+  try {
+    if (lstatSync(binLink).isSymbolicLink() && real(binLink).startsWith(`${prefix}/`)) targets.push(binLink)
+  } catch {}
+  if (opts.purge) targets.push(join(process.env.XDG_CACHE_HOME || join(homedir(), '.cache'), 'irsim'))
+  for (const target of targets) console.log(`${opts['dry-run'] ? 'would remove' : 'remove'}: ${target}`)
+  if (opts['dry-run']) return
+  if (!opts.yes) {
+    if (!process.stdin.isTTY) fail('pass --yes to uninstall without a prompt')
+    if (!(await confirm('remove these paths? [y/N] '))) {
+      console.log('cancelled')
+      return
+    }
+  }
+  for (const target of targets) rmSync(target, { recursive: true, force: true })
+  console.log('irsim removed')
+}
+
+const [command, ...rest] = process.argv.slice(2)
+switch (command) {
+  case 'serve':
+    await serve(rest)
+    break
+  case 'port': {
+    const { port } = await canvasPort(projectRoot(process.cwd()))
+    console.log(port)
+    break
+  }
+  case 'init':
+    init(rest)
+    break
+  case 'update':
+    update(rest)
+    break
+  case 'uninstall':
+    await uninstall(rest)
+    break
+  case 'version':
+  case '--version':
+    console.log(installedVersion())
+    break
+  case undefined:
+  case '--help':
+  case '-h':
+  case 'help':
+    process.stdout.write(HELP)
+    break
+  default:
+    fail(`unknown command ${command}\n\n${HELP}`, 2)
+}

@@ -1,6 +1,6 @@
 'use client'
 
-import { Button, Textarea } from '@kafbit/ui'
+import { Button, Textarea } from '../../ui'
 import { useState } from 'react'
 import { ImageStrip } from './image-strip'
 import type { PickedElement } from './types'

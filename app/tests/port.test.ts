@@ -1,9 +1,17 @@
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { createServer, type Server } from 'node:http'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { PORT_COUNT, PORT_MIN, hashPort, probePort, resolvePort, type Probe } from '../src/lib/port'
+import {
+  PORT_COUNT,
+  PORT_MIN,
+  canvasPort,
+  hashPort,
+  probePort,
+  resolvePort,
+  type Probe,
+} from '../src/lib/port'
 
 const free: Probe = async () => ({ state: 'free' })
 const taken =
@@ -34,14 +42,14 @@ describe('hashPort', () => {
 describe('resolvePort', () => {
   const root = '/work/one'
 
-  it('DESIGN_PORT wins without probing', async () => {
+  it('IRSIM_PORT wins without probing', async () => {
     const probe: Probe = async () => {
       throw new Error('probed')
     }
     expect(await resolvePort({ root, env: '4555', probe })).toBe(4555)
   })
 
-  it('ignores an invalid DESIGN_PORT', async () => {
+  it('ignores an invalid IRSIM_PORT', async () => {
     expect(await resolvePort({ root, env: 'abc', probe: free })).toBe(hashPort(root))
   })
 
@@ -125,18 +133,37 @@ describe('probePort', () => {
 
 let dir: string
 describe('canvasPort file', () => {
-  it('records the chosen port in apps/design/.data/port and reuses it', async () => {
-    dir = mkdtempSync(join(tmpdir(), 'canvas-port-'))
-    const { canvasPort } = await import('../src/lib/port')
-    const saved = process.env.DESIGN_PORT
+  const names = ['IRSIM_PORT', 'DESIGN_PORT'] as const
+  const saved = names.map((name) => process.env[name])
+  afterEach(() => {
+    names.forEach((name, at) => {
+      const value = saved[at]
+      if (value === undefined) delete process.env[name]
+      else process.env[name] = value
+    })
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('records the chosen port in .irsim/port and reuses it', async () => {
+    dir = mkdtempSync(join(tmpdir(), 'irsim-port-'))
+    names.forEach((name) => delete process.env[name])
+    const first = await canvasPort(dir)
+    expect(readFileSync(join(dir, '.irsim/port'), 'utf8').trim()).toBe(String(first))
+    expect(await canvasPort(dir)).toBe(first)
+  })
+
+  it('IRSIM_PORT is used and not recorded', async () => {
+    dir = mkdtempSync(join(tmpdir(), 'irsim-port-'))
     delete process.env.DESIGN_PORT
-    try {
-      const first = await canvasPort(dir)
-      expect(readFileSync(join(dir, 'apps/design/.data/port'), 'utf8').trim()).toBe(String(first))
-      expect(await canvasPort(dir)).toBe(first)
-    } finally {
-      if (saved !== undefined) process.env.DESIGN_PORT = saved
-      rmSync(dir, { recursive: true, force: true })
-    }
+    process.env.IRSIM_PORT = '4555'
+    expect(await canvasPort(dir)).toBe(4555)
+    expect(existsSync(join(dir, '.irsim/port'))).toBe(false)
+  })
+
+  it('the legacy DESIGN_PORT still applies when IRSIM_PORT is unset', async () => {
+    dir = mkdtempSync(join(tmpdir(), 'irsim-port-'))
+    delete process.env.IRSIM_PORT
+    process.env.DESIGN_PORT = '4556'
+    expect(await canvasPort(dir)).toBe(4556)
   })
 })

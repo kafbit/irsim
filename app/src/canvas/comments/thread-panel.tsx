@@ -1,10 +1,10 @@
 'use client'
 
-import { IconButton } from '@kafbit/ui'
-import { X } from '@kafbit/ui/icons'
-import { useEffect } from 'react'
+import { IconButton } from '../../ui'
+import { ChevronDown, X } from '../../ui/icons'
+import { useEffect, useState } from 'react'
 import { CommentCard } from './comment-card'
-import { groupComments } from './model'
+import { groupComments, resolvedHeading } from './model'
 import { SendFooter } from './send-footer'
 import type { Comment } from './types'
 import { useSession } from './use-session'
@@ -38,8 +38,33 @@ export function ThreadPanel({
   const sections = [
     ['Draft', groups.draft],
     ['Sent', groups.sent],
-    ['Resolved', groups.resolved],
   ] as const
+  const resolvedTitle = resolvedHeading(groups.resolved.length)
+  const [resolvedOpen, setResolvedOpen] = useState(false)
+  const [lastActive, setLastActive] = useState<string | null>(null)
+  if (activeId !== lastActive) {
+    setLastActive(activeId)
+    if (groups.resolved.some((comment) => comment.id === activeId)) setResolvedOpen(true)
+  }
+  const card = (comment: Comment) => (
+    <CommentCard
+      key={comment.id}
+      comment={comment}
+      number={numbers.get(comment.id) ?? 0}
+      active={activeId === comment.id}
+      onLocate={onLocate}
+      onEdit={actions.onEdit}
+      onDelete={actions.onDelete}
+      onResolve={actions.onResolve}
+      onReply={actions.onReply}
+      sessionEnded={
+        session.loaded &&
+        comment.status === 'queued' &&
+        comment.sessionId !== null &&
+        !session.sessions.some((live) => live.id === comment.sessionId)
+      }
+    />
+  )
 
   // Scrolls the opened thread into view: the DOM scroll position is an external system.
   useEffect(() => {
@@ -70,29 +95,29 @@ export function ThreadPanel({
                 {title} ({list.length})
               </h3>
               <ul className="m-0 flex list-none flex-col gap-2 p-0">
-                {list.map((comment) => (
-                  <CommentCard
-                    key={comment.id}
-                    comment={comment}
-                    number={numbers.get(comment.id) ?? 0}
-                    active={activeId === comment.id}
-                    onLocate={onLocate}
-                    onEdit={actions.onEdit}
-                    onDelete={actions.onDelete}
-                    onResolve={actions.onResolve}
-                    onReply={actions.onReply}
-                    sessionEnded={
-                      session.loaded &&
-                      comment.status === 'queued' &&
-                      comment.sessionId !== null &&
-                      !session.sessions.some((live) => live.id === comment.sessionId)
-                    }
-                  />
-                ))}
+                {list.map(card)}
               </ul>
             </section>
           ),
         )}
+        {resolvedTitle ? (
+          <details
+            open={resolvedOpen}
+            onToggle={(event) => setResolvedOpen(event.currentTarget.open)}
+            className="group flex flex-col gap-2"
+          >
+            <summary className="flex cursor-pointer list-none items-center gap-1 text-xs font-semibold text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
+              <ChevronDown
+                aria-hidden="true"
+                className="size-4 shrink-0 -rotate-90 group-open:rotate-0 rtl:rotate-90 rtl:group-open:rotate-0"
+              />
+              {resolvedTitle}
+            </summary>
+            <ul className="m-0 flex list-none flex-col gap-2 p-0">
+              {groups.resolved.map(card)}
+            </ul>
+          </details>
+        ) : null}
         {error ? <p className="m-0 text-xs text-destructive">{error}</p> : null}
       </div>
       <SendFooter

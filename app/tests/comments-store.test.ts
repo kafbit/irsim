@@ -30,15 +30,15 @@ const input = (overrides: Partial<NewComment> = {}): NewComment => ({
 
 describe('comments store', () => {
   let dir: string
-  const saved = process.env.CANVAS_DATA_DIR
+  const saved = process.env.IRSIM_DATA_DIR
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'canvas-data-'))
-    process.env.CANVAS_DATA_DIR = dir
+    process.env.IRSIM_DATA_DIR = dir
   })
   afterEach(() => {
-    if (saved === undefined) delete process.env.CANVAS_DATA_DIR
-    else process.env.CANVAS_DATA_DIR = saved
+    if (saved === undefined) delete process.env.IRSIM_DATA_DIR
+    else process.env.IRSIM_DATA_DIR = saved
     rmSync(dir, { recursive: true, force: true })
   })
 
@@ -103,13 +103,13 @@ describe('comments store', () => {
     await createComment(input())
     await sendDrafts({ sessionId: 's1' })
     const other = mkdtempSync(join(tmpdir(), 'canvas-data-other-'))
-    const here = process.env.CANVAS_DATA_DIR
-    process.env.CANVAS_DATA_DIR = other
+    const here = process.env.IRSIM_DATA_DIR
+    process.env.IRSIM_DATA_DIR = other
     try {
       expect(await listComments({})).toEqual([])
       expect((await claim('s1')).count).toBe(0)
     } finally {
-      process.env.CANVAS_DATA_DIR = here
+      process.env.IRSIM_DATA_DIR = here
       rmSync(other, { recursive: true, force: true })
     }
     expect((await claim('s1')).count).toBe(1)

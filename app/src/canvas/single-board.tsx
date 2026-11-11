@@ -1,7 +1,7 @@
 'use client'
 
-import { Button, IconButton } from '@kafbit/ui'
-import { MessageSquare } from '@kafbit/ui/icons'
+import { Button, IconButton } from '../ui'
+import { MessageSquare } from '../ui/icons'
 import Link from 'next/link'
 import { useCallback, useMemo, useState } from 'react'
 import { CommentLayer } from './comments/comment-layer'

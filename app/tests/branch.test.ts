@@ -14,12 +14,12 @@ const repo = (branch: string): string => {
   const git = (...args: string[]) => execFileSync('git', ['-C', root, ...args], { stdio: 'pipe' })
   git('init', '-q', '-b', branch)
   git('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '--allow-empty', '-m', 'init')
-  process.env.CANVAS_DESIGN_DIR = join(root, 'design')
+  process.env.IRSIM_DESIGN_DIR = join(root, 'design')
   return root
 }
 
 afterEach(() => {
-  delete process.env.CANVAS_DESIGN_DIR
+  delete process.env.IRSIM_DESIGN_DIR
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
 })
 
@@ -39,7 +39,7 @@ describe('currentBranch', () => {
     const root = mkdtempSync(join(tmpdir(), 'canvas-nogit-'))
     roots.push(root)
     mkdirSync(join(root, 'design'))
-    process.env.CANVAS_DESIGN_DIR = join(root, 'design')
+    process.env.IRSIM_DESIGN_DIR = join(root, 'design')
     expect(await currentBranch()).toBe(basename(root))
   })
 })

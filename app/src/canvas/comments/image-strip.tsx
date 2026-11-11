@@ -2,8 +2,8 @@
 
 /* oxlint-disable next/no-img-element -- comment images come from /api/comments/images, no optimiser */
 
-import { IconButton } from '@kafbit/ui'
-import { X } from '@kafbit/ui/icons'
+import { IconButton } from '../../ui'
+import { X } from '../../ui/icons'
 
 export const imageUrl = (id: string): string => `/api/comments/images/${id}`
 

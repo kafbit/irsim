@@ -4,8 +4,6 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { closureOf, importsOf } from '../src/lib/closure'
 
-const realDir = join(import.meta.dir, '../../../design')
-
 describe('importsOf', () => {
   it('lists each imported name once, in order', () => {
     const source = `<dc-import name="B" a="1"><dc-import name='A'><dc-import name="B">
@@ -18,40 +16,12 @@ describe('importsOf', () => {
   })
 })
 
-describe('closureOf on design/', () => {
-  const previous = process.env.CANVAS_DESIGN_DIR
-  beforeEach(() => {
-    process.env.CANVAS_DESIGN_DIR = realDir
-  })
-  afterEach(() => {
-    if (previous === undefined) delete process.env.CANVAS_DESIGN_DIR
-    else process.env.CANVAS_DESIGN_DIR = previous
-  })
-
-  it('Leads holds the root, Table and Sidebar, each source once', async () => {
-    const { boards, missing } = await closureOf('Leads')
-    const names = Object.keys(boards)
-    expect(names[0]).toBe('Leads')
-    expect(names).toContain('Table')
-    expect(names).toContain('Sidebar')
-    expect(new Set(names).size).toBe(names.length)
-    expect(missing).toEqual([])
-  })
-
-  it('the hash is stable across two calls', async () => {
-    const first = await closureOf('Leads')
-    const second = await closureOf('Leads')
-    expect(second.hash).toBe(first.hash)
-    expect(first.hash).toMatch(/^[0-9a-f]{12}$/)
-  })
-})
-
 describe('closureOf on a copy', () => {
-  const previous = process.env.CANVAS_DESIGN_DIR
+  const previous = process.env.IRSIM_DESIGN_DIR
   let dir = ''
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'closure-'))
-    process.env.CANVAS_DESIGN_DIR = dir
+    process.env.IRSIM_DESIGN_DIR = dir
     writeFileSync(
       join(dir, 'Root.dc.html'),
       '<x-dc><dc-import name="Leaf"><dc-import name="Gone"></x-dc>',
@@ -60,14 +30,21 @@ describe('closureOf on a copy', () => {
   })
   afterEach(() => {
     rmSync(dir, { recursive: true, force: true })
-    if (previous === undefined) delete process.env.CANVAS_DESIGN_DIR
-    else process.env.CANVAS_DESIGN_DIR = previous
+    if (previous === undefined) delete process.env.IRSIM_DESIGN_DIR
+    else process.env.IRSIM_DESIGN_DIR = previous
   })
 
   it('lists a missing import instead of throwing', async () => {
     const { boards, missing } = await closureOf('Root')
     expect(Object.keys(boards)).toEqual(['Root', 'Leaf'])
     expect(missing).toEqual(['Gone'])
+  })
+
+  it('the hash is stable across two calls', async () => {
+    const first = await closureOf('Root')
+    const second = await closureOf('Root')
+    expect(second.hash).toBe(first.hash)
+    expect(first.hash).toMatch(/^[0-9a-f]{12}$/)
   })
 
   it('the hash changes when an imported board changes, and the new source is served', async () => {

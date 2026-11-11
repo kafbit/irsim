@@ -1,0 +1,16 @@
+{
+  "name": "kafbit",
+  "owner": {
+    "name": "Kafbit"
+  },
+  "metadata": {
+    "description": "Kafbit tools for Claude Code."
+  },
+  "plugins": [
+    {
+      "name": "irsim",
+      "source": "./plugin",
+      "description": "Opens the irsim design canvas and delivers its comments to the session."
+    }
+  ]
+}

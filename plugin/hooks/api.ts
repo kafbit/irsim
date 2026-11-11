@@ -37,24 +37,26 @@ export const messageOf = (error: unknown): string =>
 
 const worktrees = new Map<string, { root: string; port: number }>()
 
+async function forcedPort($: Engine): Promise<number> {
+  for (const name of ['IRSIM_PORT', 'DESIGN_PORT']) {
+    const value = Number(await $.env.get(name))
+    if (Number.isInteger(value) && value >= 1) return value
+  }
+  return 0
+}
+
 async function worktreeOf($: Engine): Promise<{ root: string; port: number }> {
   const cwd = await $.session.cwd()
   const known = worktrees.get(cwd)
   if (known) return known
   const top = await $.process.run(['git', 'rev-parse', '--show-toplevel'], { cwd })
-  const root = top.stdout.trim()
-  if (top.exitCode !== 0 || !root)
-    throw new CanvasError('the session is not inside the Kafbit repository')
-  const forced = Number(await $.env.get('DESIGN_PORT'))
-  let port = forced
-  if (!Number.isInteger(forced) || forced < 1) {
-    const resolved = await $.process.run(
-      ['bun', 'apps/design/scripts/canvas-port.ts', '--root', root],
-      { cwd: root },
-    )
+  const root = top.exitCode === 0 && top.stdout.trim() ? top.stdout.trim() : cwd
+  let port = await forcedPort($)
+  if (port === 0) {
+    const resolved = await $.process.run(['irsim', 'port'], { cwd })
     port = Number(resolved.stdout.trim())
     if (resolved.exitCode !== 0 || !Number.isInteger(port))
-      throw new CanvasError(`no canvas port for ${root}: ${oneLine(resolved.stderr)}`)
+      throw new CanvasError(`no irsim port for ${root}: ${oneLine(resolved.stderr)}`)
   }
   const found = { root, port }
   worktrees.set(cwd, found)
@@ -80,7 +82,7 @@ export async function api<T>(
         : { headers: { 'content-type': 'application/json' }, body: JSON.stringify(init.body) }),
     })
   } catch {
-    throw new CanvasError('the canvas server is not running, run /canvas')
+    throw new CanvasError('the irsim server is not running, run /irsim')
   }
   let data: unknown = null
   try {
@@ -117,16 +119,18 @@ export async function ensureServer($: Engine): Promise<void> {
     [
       'sh',
       '-c',
-      'mkdir -p apps/design/.data && nohup bun run canvas > apps/design/.data/canvas.log 2>&1 < /dev/null &',
+      'mkdir -p "$1/.irsim" && nohup irsim serve > "$1/.irsim/canvas.log" 2>&1 < /dev/null &',
+      'sh',
+      root,
     ],
-    { cwd: root },
+    { cwd: await $.session.cwd() },
   )
   for (let waited = 0; waited < START_TIMEOUT_MS; waited += START_STEP_MS) {
     await $.clock.sleep(START_STEP_MS)
     if (await isUp($)) return
   }
   throw new CanvasError(
-    `the canvas server did not answer within 30 s, see ${root}/apps/design/.data/canvas.log`,
+    `the irsim server did not answer within 30 s, see ${root}/.irsim/canvas.log`,
   )
 }
 

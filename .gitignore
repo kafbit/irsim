@@ -1,0 +1,4 @@
+.irsim/
+node_modules/
+.next/
+dist/

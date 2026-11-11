@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { imagePath, removeImages } from './comment-images'
 import type { Comment, Reply, Session } from './comments-types'
 import { dataDir } from './data-dir'
+import { designFolderName } from './design-dir'
 import { emit } from './events'
 import { buildTurnText, unseenUserReplies } from './turn-text'
 
@@ -280,7 +281,7 @@ export const claim = (sessionId: string, now = Date.now()): Promise<Claim> =>
     return {
       batch: delivered[delivered.length - 1]?.batch ?? null,
       count: delivered.length,
-      text: buildTurnText(taken, paths),
+      text: buildTurnText(taken, paths, designFolderName()),
       comments: delivered,
     }
   })

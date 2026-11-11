@@ -1,10 +1,9 @@
 @import 'tailwindcss';
-@import '@kafbit/ui/styles.css';
-@source '../../../../packages/ui/src';
+@import './ui-tokens.css';
 
 /*
  * The boards ship their own colours and fonts inside each frame, so the chrome takes the palette
- * from `@kafbit/ui` instead of the tokens the canvas is editing: a preview tool that changes colour
+ * from `ui-tokens.css` instead of the tokens the canvas is editing: a preview tool that changes colour
  * when the colour variable changes cannot be used to judge the change.
  */
 @theme {

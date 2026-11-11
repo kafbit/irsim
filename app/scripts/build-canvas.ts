@@ -1,7 +1,6 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { PAGES } from '../src/lib/pages'
+import { join } from 'node:path'
+import { designDir as resolveDesignDir } from '../src/lib/design-dir'
 
 type Placed = { name: string; title: string; x: number; y: number; width: number; height: number }
 type CanvasPage = { id: string; title: string; boards: Placed[] }
@@ -20,7 +19,7 @@ const ROW_WIDTH = 12000
 const GAP = 80
 const DEFAULT_SIZE = { width: 1440, height: 900 }
 
-const designDir = join(dirname(fileURLToPath(import.meta.url)), '../../../design')
+const designDir = resolveDesignDir()
 const canvasFile = join(designDir, 'canvas.json')
 
 const decode = (text: string): string =>
@@ -62,7 +61,24 @@ const known = new Set(
     .map((f) => f.slice(0, -8)),
 )
 
-const pages: CanvasPage[] = PAGES.map((page) => {
+const UNSORTED = { id: 'unsorted', title: 'Unsorted' }
+
+const assigned = new Set((previous.pages ?? []).flatMap((page) => page.boards.map((b) => b.name)))
+const loose = [...known].filter((name) => !assigned.has(name)).sort()
+const layout: { id: string; title: string; boards: string[] }[] = [
+  ...(previous.pages ?? []).map((page) => ({
+    id: page.id,
+    title: page.title,
+    boards: page.boards.map((b) => b.name),
+  })),
+]
+if (loose.length > 0) {
+  const existing = layout.find((page) => page.id === UNSORTED.id)
+  if (existing) existing.boards.push(...loose)
+  else layout.push({ ...UNSORTED, boards: loose })
+}
+
+const pages: CanvasPage[] = layout.map((page) => {
   const sized = page.boards
     .filter((name) => known.has(name))
     .map((name) => ({

@@ -1,22 +1,26 @@
 {
-  "name": "@kafbit/design",
-  "version": "0.0.1",
+  "name": "irsim",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
-    "canvas": "bun run --cwd ../../packages/i18n build && next dev --port $(bun scripts/canvas-port.ts)",
-    "lint": "oxlint src/ public/runtime/",
+    "dev": "next dev --port $(bun scripts/canvas-port.ts)",
+    "build": "next build",
     "typecheck": "tsc --noEmit",
+    "lint": "oxlint src/ public/runtime/",
+    "test": "bun test --isolate",
     "canvas:build": "bun scripts/build-canvas.ts",
-    "test": "node ../../scripts/bun-test.mjs",
     "canvas:thumbs": "bun scripts/thumbs.ts",
     "canvas:comments": "bun scripts/canvas-comments.ts"
   },
   "dependencies": {
-    "@kafbit/i18n": "workspace:*",
-    "@kafbit/ui": "workspace:*",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.41.0",
     "next": "^16.3.3",
+    "radix-ui": "^1.6.7",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0",
@@ -24,6 +28,7 @@
     "@types/node": "^24.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "oxlint": "^1.93.0",
     "sharp": "^0.35.3",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.7.2",

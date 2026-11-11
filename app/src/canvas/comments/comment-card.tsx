@@ -2,9 +2,10 @@
 
 /* oxlint-disable next/no-img-element -- comment images come from /api/comments/images, no optimiser */
 
-import { Badge, Button, IconButton, Textarea } from '@kafbit/ui'
-import { Check, DeleteIcon, EditIcon } from '@kafbit/ui/icons'
+import { Badge, Button, IconButton, Textarea } from '../../ui'
+import { Check, DeleteIcon, EditIcon } from '../../ui/icons'
 import { useState } from 'react'
+import { ClampedText } from './clamped-text'
 import { ImageStrip, imageUrl } from './image-strip'
 import type { Comment } from './types'
 import { usePastedImages } from './use-pasted-images'
@@ -143,9 +144,7 @@ export function CommentCard({
           </div>
         </div>
       ) : (
-        <p dir="auto" className="m-0 text-sm whitespace-pre-wrap">
-          {comment.body}
-        </p>
+        <ClampedText text={comment.body} className="text-sm" />
       )}
       {!editing && comment.images.length > 0 ? (
         <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
@@ -165,19 +164,21 @@ export function CommentCard({
       {comment.replies.length > 0 ? (
         <ul className="m-0 flex list-none flex-col gap-1.5 border-s-2 border-border p-0 ps-2">
           {comment.replies.map((reply) => (
-            <li key={reply.at + reply.author} className="text-sm">
-              <span className="font-semibold">{reply.author === 'claude' ? 'Claude' : 'You'}</span>{' '}
-              <span dir="auto" className="whitespace-pre-wrap">
-                {reply.body}
+            <li key={reply.at + reply.author} className="flex flex-col gap-0.5 text-sm">
+              <span>
+                <span className="font-semibold">
+                  {reply.author === 'claude' ? 'Claude' : 'You'}
+                </span>
+                {reply.author === 'user' && !reply.seen ? (
+                  <>
+                    {' '}
+                    <Badge size="sm" tone="neutral">
+                      Waiting
+                    </Badge>
+                  </>
+                ) : null}
               </span>
-              {reply.author === 'user' && !reply.seen ? (
-                <>
-                  {' '}
-                  <Badge size="sm" tone="neutral">
-                    Waiting
-                  </Badge>
-                </>
-              ) : null}
+              <ClampedText text={reply.body} />
             </li>
           ))}
         </ul>

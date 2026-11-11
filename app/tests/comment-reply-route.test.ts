@@ -16,15 +16,15 @@ const reply = (id: string, body: unknown) =>
 
 describe('comment reply route', () => {
   let dir: string
-  const saved = process.env.CANVAS_DATA_DIR
+  const saved = process.env.IRSIM_DATA_DIR
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'canvas-reply-route-'))
-    process.env.CANVAS_DATA_DIR = dir
+    process.env.IRSIM_DATA_DIR = dir
   })
   afterEach(() => {
-    if (saved === undefined) delete process.env.CANVAS_DATA_DIR
-    else process.env.CANVAS_DATA_DIR = saved
+    if (saved === undefined) delete process.env.IRSIM_DATA_DIR
+    else process.env.IRSIM_DATA_DIR = saved
     rmSync(dir, { recursive: true, force: true })
   })
 

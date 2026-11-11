@@ -8,7 +8,7 @@ export const runtime = 'nodejs'
 
 /**
  * The thumbnail of a board for its current closure hash. A file of an older hash is never served:
- * the response is 404 until `canvas:thumbs` renders the board again. With `?h=` equal to the
+ * the response is 404 until `irsim thumbs` renders the board again. With `?h=` equal to the
  * current hash the URL names its content, so it is cached as immutable.
  */
 export async function GET(

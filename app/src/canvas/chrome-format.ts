@@ -1,4 +1,4 @@
-import type { FormatContext } from '@kafbit/i18n'
+import type { FormatContext } from '../lib/format-number'
 
 export const CHROME_FORMAT: FormatContext = {
   locale: 'en-GB',

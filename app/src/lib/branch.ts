@@ -1,7 +1,7 @@
 import { execFile } from 'node:child_process'
 import { basename, dirname } from 'node:path'
 import { promisify } from 'node:util'
-import { designDir } from './design-dir'
+import { designDir, projectRoot } from './design-dir'
 
 const run = promisify(execFile)
 
@@ -10,7 +10,7 @@ const run = promisify(execFile)
  * short commit and anything git cannot answer gives the worktree folder name, so a title never fails.
  */
 export const currentBranch = async (): Promise<string> => {
-  const root = dirname(designDir())
+  const root = projectRoot(dirname(designDir()))
   try {
     const { stdout } = await run('git', ['-C', root, 'rev-parse', '--abbrev-ref', 'HEAD'])
     const name = stdout.trim()

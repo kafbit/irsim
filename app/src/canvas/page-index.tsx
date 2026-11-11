@@ -1,6 +1,6 @@
 'use client'
 
-import { formatNumber } from '@kafbit/i18n'
+import { formatNumber } from '../lib/format-number'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Shell, Status } from './canvas'

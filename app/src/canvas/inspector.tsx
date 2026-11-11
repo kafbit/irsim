@@ -1,7 +1,7 @@
 'use client'
 
-import { Button, IconButton } from '@kafbit/ui'
-import { Check, CopyIcon } from '@kafbit/ui/icons'
+import { Button, IconButton } from '../ui'
+import { Check, CopyIcon } from '../ui/icons'
 import Link from 'next/link'
 import { useState } from 'react'
 import type { ManifestBoard, PageSummary } from './types'

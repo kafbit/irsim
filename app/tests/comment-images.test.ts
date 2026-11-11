@@ -22,15 +22,15 @@ const bytes = (head: number[], size = 32): Uint8Array => {
 
 describe('comment images', () => {
   let dir: string
-  const saved = process.env.CANVAS_DATA_DIR
+  const saved = process.env.IRSIM_DATA_DIR
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'canvas-images-'))
-    process.env.CANVAS_DATA_DIR = dir
+    process.env.IRSIM_DATA_DIR = dir
   })
   afterEach(() => {
-    if (saved === undefined) delete process.env.CANVAS_DATA_DIR
-    else process.env.CANVAS_DATA_DIR = saved
+    if (saved === undefined) delete process.env.IRSIM_DATA_DIR
+    else process.env.IRSIM_DATA_DIR = saved
     rmSync(dir, { recursive: true, force: true })
   })
 

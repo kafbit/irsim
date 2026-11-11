@@ -1,5 +1,3 @@
 [test]
 root = "tests"
-preload = ["../../test-setup/vi-compat.ts"]
-coverageSkipTestFiles = true
-coveragePathIgnorePatterns = ["node_modules/**", "**/test-setup/**", "**/dist/**", "**/index.ts"]
+preload = ["./test-setup/vi-compat.ts"]

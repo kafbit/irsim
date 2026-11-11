@@ -1,5 +1,8 @@
 import type { Comment, Reply } from './comments-types'
 
+export const REPLY_RULE =
+  'Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.'
+
 const unique = (values: string[]): string[] => [...new Set(values)]
 
 const boardOf = (file: string): string => file.replace(/^.*\//, '').replace(/\.dc\.html$/, '')
@@ -46,6 +49,7 @@ const item = (comment: Comment, index: number, imagePaths: Record<string, string
 export const buildTurnText = (
   comments: Comment[],
   imagePaths: Record<string, string> = {},
+  designFolder = 'design',
 ): string => {
   const pages = unique(comments.map((comment) => comment.page))
   const batches = unique(comments.flatMap((comment) => (comment.batch ? [comment.batch] : [])))
@@ -58,9 +62,10 @@ export const buildTurnText = (
       ? ` (${comments.length - followUps} new, ${followUps} follow-up${followUps === 1 ? '' : 's'})`
       : ''
   return [
-    `Design canvas: ${comments.length} ${noun}${mix} ${where} (${batch}). Read only the lines named; boards live in design/.`,
+    `Design canvas: ${comments.length} ${noun}${mix} ${where} (${batch}). Read only the lines named; boards live in ${designFolder}/.`,
     ...comments.map((comment, index) => item(comment, index, imagePaths)),
     'Reply to each with design_canvas {action: "reply", id, body}; resolve with {action: "resolve", id}.',
+    REPLY_RULE,
     `Ids: ${comments.map((comment) => comment.id).join(', ')}`,
   ].join('\n')
 }

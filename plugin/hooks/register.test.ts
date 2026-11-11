@@ -3,7 +3,7 @@ import { expect, mock, test } from 'claude-code/testing'
 import type { Engine } from 'claude-code/testing'
 
 const SESSION = 'abcdef123456'
-const TOOL = 'mcp__design-canvas__design_canvas'
+const TOOL = 'mcp__irsim__design_canvas'
 
 const run = ($: Engine, command: string, args: string) =>
   $.command.run({
@@ -41,7 +41,7 @@ function world(
   on('session.id', () => ({ value: SESSION }))
   on('session.cwd', () => ({ value: session.cwd }))
   on('command.register', (_, e) => ({ value: { command: e.name } }))
-  on('tool.register', (_, e) => ({ value: { tool: `mcp__design-canvas__${e.name}` } }))
+  on('tool.register', (_, e) => ({ value: { tool: `mcp__irsim__${e.name}` } }))
   on('ui.status', (_, e) => {
     statuses.push(e.text)
     return { value: undefined }
@@ -53,12 +53,10 @@ function world(
   on('process.run', (_, e) => {
     processes.push(e.argv)
     const here = worktrees[session.cwd]
-    const root = e.argv.includes('--root') ? e.argv[e.argv.indexOf('--root') + 1] : undefined
-    const port = Object.values(worktrees).find((one) => one.root === root)?.port
     return {
       value: {
         exitCode: 0,
-        stdout: e.argv.includes('rev-parse') ? (here?.root ?? '/work') : String(port ?? ''),
+        stdout: e.argv.includes('rev-parse') ? (here?.root ?? '/work') : String(here?.port ?? ''),
         stderr: '',
         isStdoutTruncated: false,
         isStderrTruncated: false,
@@ -108,11 +106,11 @@ function world(
   return { calls, processes, submitted, statuses, clock, session }
 }
 
-test('/canvas Leads resolves the board to its page and registers the session', async ($, on) => {
+test('/irsim Leads resolves the board to its page and registers the session', async ($, on) => {
   const w = world(on)
   await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
 
-  const { text } = await run($, 'canvas', 'Leads')
+  const { text } = await run($, 'irsim', 'Leads')
 
   const url = `http://localhost:3238/p/sales?board=Leads&session=${SESSION}`
   expect(text).toBe(`Canvas open at ${url}, listening for comments.`)
@@ -130,7 +128,7 @@ test('the poll submits one prompt when claim returns comments and none when it r
   const text = 'Design canvas: 2 comments on page sales (batch b_1).'
   const w = world(on, { count: 2, text })
   await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
-  await run($, 'canvas', '')
+  await run($, 'irsim', '')
 
   await w.clock.advance(2000)
   expect(w.submitted).toEqual([text])
@@ -143,16 +141,16 @@ test('the poll submits one prompt when claim returns comments and none when it r
   })
 })
 
-test('the poll stays silent when claim returns zero and after /canvas-stop', async ($, on) => {
+test('the poll stays silent when claim returns zero and after /irsim-stop', async ($, on) => {
   const w = world(on, { count: 0 })
   await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
-  await run($, 'canvas', '')
+  await run($, 'irsim', '')
 
   await w.clock.advance(4000)
   expect(w.submitted).toEqual([])
   expect(w.calls.filter((call) => call.path === '/api/comments/claim').length).toBeGreaterThan(0)
 
-  const { text } = await run($, 'canvas-stop', '')
+  const { text } = await run($, 'irsim-stop', '')
   expect(text).toBe('Canvas listening stopped for this session.')
   expect(
     w.calls.some((call) => call.method === 'DELETE' && call.path === `/api/sessions/${SESSION}`),
@@ -192,18 +190,13 @@ test('the page action returns one line per board', async ($, on) => {
   expect(result).toBe('sales: Sales\nLeads  1440x900  closure: Table, Sidebar')
 })
 
-test('the port comes from the canvas-port script run in the session worktree', async ($, on) => {
+test('the port comes from `irsim port` run in the session folder', async ($, on) => {
   const w = world(on)
   await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
 
-  await run($, 'canvas', '')
+  await run($, 'irsim', '')
 
-  expect(w.processes).toContainEqual([
-    'bun',
-    'apps/design/scripts/canvas-port.ts',
-    '--root',
-    '/work',
-  ])
+  expect(w.processes).toContainEqual(['irsim', 'port'])
   expect(w.calls.every((call) => call.port === '3238')).toBe(true)
 })
 
@@ -215,26 +208,24 @@ test('two worktrees talk to their own canvas port', async ($, on) => {
   const w = world(on, { count: 0 }, { worktrees })
   await $.session.start({ cwd: '/work/one/apps/web', surface: 'terminal', isInteractive: true })
   w.session.cwd = '/work/one/apps/web'
-  const first = await run($, 'canvas', '')
+  const first = await run($, 'irsim', '')
   expect(first.text).toContain('http://localhost:3211/')
 
   w.calls.length = 0
   w.session.cwd = '/work/two'
-  const second = await run($, 'canvas', '')
+  const second = await run($, 'irsim', '')
   expect(second.text).toContain('http://localhost:3277/')
   expect(w.calls.every((call) => call.port === '3277')).toBe(true)
 })
 
-test('DESIGN_PORT wins and the canvas-port script is not run', async ($, on) => {
+test('IRSIM_PORT wins and `irsim port` is not run', async ($, on) => {
   const worktrees: Worktrees = { '/work/forced': { root: '/work/forced', port: 3299 } }
   const w = world(on, { count: 0 }, { worktrees, env: '4555' })
   await $.session.start({ cwd: '/work/forced', surface: 'terminal', isInteractive: true })
   w.session.cwd = '/work/forced'
 
-  const { text } = await run($, 'canvas', '')
+  const { text } = await run($, 'irsim', '')
 
   expect(text).toContain('http://localhost:4555/')
-  expect(w.processes.some((argv) => argv.includes('apps/design/scripts/canvas-port.ts'))).toBe(
-    false,
-  )
+  expect(w.processes.some((argv) => argv[0] === 'irsim' && argv[1] === 'port')).toBe(false)
 })

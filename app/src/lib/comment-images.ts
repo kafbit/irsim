@@ -36,7 +36,7 @@ const imagesDir = (): string => join(dataDir(), 'images')
 const newId = (): string =>
   `i_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6).padEnd(4, '0')}`
 
-/** Stores a PNG, JPEG or WebP of at most 5 MB under `.data/images`. Refuses anything else without writing. */
+/** Stores a PNG, JPEG or WebP of at most 5 MB under `<data dir>/images`. Refuses anything else without writing. */
 export const saveImage = async (
   bytes: Uint8Array,
 ): Promise<{ ok: true; id: string } | { ok: false; reason: 'type' | 'size' }> => {

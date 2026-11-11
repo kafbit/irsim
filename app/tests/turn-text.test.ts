@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Comment } from '../src/lib/comments-types'
-import { buildTurnText } from '../src/lib/turn-text'
+import { REPLY_RULE, buildTurnText } from '../src/lib/turn-text'
 
 const comment = (overrides: Partial<Comment>): Comment => ({
   id: 'c_1',
@@ -40,8 +40,23 @@ describe('buildTurnText', () => {
         '2. design/Leads.dc.html:57 · button "عميل جديد"',
         '   Use the primary button.',
         'Reply to each with design_canvas {action: "reply", id, body}; resolve with {action: "resolve", id}.',
+        REPLY_RULE,
         'Ids: c_a, c_b',
       ].join('\n'),
+    )
+  })
+
+  it('tells the agent to keep replies to three short sentences', () => {
+    expect(REPLY_RULE).toBe(
+      'Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.',
+    )
+    expect(buildTurnText([comment({})])).toContain(`\n${REPLY_RULE}\nIds: c_1`)
+  })
+
+  it('names the design folder it is given and defaults to design', () => {
+    expect(buildTurnText([comment({})]).split('\n')[0]).toContain('boards live in design/.')
+    expect(buildTurnText([comment({})], {}, 'ui-boards').split('\n')[0]).toContain(
+      'boards live in ui-boards/.',
     )
   })
 
@@ -95,6 +110,7 @@ describe('buildTurnText', () => {
           '   NEW You: Still wrong',
           '      second line',
           'Reply to each with design_canvas {action: "reply", id, body}; resolve with {action: "resolve", id}.',
+          REPLY_RULE,
           'Ids: c_f',
         ].join('\n'),
       )

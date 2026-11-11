@@ -1,6 +1,6 @@
 {
-  "name": "design-canvas",
+  "name": "irsim",
   "version": "0.1.0",
   "author": { "name": "Kafbit" },
-  "description": "Opens the Kafbit design canvas and delivers its comments to the session."
+  "description": "Opens the irsim design canvas and delivers its comments to the session."
 }

@@ -1,6 +1,7 @@
-import { canvasPort, repoRoot } from '../src/lib/port'
+import { projectRoot } from '../src/lib/design-dir'
+import { canvasPort } from '../src/lib/port'
 
-const base = `http://localhost:${await canvasPort(repoRoot())}`
+const base = `http://localhost:${await canvasPort(projectRoot())}`
 const POLL_MS = 2000
 
 const args = process.argv.slice(2)
@@ -65,7 +66,7 @@ const wait = async (): Promise<void> => {
 }
 
 const usage =
-  'usage: canvas:comments --wait | --list [--status s] | --reply <id> <body> | --resolve <id>'
+  'usage: irsim comments --wait | --list [--status s] | --reply <id> <body> | --resolve <id>'
 
 if (args.includes('--wait')) await wait()
 else if (args.includes('--list')) {

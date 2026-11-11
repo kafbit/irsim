@@ -1,5 +1,6 @@
-import { canvasPort, repoRoot } from '../src/lib/port'
+import { projectRoot } from '../src/lib/design-dir'
+import { canvasPort } from '../src/lib/port'
 
 const flag = process.argv.indexOf('--root')
-const root = flag === -1 ? repoRoot() : (process.argv[flag + 1] ?? repoRoot())
+const root = flag === -1 ? projectRoot() : (process.argv[flag + 1] ?? projectRoot())
 console.log(await canvasPort(root))

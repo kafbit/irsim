@@ -3,6 +3,9 @@ import type { Comment, Engine, Page } from './api'
 import { openCanvas } from './canvas'
 
 export const TOOL_NAME = 'design_canvas'
+export const TOOL_DESCRIPTION =
+  'Reads and answers design canvas comments. Actions: open, page, comments, reply, resolve. Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.'
+
 export const TOOL_MATCH = /^mcp__.*__design_canvas$/
 
 export const TOOL_SCHEMA = {
@@ -17,7 +20,8 @@ export const TOOL_SCHEMA = {
       description: 'Filter for comments.',
     },
     id: { type: 'string', description: 'Comment id, for reply and resolve.' },
-    body: { type: 'string', description: 'Reply text, for reply and resolve.' },
+    body: { type: 'string', description:
+        'Reply text, for reply and resolve. Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.' },
   },
   required: ['action'],
 }

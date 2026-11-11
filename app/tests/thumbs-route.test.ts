@@ -10,7 +10,7 @@ describe('GET /api/thumbs/[board]', () => {
   let root: string
   let designPath: string
   let thumbsPath: string
-  const saved = { design: process.env.CANVAS_DESIGN_DIR, thumbs: process.env.CANVAS_THUMBS_DIR }
+  const saved = { design: process.env.IRSIM_DESIGN_DIR, thumbs: process.env.IRSIM_THUMBS_DIR }
 
   const request = (board: string, hash?: string) =>
     GET(new Request(`http://x/api/thumbs/${board}${hash ? `?h=${hash}` : ''}`), {
@@ -24,15 +24,15 @@ describe('GET /api/thumbs/[board]', () => {
     mkdirSync(designPath)
     mkdirSync(thumbsPath)
     writeFileSync(join(designPath, 'Tiny.dc.html'), '<x-dc>tiny</x-dc>')
-    process.env.CANVAS_DESIGN_DIR = designPath
-    process.env.CANVAS_THUMBS_DIR = thumbsPath
+    process.env.IRSIM_DESIGN_DIR = designPath
+    process.env.IRSIM_THUMBS_DIR = thumbsPath
   })
 
   afterEach(() => {
-    if (saved.design === undefined) delete process.env.CANVAS_DESIGN_DIR
-    else process.env.CANVAS_DESIGN_DIR = saved.design
-    if (saved.thumbs === undefined) delete process.env.CANVAS_THUMBS_DIR
-    else process.env.CANVAS_THUMBS_DIR = saved.thumbs
+    if (saved.design === undefined) delete process.env.IRSIM_DESIGN_DIR
+    else process.env.IRSIM_DESIGN_DIR = saved.design
+    if (saved.thumbs === undefined) delete process.env.IRSIM_THUMBS_DIR
+    else process.env.IRSIM_THUMBS_DIR = saved.thumbs
     rmSync(root, { recursive: true, force: true })
   })
 

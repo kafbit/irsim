@@ -1,4 +1,6 @@
+import { formatNumber } from '../../lib/format-number'
 import type { Rect, Size, View } from '../geometry'
+import { CHROME_FORMAT } from '../chrome-format'
 import type { Comment, PickedElement, Session } from './types'
 
 const isNumber = (value: unknown): value is number =>
@@ -96,6 +98,14 @@ export function groupComments(comments: readonly Comment[]): Groups {
   }
   return groups
 }
+
+/** The collapsed header of the resolved comments, or null when there are none to show. */
+export const resolvedHeading = (count: number): string | null =>
+  count > 0 ? `Resolved (${formatNumber(count, CHROME_FORMAT)})` : null
+
+/** True when clamped text is taller than the box that shows it, so a "Show more" button is needed. */
+export const isClamped = (scrollHeight: number, clientHeight: number): boolean =>
+  scrollHeight - clientHeight > 1
 
 export const sendLabel = (count: number) => `Send ${count} ${count === 1 ? 'comment' : 'comments'}`
 
