@@ -1,7 +1,14 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { imagePath, removeImages } from './comment-images'
-import type { Approval, Comment, Reply, Session } from './comments-types'
+import type {
+  Approval,
+  BoardApproval,
+  Comment,
+  PageApprovals,
+  Reply,
+  Session,
+} from './comments-types'
 import { dataDir } from './data-dir'
 import { designFolderName } from './design-dir'
 import { emit } from './events'
@@ -239,55 +246,63 @@ export const sendDrafts = (input: {
     return { batch, count: ids.length }
   })
 
-export type BoardApproval = { board: string; at: string; current: boolean }
+const approvalsChanged = (ids: string[]): void => emit({ event: 'approvals', data: { ids } })
 
-/** The latest approval of each board of a page, and whether the board is still as approved. */
-export const listApprovals = async (page: string): Promise<BoardApproval[]> => {
+/**
+ * The content hash of each board of `boards` and the latest approval of each, whichever page it was
+ * approved on: an approval belongs to the board, not to the page.
+ */
+export const listApprovals = async (boards: string[]): Promise<PageApprovals> => {
+  const wanted = new Set(boards)
+  const hashes: Record<string, string> = {}
+  for (const board of boards) hashes[board] = (await closureOf(board)).content
   const latest = new Map<string, Approval>()
   for (const approval of await readList<Approval>('approvals.json')) {
-    if (approval.page === page) latest.set(approval.board, approval)
+    if (wanted.has(approval.board)) latest.set(approval.board, approval)
   }
-  return Promise.all(
-    [...latest.values()].map(async (approval) => ({
+  const approvals = [...latest.values()].map(
+    (approval): BoardApproval => ({
       board: approval.board,
       at: approval.createdAt,
-      current: (await closureOf(approval.board)).hash === approval.hash,
-    })),
+      current: hashes[approval.board] === approval.hash,
+      status: approval.status,
+    }),
   )
+  return { hashes, approvals }
 }
 
-/** Queues an approval for a session; the next claim of that session delivers it. */
+export type ApprovalRefusal = 'stale' | 'no_session'
+
+/**
+ * Queues an approval for a live session; its next claim delivers it. `hash` is the content hash
+ * the user was looking at: a board that changed since then is refused, so nobody approves a
+ * version they did not see.
+ */
 export const createApproval = (
-  input: { page: string; board: string; note: string; sessionId: string },
+  input: { page: string; board: string; note: string; sessionId: string; hash: string },
   now = Date.now(),
-): Promise<Approval> =>
+): Promise<Approval | ApprovalRefusal> =>
   enqueue(async () => {
+    const live = (await readList<Session>('sessions.json')).some(
+      (session) =>
+        session.id === input.sessionId && now - Date.parse(session.lastSeen) <= SESSION_TTL_MS,
+    )
+    if (!live) return 'no_session'
+    if ((await closureOf(input.board)).content !== input.hash) return 'stale'
     const approval: Approval = {
       id: newId('a'),
-      ...input,
-      hash: (await closureOf(input.board)).hash,
+      page: input.page,
+      board: input.board,
+      note: input.note,
+      sessionId: input.sessionId,
+      hash: input.hash,
       status: 'queued',
       createdAt: new Date(now).toISOString(),
     }
     await writeList('approvals.json', [...(await readList<Approval>('approvals.json')), approval])
-    touched([approval.id])
+    approvalsChanged([approval.id])
     return approval
   })
-
-const claimApprovals = async (sessionId: string): Promise<Approval[]> => {
-  const all = await readList<Approval>('approvals.json')
-  const taken = all.filter(
-    (approval) => approval.status === 'queued' && approval.sessionId === sessionId,
-  )
-  if (taken.length === 0) return []
-  const ids = new Set(taken.map((approval) => approval.id))
-  await writeList(
-    'approvals.json',
-    all.map((approval) => (ids.has(approval.id) ? { ...approval, status: 'delivered' } : approval)),
-  )
-  touched([...ids])
-  return taken
-}
 
 export const claim = (sessionId: string, now = Date.now()): Promise<Claim> =>
   enqueue(async () => {
@@ -295,17 +310,35 @@ export const claim = (sessionId: string, now = Date.now()): Promise<Claim> =>
     const known = sessions.find((session) => session.id === sessionId)
     const identity = known ?? { id: sessionId, label: sessionId, cwd: '' }
     await writeList('sessions.json', upsert(sessions, identity, now))
-    const approvals = await claimApprovals(sessionId)
+    // Approvals are marked delivered last, after everything that can throw, so a failed claim
+    // leaves them queued for the next one.
+    const allApprovals = await readList<Approval>('approvals.json')
+    const approvals = allApprovals.filter(
+      (approval) => approval.status === 'queued' && approval.sessionId === sessionId,
+    )
     const current: Record<string, boolean> = {}
     for (const approval of approvals) {
-      current[approval.id] = (await closureOf(approval.board)).hash === approval.hash
+      current[approval.id] = (await closureOf(approval.board)).content === approval.hash
     }
-    const approvalText = approvals.length > 0 ? buildApprovalText(approvals, current, designFolderName()) : ''
+    const approvalText =
+      approvals.length > 0 ? buildApprovalText(approvals, current, designFolderName()) : ''
+    const deliverApprovals = async (): Promise<void> => {
+      if (approvals.length === 0) return
+      const ids = new Set(approvals.map((approval) => approval.id))
+      await writeList(
+        'approvals.json',
+        allApprovals.map((approval) =>
+          ids.has(approval.id) ? { ...approval, status: 'delivered' } : approval,
+        ),
+      )
+      approvalsChanged([...ids])
+    }
     const all = await readComments()
     const taken = all.filter(
       (comment) => comment.status === 'queued' && comment.sessionId === sessionId,
     )
     if (taken.length === 0) {
+      await deliverApprovals()
       return { batch: null, count: approvals.length, text: approvalText, comments: [], approvals }
     }
     const ids = new Set(taken.map((comment) => comment.id))
@@ -339,6 +372,7 @@ export const claim = (sessionId: string, now = Date.now()): Promise<Claim> =>
         }
       })
     const commentText = buildTurnText(taken, paths, designFolderName())
+    await deliverApprovals()
     return {
       batch: delivered[delivered.length - 1]?.batch ?? null,
       count: delivered.length + approvals.length,

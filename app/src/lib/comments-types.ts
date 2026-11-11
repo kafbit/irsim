@@ -26,6 +26,17 @@ export type Session = { id: string; label: string; cwd: string; lastSeen: string
  * The user's one-click confirmation that a board is ready to build. `hash` is the board's closure
  * hash when it was approved, so a later edit of the board or of a board it imports shows.
  */
+/** The latest approval of a board: whether the board is still as approved, and whether Claude got it. */
+export type BoardApproval = {
+  board: string
+  at: string
+  current: boolean
+  status: 'queued' | 'delivered'
+}
+
+/** What a page's Approve buttons need: the boards' content hashes and their latest approvals. */
+export type PageApprovals = { hashes: Record<string, string>; approvals: BoardApproval[] }
+
 export type Approval = {
   id: string
   page: string

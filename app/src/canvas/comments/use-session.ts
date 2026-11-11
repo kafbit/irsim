@@ -8,6 +8,8 @@ import type { Session } from './types'
 
 const KEY = 'canvas:session'
 const POLL_MS = 5000
+/** Every picker of the tab follows a pick made in any of them. */
+const PICK_EVENT = 'canvas:session-pick'
 
 const readStored = () => {
   try {
@@ -49,15 +51,19 @@ export function useSession() {
         .catch(() => {})
     void load()
     const timer = window.setInterval(load, POLL_MS)
+    const onPick = (event: Event) => setPicked((event as CustomEvent<string>).detail)
+    window.addEventListener(PICK_EVENT, onPick)
     return () => {
       controller.abort()
       window.clearInterval(timer)
+      window.removeEventListener(PICK_EVENT, onPick)
     }
   })
 
   const pick = useCallback((id: string) => {
     writeStored(id)
     setPicked(id)
+    window.dispatchEvent(new CustomEvent(PICK_EVENT, { detail: id }))
   }, [])
 
   const sessionId = chooseSession({ sessions, fromUrl, stored, picked })

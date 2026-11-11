@@ -5,7 +5,7 @@ import { Check } from '../../ui/icons'
 import { useState } from 'react'
 import { SessionPicker } from '../comments/session-picker'
 import { useSession } from '../comments/use-session'
-import type { ApprovalState } from './use-approvals'
+import { type ApproveInput, type BoardApproval, approvalStateOf } from './use-approvals'
 
 /**
  * Approve a board: the chosen Claude session gets a turn that says the user confirmed the board,
@@ -13,13 +13,14 @@ import type { ApprovalState } from './use-approvals'
  */
 export function ApproveBox({
   board,
-  state,
+  approval,
   onApprove,
 }: {
   board: string
-  state: ApprovalState | undefined
-  onApprove: (input: { board: string; sessionId: string; note: string }) => Promise<void>
+  approval: BoardApproval | undefined
+  onApprove: (input: ApproveInput) => Promise<void>
 }) {
+  const state = approvalStateOf(approval)
   const { sessions, loaded, sessionId, pick } = useSession()
   const [note, setNote] = useState('')
   const [pending, setPending] = useState(false)
@@ -76,7 +77,11 @@ export function ApproveBox({
       >
         Approve and build
       </Button>
-      {sent ? (
+      {approval?.status === 'queued' ? (
+        <p role="status" className="m-0 text-xs text-muted-foreground">
+          Waiting for Claude to receive it.
+        </p>
+      ) : sent ? (
         <p role="status" className="m-0 text-xs text-muted-foreground">
           Sent. Claude will build {board}.
         </p>

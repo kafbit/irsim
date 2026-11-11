@@ -121,7 +121,6 @@ export function PageCanvas({
   const { reload: reloadBoard } = reloads
   const { refresh: refreshFlags } = playFlags
   const { refetch: refetchApprovals } = approvals
-  const { refetch: refetchComments } = comments
   // A changed board may gain or lose its handlers and links, so its Play chip is read again, and
   // an approval of it may no longer hold.
   const onBoardChange = useCallback(
@@ -132,12 +131,11 @@ export function PageCanvas({
     },
     [reloadBoard, refreshFlags, refetchApprovals],
   )
-  // Approvals are written in the same store as comments and share its change event.
-  const onCommentsChange = useCallback(() => {
-    void refetchComments()
-    void refetchApprovals()
-  }, [refetchComments, refetchApprovals])
-  useEvents({ onBoard: onBoardChange, onComments: onCommentsChange })
+  useEvents({
+    onBoard: onBoardChange,
+    onComments: comments.refetch,
+    onApprovals: refetchApprovals,
+  })
   useCommentMode(commenting, camera, setPick)
   useFrameEscape(() => {
     if (fullPlay) {
@@ -397,7 +395,7 @@ export function PageCanvas({
           <ApproveBox
             key={selectedBoard.name}
             board={selectedBoard.name}
-            state={approvalStateOf(approvals.approvals.get(selectedBoard.name))}
+            approval={approvals.approvals.get(selectedBoard.name)}
             onApprove={approvals.approve}
           />
         </Inspector>

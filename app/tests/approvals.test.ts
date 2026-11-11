@@ -3,12 +3,14 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { GET, POST } from '../src/app/api/approvals/route'
+import { closureOf } from '../src/lib/closure'
 import {
   claim,
   createApproval,
   createComment,
   listApprovals,
   sendDrafts,
+  upsertSession,
 } from '../src/lib/comments-store'
 import type { Approval } from '../src/lib/comments-types'
 import { buildApprovalText } from '../src/lib/turn-text'
@@ -74,6 +76,13 @@ describe('approvals', () => {
     process.env.IRSIM_DESIGN_DIR = design
   })
 
+  const live = (id = 's1') => upsertSession({ id, label: id, cwd: '/w' })
+  const approve = async (sessionId = 's1') => {
+    await live(sessionId)
+    const hash = (await closureOf('Leads')).content
+    return createApproval({ page: 'sales', board: 'Leads', note: '', sessionId, hash })
+  }
+
   afterEach(() => {
     for (const [key, value] of [
       ['IRSIM_DATA_DIR', saved.data],
@@ -86,7 +95,7 @@ describe('approvals', () => {
   })
 
   it('a claim delivers an approval once, before the comments of the same claim', async () => {
-    await createApproval({ page: 'sales', board: 'Leads', note: '', sessionId: 's1' })
+    await approve()
     await createComment({
       page: 'sales',
       board: 'Leads',
@@ -108,32 +117,83 @@ describe('approvals', () => {
   })
 
   it('an approval goes only to its session', async () => {
-    await createApproval({ page: 'sales', board: 'Leads', note: '', sessionId: 's1' })
+    await approve()
     expect((await claim('s2')).count).toBe(0)
     expect((await claim('s1')).count).toBe(1)
   })
 
   it('a board edit after the approval turns it to changed, and the claim says so', async () => {
-    await createApproval({ page: 'sales', board: 'Leads', note: '', sessionId: 's1' })
-    expect(await listApprovals('sales')).toMatchObject([{ board: 'Leads', current: true }])
+    await approve()
+    expect((await listApprovals(['Leads'])).approvals).toMatchObject([
+      { board: 'Leads', current: true, status: 'queued' },
+    ])
     editBoard('<x-dc>leads, edited</x-dc>')
-    expect(await listApprovals('sales')).toMatchObject([{ board: 'Leads', current: false }])
+    expect((await listApprovals(['Leads'])).approvals).toMatchObject([
+      { board: 'Leads', current: false },
+    ])
     expect((await claim('s1')).text).toContain('The board changed after the approval')
+    expect((await listApprovals(['Leads'])).approvals[0]?.status).toBe('delivered')
+  })
+
+  it('a touch or a save with the same content keeps the approval current', async () => {
+    await approve()
+    editBoard('<x-dc>leads</x-dc>')
+    expect((await listApprovals(['Leads'])).approvals[0]?.current).toBe(true)
+  })
+
+  it('refuses a board that changed since the user looked, and a session that is not live', async () => {
+    const seen = (await closureOf('Leads')).content
+    await live()
+    editBoard('<x-dc>leads, edited by Claude</x-dc>')
+    expect(
+      await createApproval({ page: 'sales', board: 'Leads', note: '', sessionId: 's1', hash: seen }),
+    ).toBe('stale')
+    const now = (await closureOf('Leads')).content
+    expect(
+      await createApproval({ page: 'sales', board: 'Leads', note: '', sessionId: 'gone', hash: now }),
+    ).toBe('no_session')
+  })
+
+  it('an approval shows on every page that has the board', async () => {
+    await approve()
+    expect((await listApprovals(['Leads', 'Other'])).approvals.map((a) => a.board)).toEqual([
+      'Leads',
+    ])
+  })
+
+  it('a failed claim leaves the approval queued', async () => {
+    await approve()
+    writeFileSync(join(process.env.IRSIM_DATA_DIR as string, 'comments.json'), '{ broken')
+    await expect(claim('s1')).rejects.toThrow()
+    writeFileSync(join(process.env.IRSIM_DATA_DIR as string, 'comments.json'), '[]')
+    expect((await claim('s1')).approvals.map((a) => a.board)).toEqual(['Leads'])
   })
 
   it('the route checks its input and lists the latest approval per board', async () => {
     const post = (body: unknown) =>
       POST(new Request('http://x/api/approvals', { method: 'POST', body: JSON.stringify(body) }))
     expect((await post({ page: 'sales', board: 'Leads' })).status).toBe(400)
-    expect((await post({ page: 'sales', board: 'Nope', sessionId: 's1' })).status).toBe(404)
-    expect((await post({ page: 'sales', board: 'Other', sessionId: 's1' })).status).toBe(404)
-    expect((await post({ page: 'sales', board: 'Leads', sessionId: 's1', note: 'x'.repeat(2001) })).status).toBe(400)
-    const created = await post({ page: 'sales', board: 'Leads', sessionId: 's1', note: ' Go. ' })
+    expect((await post({ page: 'sales', board: 'Nope', sessionId: 's1', hash: 'x' })).status).toBe(404)
+    expect((await post({ page: 'sales', board: 'Other', sessionId: 's1', hash: 'x' })).status).toBe(404)
+    expect((await post({ page: 'sales', board: 'Leads', sessionId: 's1' })).status).toBe(400)
+    const hash = (await closureOf('Leads')).content
+    expect(
+      (await post({ page: 'sales', board: 'Leads', sessionId: 's1', hash, note: 'x'.repeat(2001) }))
+        .status,
+    ).toBe(400)
+    expect((await post({ page: 'sales', board: 'Leads', sessionId: 's1', hash })).status).toBe(409)
+    await live()
+    expect((await post({ page: 'sales', board: 'Leads', sessionId: 's1', hash: 'old' })).status).toBe(409)
+    const created = await post({ page: 'sales', board: 'Leads', sessionId: 's1', hash, note: ' Go. ' })
     expect(created.status).toBe(201)
     expect(await created.json()).toMatchObject({ board: 'Leads', note: 'Go.', status: 'queued' })
 
     expect((await GET(new Request('http://x/api/approvals'))).status).toBe(400)
+    expect((await GET(new Request('http://x/api/approvals?page=nope'))).status).toBe(404)
     const list = await GET(new Request('http://x/api/approvals?page=sales'))
-    expect(await list.json()).toMatchObject([{ board: 'Leads', current: true }])
+    expect(await list.json()).toMatchObject({
+      hashes: { Leads: hash },
+      approvals: [{ board: 'Leads', current: true }],
+    })
   })
 })

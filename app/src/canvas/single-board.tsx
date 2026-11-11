@@ -55,10 +55,11 @@ export function SingleBoard({
   const router = useRouter()
   const [notice, setNotice] = useNotice()
   const approvals = useApprovals(pageId)
-  const [approving, setApproving] = useState(false)
+  // The board it is open for: a link to another board keeps this view, and the popover closes.
+  const [approvingBoard, setApprovingBoard] = useState<string | null>(null)
+  const approving = approvingBoard === name
   const { reload } = reloads
   const { refetch: refetchApprovals } = approvals
-  const { refetch: refetchComments } = comments
   const onBoardChange = useCallback(
     (changed: string) => {
       reload(changed)
@@ -66,11 +67,11 @@ export function SingleBoard({
     },
     [reload, refetchApprovals],
   )
-  const onCommentsChange = useCallback(() => {
-    void refetchComments()
-    void refetchApprovals()
-  }, [refetchComments, refetchApprovals])
-  useEvents({ onBoard: onBoardChange, onComments: onCommentsChange })
+  useEvents({
+    onBoard: onBoardChange,
+    onComments: comments.refetch,
+    onApprovals: refetchApprovals,
+  })
   const approval = approvalStateOf(approvals.approvals.get(name))
   // The board is live here, so a link to another board opens that board alone.
   usePlayLinks((from, target) => {
@@ -140,7 +141,7 @@ export function SingleBoard({
             icon={<Check className="size-4" />}
             aria-expanded={approving}
             disabled={!board}
-            onClick={() => setApproving((open) => !open)}
+            onClick={() => setApprovingBoard(approving ? null : name)}
           >
             {approval === 'approved'
               ? 'Approved'
@@ -151,7 +152,12 @@ export function SingleBoard({
         </div>
         {approving && board ? (
           <div className="absolute start-3 top-14 z-10 w-72 rounded-xl border border-border bg-card p-4 shadow-lg">
-            <ApproveBox board={name} state={approval} onApprove={approvals.approve} />
+            <ApproveBox
+              key={name}
+              board={name}
+              approval={approvals.approvals.get(name)}
+              onApprove={approvals.approve}
+            />
           </div>
         ) : null}
         <div className="flex size-full overflow-auto">

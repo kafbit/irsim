@@ -84,15 +84,21 @@ export const Frame = memo(function Frame({
             className="size-2 shrink-0 self-center rounded-full bg-blue-600"
           />
         ) : null}
+        {/* Before the title, so a narrow board truncates the title and keeps the approval state. */}
+        {approval === 'approved' ? (
+          <span className="shrink-0 font-medium text-success-foreground">Approved</span>
+        ) : approval === 'changed' ? (
+          <span
+            title="Changed since approval"
+            className="shrink-0 font-medium text-warning-foreground"
+          >
+            Changed
+          </span>
+        ) : null}
         <span dir="auto" className="truncate font-medium">
           {board.title}
         </span>
         <span className="shrink-0 text-muted-foreground">{board.name}</span>
-        {approval === 'approved' ? (
-          <span className="shrink-0 font-medium text-success-foreground">Approved</span>
-        ) : approval === 'changed' ? (
-          <span className="shrink-0 font-medium text-warning-foreground">Changed since approval</span>
-        ) : null}
       </button>
       {board.interactive || playing ? (
         <FramePlay

@@ -4,6 +4,7 @@ import { designDir } from './design-dir'
 export type CanvasEvent =
   | { event: 'board'; data: { board: string } }
   | { event: 'comments'; data: { ids: string[] } }
+  | { event: 'approvals'; data: { ids: string[] } }
 
 type Listener = (event: CanvasEvent) => void
 
