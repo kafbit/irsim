@@ -17,7 +17,7 @@ import { connect } from 'node:net'
 import { homedir, tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { createInterface } from 'node:readline'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const REPO = 'kafbit/irsim'
 const CONFIG_FILE = '.irsim.json'
@@ -35,7 +35,8 @@ const HELP = `irsim: design boards for your repository
 usage: irsim <command> [options]
 
 commands:
-  serve [--design-dir <path>] [--port <n>]   start the canvas
+  serve [--design-dir <path>] [--port <n>]   start the canvas (registers new boards in canvas.json first)
+  build [--design-dir <path>]                create or update canvas.json from the boards on disk
   port                                       print the port serve would use here
   init [--design-dir <path>] [--refresh-block]
                                              write ${CONFIG_FILE}, ignore .irsim/, add the managed block to AGENTS.md and CLAUDE.md
@@ -199,6 +200,32 @@ const canvasPort = async (root) => {
   fail(`no free canvas port in ${PORT_MIN}..${PORT_MIN + PORT_COUNT - 1}`)
 }
 
+const loadBuildCanvas = () => import(pathToFileURL(join(ROOT, 'bin', 'lib', 'build-canvas.mjs')).href)
+
+const build = async (args) => {
+  const opts = parse(args, { '--design-dir': 'value' })
+  const design = resolveDesignDir(process.cwd(), opts['design-dir'])
+  const { buildCanvas } = await loadBuildCanvas()
+  try {
+    const result = buildCanvas(design)
+    console.log(`wrote ${result.file}: ${result.pages} pages, ${result.boards} boards`)
+  } catch (error) {
+    fail(error.message)
+  }
+}
+
+const register = async (design) => {
+  if (!existsSync(design)) return
+  try {
+    const { buildCanvas, needsRegistration } = await loadBuildCanvas()
+    if (!needsRegistration(design)) return
+    const result = buildCanvas(design)
+    console.log(`irsim: registered boards in ${result.file} (${result.pages} pages, ${result.boards} boards)`)
+  } catch (error) {
+    console.error(`irsim: could not update canvas.json: ${error.message}`)
+  }
+}
+
 const serve = async (args) => {
   const opts = parse(args, { '--design-dir': 'value', '--port': 'value' })
   const cwd = process.cwd()
@@ -218,6 +245,7 @@ const serve = async (args) => {
     console.log(`irsim: ${url} (already running)`)
     return
   }
+  await register(design)
   const env = {
     ...process.env,
     IRSIM_DESIGN_DIR: design,
@@ -424,6 +452,9 @@ const [command, ...rest] = process.argv.slice(2)
 switch (command) {
   case 'serve':
     await serve(rest)
+    break
+  case 'build':
+    await build(rest)
     break
   case 'port': {
     const { port } = await canvasPort(projectRoot(process.cwd()))

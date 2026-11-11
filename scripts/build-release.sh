@@ -26,6 +26,7 @@ rm -rf "$stage" "$dist/$name.tar.gz"
 mkdir -p "$stage/bin" "$stage/server"
 
 cp "$root/bin/irsim" "$root/bin/package.json" "$stage/bin/"
+cp -R "$root/bin/lib" "$stage/bin/lib"
 chmod +x "$stage/bin/irsim"
 cp -R "$app/.next/standalone/." "$stage/server/"
 mkdir -p "$stage/server/.next"
