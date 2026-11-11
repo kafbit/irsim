@@ -1,7 +1,8 @@
 import { mkdir, readdir, rm, stat, utimes } from 'node:fs/promises'
 import { join } from 'node:path'
-import { chromium, type Browser } from '@playwright/test'
+import type { Browser } from 'playwright-core'
 import sharp from 'sharp'
+import { inspectBoard, launchChromium } from '../src/lib/board-check'
 import { readCanvasPages, type CanvasBoard } from '../src/lib/canvas-pages'
 import { closureOf } from '../src/lib/closure'
 import { projectRoot } from '../src/lib/design-dir'
@@ -9,7 +10,6 @@ import { canvasPort } from '../src/lib/port'
 import { THUMB_MAX_AGE_MS, THUMB_WIDTH, thumbFile, thumbsDir } from '../src/lib/thumbs-dir'
 
 const CONCURRENCY = 3
-const READY_TIMEOUT_MS = 15_000
 
 type Result = { board: string; status: 'new' | 'skip' | 'fail'; ms: number; error?: string }
 
@@ -40,44 +40,10 @@ const pruneStale = async (dir: string): Promise<void> => {
 }
 
 const render = async (browser: Browser, target: CanvasBoard, out: string): Promise<void> => {
-  const context = await browser.newContext({
-    viewport: { width: target.width, height: target.height },
-    deviceScaleFactor: 1,
-  })
-  try {
-    await context.addInitScript(() => {
-      const state = window as unknown as { __thumbDone: boolean; __thumbError?: string }
-      state.__thumbDone = false
-      window.addEventListener('message', (event: MessageEvent) => {
-        const data = event.data as { type?: string; message?: string } | null
-        if (data?.type === 'ready') state.__thumbDone = true
-        if (data?.type === 'error') {
-          state.__thumbError = data.message ?? 'board reported an error'
-          state.__thumbDone = true
-        }
-      })
-    })
-    const page = await context.newPage()
-    await page.goto(`${base}/b/${target.name}`, { waitUntil: 'load' })
-    await page.waitForFunction(() => (window as unknown as { __thumbDone: boolean }).__thumbDone, {
-      timeout: READY_TIMEOUT_MS,
-    })
-    const reported = await page.evaluate(
-      () => (window as unknown as { __thumbError?: string }).__thumbError,
-    )
-    if (reported) throw new Error(`board posted error: ${reported}`)
-    await page.evaluate(
-      () =>
-        new Promise<void>((resolve) =>
-          requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-        ),
-    )
-    await page.waitForTimeout(300)
-    const png = await page.screenshot({ type: 'png' })
-    await sharp(png).resize({ width: THUMB_WIDTH }).webp({ quality: 70 }).toFile(out)
-  } finally {
-    await context.close()
-  }
+  const inspection = await inspectBoard(browser, base, target)
+  if (inspection.fatal) throw new Error(inspection.fatal)
+  if (!inspection.png) throw new Error('no screenshot')
+  await sharp(inspection.png).resize({ width: THUMB_WIDTH }).webp({ quality: 70 }).toFile(out)
 }
 
 const main = async (): Promise<void> => {
@@ -121,7 +87,7 @@ const main = async (): Promise<void> => {
           done('skip')
           continue
         }
-        launching ??= chromium.launch()
+        launching ??= launchChromium()
         await render(await launching, target, out)
         done('new')
       } catch (error) {

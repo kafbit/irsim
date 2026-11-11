@@ -38,6 +38,8 @@ irsim serve [--design-dir <path>] [--port <n>]
 
 In the canvas, a board with working controls or links between boards gets a Play button. Play runs it on the canvas or full screen (a web page board fills the window), and `<a href="Other.dc.html">` in a played board moves to that board. Details are in [docs/01-runtime.md](docs/01-runtime.md#play).
 
+The plugin's `design_canvas` tool has a `check` action. It renders a board (or every board of a page) in headless Chromium and returns errors, an empty-render warning and a screenshot in `.irsim/checks/`. It needs Playwright's Chromium: `npx playwright install chromium`. The same check is at `POST /api/boards/<Board>/check` and `POST /api/pages/<page>/check`.
+
 `irsim serve` prints `irsim: http://localhost:<port>`. The port is stable per project, in 3200 to 3299. `irsim port` prints it without starting the server.
 
 The plugin ships the `irsim-workflow` skill. It makes a change to what a screen shows start in the board: change the board, report its route, stop, then build the app after the user's confirmation.

@@ -17,7 +17,7 @@ It does not apply to a change that alters nothing a person sees (a refactor, a s
 
 1. Plan. Name the boards that change, what changes in each, and the app files that would follow. List open choices, do not decide them. Put the board change in the plan as its own step, before the implementation steps.
 2. Change the board. Edit the `.dc.html` file. Draw the new states: disabled and locked controls, confirmation dialogs, empty, loading and error states, and every language and width the screen has. Put a choice the user must make in the board as a `data-props` variant so they can switch and look.
-3. Check the board. Open it in irsim and confirm the frame renders with no error.
+3. Check the board. Run `design_canvas {action: "check", board: "<Board>"}` (or `page` for every board of a page). Fix every error and warning it lists, then open the screenshot it returns and look at it. Check again until it reports `ok`.
 4. Report and stop. Give the board name and its route (`/p/<page>?board=<Board>`), the plan and the open choices. Write no app code until the user confirms in a separate message. A request is not a confirmation: "implement", "make it", "move X" and a pasted screenshot all ask for the board change.
 5. Implement. Read the board file again first, because the user may have edited it. A board the user edited is the source of truth over your last copy and over the plan.
 6. Compare by looking. Screenshot the board in irsim and the running screen at the same width with Playwright, list every difference (layout, spacing, alignment, icons, cell content, header, footer), fix them, and screenshot again. Reading the markup or the component code is not a comparison.

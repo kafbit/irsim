@@ -100,6 +100,23 @@ function world(
       })
     }
     if (url.pathname === '/api/comments/claim') return json(claim)
+    if (url.pathname === '/api/boards/Leads/check') {
+      return json([
+        { board: 'Leads', ok: true, ms: 820, errors: [], warnings: [], screenshot: '/w/Leads.png' },
+      ])
+    }
+    if (url.pathname === '/api/pages/sales/check') {
+      return json([
+        { board: 'Leads', ok: true, ms: 800, errors: [], warnings: [], screenshot: '/w/Leads.png' },
+        {
+          board: 'Blank',
+          ok: false,
+          ms: 300,
+          errors: ['render: boom'],
+          warnings: ['the board renders no text and no image'],
+        },
+      ])
+    }
     return json({ ok: true })
   })
 
@@ -228,4 +245,28 @@ test('IRSIM_PORT wins and `irsim port` is not run', async ($, on) => {
 
   expect(text).toContain('http://localhost:4555/')
   expect(w.processes.some((argv) => argv[0] === 'irsim' && argv[1] === 'port')).toBe(false)
+})
+
+test('the check action reports ok boards in one line and failures with their errors', async ($, on) => {
+  const w = world(on)
+  await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
+
+  const one = await $.tool.call({ tool: TOOL, action: 'check', board: 'Leads' })
+  expect(one.result).toBe('Leads ok 820 ms · screenshot: /w/Leads.png')
+
+  const all = await $.tool.call({ tool: TOOL, action: 'check', page: 'sales' })
+  expect(all.result).toBe(
+    [
+      'Leads ok 800 ms · screenshot: /w/Leads.png',
+      'Blank FAIL 300 ms',
+      '  error: render: boom',
+      '  warning: the board renders no text and no image',
+      '  no screenshot',
+      '1 ok, 1 failed',
+    ].join('\n'),
+  )
+  expect(w.calls.filter((call) => call.method === 'POST').map((call) => call.path)).toEqual([
+    '/api/boards/Leads/check',
+    '/api/pages/sales/check',
+  ])
 })
