@@ -38,8 +38,8 @@ export const messageOf = (error: unknown): string =>
 const worktrees = new Map<string, { root: string; port: number }>()
 
 async function forcedPort($: Engine): Promise<number> {
-  for (const name of ['IRSIM_PORT', 'DESIGN_PORT']) {
-    const value = Number(await $.env.get(name))
+  for (const raw of [await $.env.get('IRSIM_PORT'), await $.env.get('DESIGN_PORT')]) {
+    const value = Number(raw)
     if (Number.isInteger(value) && value >= 1) return value
   }
   return 0
