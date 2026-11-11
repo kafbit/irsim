@@ -36,6 +36,8 @@ irsim serve [--design-dir <path>] [--port <n>]
 
 `irsim init` writes `.irsim.json` (`{ "designDir": "design" }`), adds `.irsim/` to `.gitignore`, and adds the managed block (`<!-- IRSIM_START -->` to `<!-- IRSIM_END -->`) to `AGENTS.md` and `CLAUDE.md` when they exist. A second run changes nothing.
 
+In the canvas, a board with working controls or links between boards gets a Play button. Play runs it on the canvas or full screen (a web page board fills the window), and `<a href="Other.dc.html">` in a played board moves to that board. Details are in [docs/01-runtime.md](docs/01-runtime.md#play).
+
 `irsim serve` prints `irsim: http://localhost:<port>`. The port is stable per project, in 3200 to 3299. `irsim port` prints it without starting the server.
 
 The plugin ships the `irsim-workflow` skill. It makes a change to what a screen shows start in the board: change the board, report its route, stop, then build the app after the user's confirmation.

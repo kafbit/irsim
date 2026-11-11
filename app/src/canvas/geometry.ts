@@ -9,7 +9,13 @@ export type View = { x: number; y: number; k: number }
 export type Size = { width: number; height: number }
 export type Rect = { x: number; y: number; width: number; height: number }
 
-export type PlacedBoard = Rect & { name: string; title: string; hash: string }
+export type PlacedBoard = Rect & {
+  name: string
+  title: string
+  hash: string
+  interactive?: boolean
+  fill?: boolean
+}
 export type Layout = { boards: PlacedBoard[]; all: Rect }
 
 export const clampScale = (k: number) => Math.min(MAX_SCALE, Math.max(MIN_SCALE, k))
@@ -32,10 +38,12 @@ export function layoutOf(boards: PlacedBoard[]): Layout {
 /** Positions come from the manifest, already page-local. */
 export function buildPageLayout(manifest: PageManifest): Layout {
   return layoutOf(
-    manifest.boards.map(({ name, title, x, y, width, height, hash }) => ({
+    manifest.boards.map(({ name, title, x, y, width, height, hash, interactive, fill }) => ({
       name,
       title,
       hash,
+      interactive,
+      fill,
       x,
       y,
       width,

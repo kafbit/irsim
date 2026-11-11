@@ -10,6 +10,10 @@ export type CanvasBoard = {
   y: number
   width: number
   height: number
+  /** Set by hand to override the guess from the board source. */
+  interactive?: boolean
+  /** `"fill"`: a web page, which fills the window in full screen play. */
+  expand?: string
 }
 export type CanvasPage = { id: string; title: string; boards: CanvasBoard[] }
 

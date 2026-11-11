@@ -1,8 +1,10 @@
 'use client'
 
-import { memo, useState } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
+import { FramePlay } from './frame-play'
 import { labelMaxInline, type PlacedBoard } from './geometry'
 import type { Report } from './mount-policy'
+import type { PlayMode } from './use-play-links'
 
 function Placeholder({ board }: { board: PlacedBoard }) {
   const [failed, setFailed] = useState(false)
@@ -34,6 +36,8 @@ export const Frame = memo(function Frame({
   commenting,
   reload,
   onSelect,
+  onPlay,
+  onStop,
 }: {
   board: PlacedBoard
   mounted: boolean
@@ -43,9 +47,20 @@ export const Frame = memo(function Frame({
   commenting: boolean
   reload: number
   onSelect: (name: string) => void
+  onPlay: (name: string, mode: PlayMode) => void
+  onStop: (name: string) => void
 }) {
   const failed = report?.state === 'error'
   const ready = report?.state === 'ready'
+  // Interacting is Play on the canvas: the frame is live, outlined in blue, and has a Stop chip.
+  const playing = interacting
+  const frame = useRef<HTMLIFrameElement>(null)
+  // Gives the keyboard to the board once it plays and has loaded, so its inputs and Esc work even
+  // when Play reached it through a link and the frame was not mounted yet. The frame is the
+  // external system.
+  useEffect(() => {
+    if (playing && ready) frame.current?.contentWindow?.focus()
+  }, [playing, ready])
   return (
     <div
       data-board={board.name}
@@ -59,15 +74,36 @@ export const Frame = memo(function Frame({
         className="absolute start-0 bottom-full flex origin-bottom-left cursor-pointer items-baseline gap-2 overflow-hidden pb-1.5 text-start text-xs whitespace-nowrap text-foreground -outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring in-data-labels-off:invisible"
         style={{ maxInlineSize: labelMaxInline(board.width), transform: 'scale(var(--inv, 1))' }}
       >
+        {board.interactive ? (
+          <span
+            role="img"
+            aria-label="Prototype"
+            className="size-2 shrink-0 self-center rounded-full bg-blue-600"
+          />
+        ) : null}
         <span dir="auto" className="truncate font-medium">
           {board.title}
         </span>
         <span className="shrink-0 text-muted-foreground">{board.name}</span>
       </button>
-      <div className="relative size-full overflow-hidden rounded-xl bg-white outline outline-1 outline-border">
+      {board.interactive || playing ? (
+        <FramePlay
+          name={board.name}
+          title={board.title}
+          playing={playing}
+          onPlay={onPlay}
+          onStop={onStop}
+        />
+      ) : null}
+      <div
+        className={`relative size-full overflow-hidden rounded-xl bg-white outline ${
+          playing ? 'outline-2 outline-blue-600' : 'outline-1 outline-border'
+        }`}
+      >
         <Placeholder board={board} />
         {mounted ? (
           <iframe
+            ref={frame}
             key={reload}
             src={`/b/${encodeURIComponent(board.name)}`}
             title={board.name}

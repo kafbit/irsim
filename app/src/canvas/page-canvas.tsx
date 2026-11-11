@@ -3,7 +3,8 @@
 // The viewport is a custom pan/zoom widget: it needs focus and pointer handlers for its shortcuts.
 /* oxlint-disable jsx-a11y/no-noninteractive-tabindex, jsx-a11y/no-noninteractive-element-interactions */
 
-import { useCallback, useMemo, useReducer, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { CommentLayer } from './comments/comment-layer'
 import { Composer } from './comments/composer'
 import { numberComments } from './comments/model'
@@ -20,15 +21,24 @@ import { isVisible } from './mount-policy'
 import { adjacentBoard, readingOrder } from './navigation'
 import { Overlay } from './overlay'
 import { PageLabel } from './page-label'
-import { NO_SELECTION, reduceSelection } from './selection'
+import { PlayView } from './play-view'
+import { NO_SELECTION, reduceSelection, type Selection } from './selection'
 import { Sidebar } from './sidebar'
-import { Toast } from './toast'
+import { Toast, useNotice } from './toast'
 import { type Tool, Toolbar } from './toolbar'
 import type { PageManifest, PageSummary } from './types'
 import { useBoardEditing } from './use-board-editing'
 import { useBoardLayout } from './use-board-layout'
 import { useFrameEscape } from './use-frame-escape'
 import { useMounts } from './use-mounts'
+import {
+  findBoardPage,
+  linkProblem,
+  type PlayMode,
+  playHref,
+  usePlayFlags,
+  usePlayLinks,
+} from './use-play-links'
 import { type CommandHandlers, useShortcuts } from './use-shortcuts'
 import { useViewport } from './use-viewport'
 import { ViewControls } from './view-controls'
@@ -50,17 +60,27 @@ export function PageCanvas({
   manifest,
   pages,
   focus,
+  play = null,
 }: {
   manifest: PageManifest
   pages: PageSummary[]
   focus: string | null
+  /** From `?play=`: start with `focus` playing on the canvas or full screen. */
+  play?: PlayMode | null
 }) {
   const layout = useMemo(() => buildPageLayout(manifest), [manifest])
   const edit = useBoardLayout(manifest.id, layout.boards)
   const boards = edit.boards
   const order = useMemo(() => readingOrder(boards), [boards])
   const onPage = useMemo(() => new Set(boards.map((board) => board.name)), [boards])
-  const [selection, dispatch] = useReducer(reduceSelection, NO_SELECTION)
+  const [selection, dispatch] = useReducer(
+    reduceSelection,
+    play === 'canvas' && focus ? { name: focus, interacting: true } : NO_SELECTION,
+    (initial: Selection) => initial,
+  )
+  const [fullPlay, setFullPlay] = useState<string | null>(play === 'full' ? focus : null)
+  const [notice, setNotice] = useNotice()
+  const router = useRouter()
   const [tool, setTool] = useState<Tool>('move')
   const [hovered, setHovered] = useState<string | null>(null)
   const [pick, setPick] = useState<PickedElement | null>(null)
@@ -94,9 +114,24 @@ export function PageCanvas({
   const reloads = useBoardReloads()
   const numbers = useMemo(() => numberComments(comments.comments), [comments.comments])
   const commenting = tool === 'comment'
-  useEvents({ onBoard: reloads.reload, onComments: comments.refetch })
+  const playFlags = usePlayFlags(manifest.id)
+  const { reload: reloadBoard } = reloads
+  const { refresh: refreshFlags } = playFlags
+  // A changed board may gain or lose its handlers and links, so its Play chip is read again.
+  const onBoardChange = useCallback(
+    (name: string) => {
+      reloadBoard(name)
+      refreshFlags()
+    },
+    [reloadBoard, refreshFlags],
+  )
+  useEvents({ onBoard: onBoardChange, onComments: comments.refetch })
   useCommentMode(commenting, camera, setPick)
   useFrameEscape(() => {
+    if (fullPlay) {
+      closeFullPlay()
+      return
+    }
     dispatch({ type: 'escape' })
     setPick(null)
     setTool((current) => (current === 'comment' ? 'move' : current))
@@ -130,6 +165,53 @@ export function PageCanvas({
     },
     [actions],
   )
+  // The frame takes the keyboard itself once it plays and is ready (see `Frame`).
+  const playOnCanvas = useCallback((name: string) => {
+    setTool('move')
+    setPick(null)
+    dispatch({ type: 'interact', name })
+  }, [])
+  const playBoard = useCallback(
+    (name: string, mode: PlayMode) => (mode === 'full' ? setFullPlay(name) : playOnCanvas(name)),
+    [playOnCanvas],
+  )
+  const playFull = useCallback((name: string) => setFullPlay(name), [])
+  const stopPlay = select
+  /** Back to the canvas on the board that was playing last, so a walk through a flow ends there. */
+  const closeFullPlay = useCallback(() => {
+    if (fullPlay) focusBoard(fullPlay)
+    setFullPlay(null)
+  }, [focusBoard, fullPlay])
+  // Bumped whenever what plays changes, so a slow cross-page lookup that Stop or Esc overtook
+  // does not move the page afterwards.
+  const playRun = useRef(0)
+  const playing = fullPlay ?? (selection.interacting ? selection.name : null)
+  useEffect(() => {
+    playRun.current += 1
+  }, [playing])
+  // A link in a played board moves Play to its target: in place on this page, else on its page.
+  usePlayLinks((from, target) => {
+    const full = fullPlay === from
+    if (playing !== from) return
+    if (onPage.has(target)) {
+      if (full) {
+        setFullPlay(target)
+        return
+      }
+      playOnCanvas(target)
+      actions.focusBoard(target)
+      return
+    }
+    const run = playRun.current
+    findBoardPage(target)
+      .then((page) => {
+        if (run !== playRun.current) return
+        if (page) router.push(playHref(page, target, full ? 'full' : 'canvas'))
+        else setNotice(linkProblem(target))
+      })
+      .catch((error: unknown) => run === playRun.current && setNotice(linkProblem(target, error)))
+  })
+
   const locate = (comment: Comment) => {
     setActiveComment(comment.id)
     actions.focusBoard(comment.board)
@@ -155,11 +237,7 @@ export function PageCanvas({
       'next-board': () => step(1),
       'previous-board': () => step(-1),
       interact: () => {
-        if (!selection.name) return
-        dispatch({ type: 'interact' })
-        document
-          .querySelector<HTMLIFrameElement>(`[data-board="${CSS.escape(selection.name)}"] iframe`)
-          ?.contentWindow?.focus()
+        if (selection.name) dispatch({ type: 'interact' })
       },
       escape: () => (commenting ? changeTool('move') : dispatch({ type: 'escape' })),
       search: () => searchRef.current?.focus(),
@@ -169,7 +247,27 @@ export function PageCanvas({
       ...nudges,
     }
   }, [actions, changeTool, commenting, focusBoard, nudges, order, selection.name])
-  useShortcuts(commands, setSpace)
+  // Boards with the flags read again after a change; the same objects when nothing changed.
+  const shown = useMemo(
+    () =>
+      boards.map((board) => {
+        const flags = playFlags.flags.get(board.name)
+        return flags && (flags.interactive !== board.interactive || flags.fill !== board.fill)
+          ? { ...board, ...flags }
+          : board
+      }),
+    [boards, playFlags.flags],
+  )
+  const byName = useMemo(() => new Map(shown.map((board) => [board.name, board])), [shown])
+  const ordered = useMemo(
+    () => order.map((name) => byName.get(name)).filter((board) => board !== undefined),
+    [byName, order],
+  )
+  const fullBoard = fullPlay ? byName.get(fullPlay) : undefined
+  const playCommands = useMemo<CommandHandlers>(() => ({ escape: closeFullPlay }), [closeFullPlay])
+  // Full screen play owns the keyboard: only Esc, which closes it. A name with no board on this
+  // page shows no view, so the canvas keeps its shortcuts.
+  useShortcuts(fullBoard ? playCommands : commands, setSpace)
 
   return (
     <div className="flex h-screen">
@@ -201,7 +299,7 @@ export function PageCanvas({
           onPointerLeave={() => setHovered(null)}
         >
           <PageLabel title={manifest.title} k={view.k} />
-          {boards.map((board) => {
+          {shown.map((board) => {
             const entry = mounts.state.entries[board.name]
             return (
               <Frame
@@ -214,6 +312,8 @@ export function PageCanvas({
                 commenting={commenting}
                 reload={reloads.counters[board.name] ?? 0}
                 onSelect={select}
+                onPlay={playBoard}
+                onStop={stopPlay}
               />
             )
           })}
@@ -246,8 +346,8 @@ export function PageCanvas({
             onCancel={() => setPick(null)}
           />
         ) : null}
-        <Toolbar tool={tool} onTool={changeTool} />
-        <Toast message={edit.error} />
+        <Toolbar tool={tool} onTool={changeTool} boards={ordered} onPlay={playFull} />
+        <Toast message={edit.error ?? notice} />
         <ViewControls
           camera={camera}
           layout={placedLayout}
@@ -280,6 +380,13 @@ export function PageCanvas({
           pages={pages}
           placed={onPage}
           onFocusBoard={focusBoard}
+        />
+      ) : null}
+      {fullBoard ? (
+        <PlayView
+          board={fullBoard}
+          reload={reloads.counters[fullBoard.name] ?? 0}
+          onClose={closeFullPlay}
         />
       ) : null}
     </div>

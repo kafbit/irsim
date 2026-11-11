@@ -1,3 +1,21 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+
+const NOTICE_MS = 4000
+
+/** A message for `Toast` that clears itself after four seconds. */
+export function useNotice() {
+  const [notice, setNotice] = useState<string | null>(null)
+  // Clears the message on a timer, an external system.
+  useEffect(() => {
+    if (!notice) return
+    const timer = window.setTimeout(() => setNotice(null), NOTICE_MS)
+    return () => window.clearTimeout(timer)
+  }, [notice])
+  return [notice, setNotice] as const
+}
+
 /** A short error line at the bottom centre of the viewport. It does not take the pointer. */
 export function Toast({ message }: { message: string | null }) {
   if (!message) return null

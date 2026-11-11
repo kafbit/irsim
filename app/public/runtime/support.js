@@ -6,6 +6,7 @@
 
 import { installCaptureTracking } from './capture.js'
 import { applyEnv, applyTokens } from './env.js'
+import { installLinks } from './links.js'
 import { parseBoard, prepareSource } from './parse.js'
 import { createPicker } from './pick.js'
 import { createContext, mountBoard } from './render.js'
@@ -99,6 +100,7 @@ const start = async () => {
 }
 
 installCaptureTracking(window)
+installLinks(document, post)
 const picker = createPicker(post)
 window.addEventListener('message', (event) => {
   if (event.source !== parent || event.data?.type !== 'comment-mode') return

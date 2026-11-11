@@ -20,7 +20,7 @@ export function Shell({ children }: { children: ReactNode }) {
   )
 }
 
-/** `/p/<pageId>`: that page's canvas, or one board alone with `?alone=1`. */
+/** `/p/<pageId>`: that page's canvas, or one board alone with `?alone=1`. `?play=canvas|full` plays `?board=`. */
 export function PageRoute({ pageId }: { pageId: string }) {
   return (
     <Shell>
@@ -33,6 +33,7 @@ function PageData({ pageId }: { pageId: string }) {
   const params = useSearchParams()
   const board = params.get('board')
   const alone = params.get('alone') === '1'
+  const play = params.get('play')
   const manifest = useApi<PageManifest>(`/api/pages/${encodeURIComponent(pageId)}`)
   const pages = useApi<PageSummary[]>('/api/pages')
 
@@ -47,6 +48,7 @@ function PageData({ pageId }: { pageId: string }) {
         manifest={manifest.data}
         pages={pages.status === 'ready' ? pages.data : []}
         focus={board}
+        play={play === 'full' || play === 'canvas' ? play : null}
       />
     )
   }

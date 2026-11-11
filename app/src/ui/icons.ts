@@ -1,6 +1,7 @@
 export {
   Check,
   ChevronDown,
+  ChevronLeft,
   ChevronUp,
   Copy as CopyIcon,
   Trash as DeleteIcon,
@@ -9,6 +10,7 @@ export {
   MapIcon,
   MessageSquare,
   MousePointer2,
+  Play,
   Search as SearchIcon,
   Send,
   X,
