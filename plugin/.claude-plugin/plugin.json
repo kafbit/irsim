@@ -1,6 +1,6 @@
 {
   "name": "irsim",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": { "name": "Kafbit" },
   "description": "Opens the irsim design canvas and delivers its comments to the session."
 }
