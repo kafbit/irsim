@@ -50,6 +50,22 @@ describe('summarize', () => {
     expect(result.screenshot).toBeUndefined()
   })
 
+  it('drops the boot error, page errors and console lines that repeat another signal', () => {
+    const result = summarize(
+      'Boot',
+      {
+        ...clean,
+        fatal: 'board error: boom',
+        problems: ['boot: boom', 'window: late'],
+        pageErrors: ['late'],
+        consoleErrors: ['Failed to load resource: the server responded with a status of 404 ()'],
+        failedRequests: ['404 http://localhost:1/a.png'],
+      },
+      1,
+    )
+    expect(result.errors).toEqual(['boot: boom', 'window: late', '404 http://localhost:1/a.png'])
+  })
+
   it('an empty render is a warning and not ok', () => {
     const result = summarize('Blank', { ...clean, empty: true }, 1)
     expect(result.ok).toBe(false)
@@ -66,10 +82,10 @@ describe('check helpers', () => {
     ).toEqual({ name: 'Leads', width: 390, height: 844 })
   })
 
-  it('the server checks itself through localhost on the same port', () => {
-    expect(selfBase(new Request('http://127.0.0.1:3238/api/boards/A/check'))).toBe(
-      'http://localhost:3238',
-    )
+  it('the server checks itself on its own port, the request port only as a fallback', () => {
+    const forwarded = new Request('http://example.test:8080/api/boards/A/check')
+    expect(selfBase(forwarded, '3238')).toBe('http://localhost:3238')
+    expect(selfBase(forwarded, '')).toBe('http://localhost:8080')
   })
 })
 

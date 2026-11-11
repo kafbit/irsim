@@ -74,6 +74,7 @@ export function checkLines(results: CheckResult[]): string {
 
 async function check($: Engine, board?: string, page?: string): Promise<string> {
   if (!board && !page) throw new CanvasError('check needs board or page')
+  if (board && page) throw new CanvasError('check takes board or page, not both')
   const path = board
     ? `/api/boards/${encodeURIComponent(board)}/check`
     : `/api/pages/${encodeURIComponent(page ?? '')}/check`

@@ -1,3 +1,4 @@
+import { BOARD_NAME, boardNameOf } from '../../../lib/board-name'
 import { closureOf } from '../../../lib/closure'
 
 export const dynamic = 'force-dynamic'
@@ -45,8 +46,8 @@ export async function GET(
   { params }: { params: Promise<{ board: string }> },
 ): Promise<Response> {
   // Boards link to each other as `X.dc.html`, and a click loads that URL into the frame.
-  const board = (await params).board.replace(/\.dc\.html$/, '')
-  if (!/^[A-Za-z][A-Za-z0-9]*$/.test(board)) {
+  const board = boardNameOf((await params).board)
+  if (!BOARD_NAME.test(board)) {
     return new Response('invalid board name', { status: 400 })
   }
   const { boards, missing, hash } = await closureOf(board)

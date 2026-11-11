@@ -269,4 +269,7 @@ test('the check action reports ok boards in one line and failures with their err
     '/api/boards/Leads/check',
     '/api/pages/sales/check',
   ])
+
+  const both = await $.tool.call({ tool: TOOL, action: 'check', board: 'Leads', page: 'sales' })
+  expect(JSON.stringify(both)).toContain('check takes board or page, not both')
 })
