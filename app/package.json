@@ -1,6 +1,6 @@
 {
   "name": "irsim",
-  "version": "0.1.2",
+  "version": "0.2.1",
   "private": true,
   "scripts": {
     "dev": "next dev --port $(bun scripts/canvas-port.ts)",
