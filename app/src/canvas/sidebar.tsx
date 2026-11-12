@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { type Ref, useCallback, useState } from 'react'
 import { CHROME_FORMAT } from './chrome-format'
 import type { ManifestBoard, PageSummary } from './types'
+import { UpdateNotice } from './update-notice'
 
 const row =
   'block rounded-lg px-2 py-1.5 text-sm text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring'
@@ -127,6 +128,7 @@ export function Sidebar({
           <li className="px-2 py-6 text-center text-sm text-muted-foreground">No boards match</li>
         ) : null}
       </ul>
+      <UpdateNotice />
     </aside>
   )
 }

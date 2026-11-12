@@ -25,6 +25,7 @@ const PORT_MIN = 3200
 const PORT_COUNT = 100
 const START = '<!-- IRSIM_START -->'
 const END = '<!-- IRSIM_END -->'
+const RESTART_CODE = 75
 
 const ROOT = resolve(dirname(realpathSync(fileURLToPath(import.meta.url))), '..')
 const SERVER = join(ROOT, 'server', 'server.js')
@@ -258,6 +259,7 @@ const serve = async (args) => {
   const cwd = process.cwd()
   const root = projectRoot(cwd)
   const design = resolveDesignDir(cwd, opts['design-dir'])
+  const prefix = prefixOf()
   let port
   let serving = false
   if (opts.port !== undefined) {
@@ -279,6 +281,9 @@ const serve = async (args) => {
     IRSIM_ROOT: root,
     PORT: String(port),
     HOSTNAME: '127.0.0.1',
+    IRSIM_VERSION: installedVersion(),
+    IRSIM_LAUNCHER: join(ROOT, 'bin', 'irsim'),
+    IRSIM_PREFIX: prefix ?? '',
   }
   let command
   let argv
@@ -298,9 +303,27 @@ const serve = async (args) => {
   }
   console.log(`irsim: ${url}`)
   const child = spawn(command, argv, { cwd: childCwd, env, stdio: 'inherit' })
+  let active = child
   for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP'])
-    process.on(signal, () => child.kill(signal))
-  child.on('exit', (code, signal) => process.exit(code ?? (signal ? 1 : 0)))
+    process.on(signal, () => active.kill(signal))
+  const pidFile = prefix && child.pid ? join(ROOT, '.pids', String(child.pid)) : null
+  if (pidFile) {
+    mkdirSync(dirname(pidFile), { recursive: true })
+    writeFileSync(pidFile, '')
+  }
+  child.on('exit', (code, signal) => {
+    if (pidFile) rmSync(pidFile, { force: true })
+    if (code === RESTART_CODE && prefix) {
+      active = spawn(join(prefix, 'current', 'bin', 'irsim'), ['serve', ...args], {
+        cwd: process.cwd(),
+        env: process.env,
+        stdio: 'inherit',
+      })
+      active.on('exit', (nextCode, nextSignal) => process.exit(nextCode ?? (nextSignal ? 1 : 0)))
+      return
+    }
+    process.exit(code ?? (signal ? 1 : 0))
+  })
 }
 
 const block = () => {
@@ -391,6 +414,32 @@ const prefixOf = () => {
   return null
 }
 
+const pidAlive = (pid) => {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch (error) {
+    return error?.code === 'EPERM'
+  }
+}
+
+const hasLiveServer = (dir) => {
+  const pids = join(dir, '.pids')
+  let alive = false
+  let names
+  try {
+    names = readdirSync(pids)
+  } catch {
+    return false
+  }
+  for (const name of names) {
+    const pid = Number(name)
+    if (Number.isInteger(pid) && pid > 0 && pidAlive(pid)) alive = true
+    else rmSync(join(pids, name), { force: true })
+  }
+  return alive
+}
+
 const update = (args) => {
   const opts = parse(args, { '--check': 'bool' })
   const installed = installedVersion()
@@ -427,7 +476,12 @@ const update = (args) => {
     symlinkSync(latest, link)
     renameSync(link, join(prefix, 'current'))
     for (const entry of readdirSync(prefix)) {
-      if (/^\d+\.\d+\.\d+/.test(entry) && entry !== latest && entry !== basename(ROOT))
+      if (
+        /^\d+\.\d+\.\d+/.test(entry) &&
+        entry !== latest &&
+        entry !== basename(ROOT) &&
+        !hasLiveServer(join(prefix, entry))
+      )
         rmSync(join(prefix, entry), { recursive: true, force: true })
     }
     console.log(`updated to ${latest}`)
