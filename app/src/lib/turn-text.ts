@@ -1,4 +1,5 @@
 import type { Approval, Comment, Reply } from './comments-types'
+import { placeText, targetText } from './place-text'
 
 export const REPLY_RULE =
   'Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.'
@@ -26,8 +27,8 @@ const replyLines = (reply: Reply, fresh: boolean): string => {
 }
 
 const item = (comment: Comment, index: number, imagePaths: Record<string, string>): string => {
-  const place = `${comment.file}:${comment.line}`
-  const target = `${comment.element.path} "${comment.element.text}"`
+  const place = placeText(comment)
+  const target = targetText(comment)
   const board = boardOf(comment.file) === comment.board ? '' : ` · on board ${comment.board}`
   const fresh = unseenUserReplies(comment)
   const followUp = fresh.length > 0 ? ` · follow-up${comment.reopened ? WAS_RESOLVED : ''}` : ''
@@ -62,7 +63,7 @@ export const buildTurnText = (
       ? ` (${comments.length - followUps} new, ${followUps} follow-up${followUps === 1 ? '' : 's'})`
       : ''
   return [
-    `Design canvas: ${comments.length} ${noun}${mix} ${where} (${batch}). Read only the lines named; boards live in ${designFolder}/.`,
+    `Design canvas: ${comments.length} ${noun}${mix} ${where} (${batch}). Read only the lines named; a comment without a line is about the whole board, so read the board file as needed. Boards live in ${designFolder}/.`,
     ...comments.map((comment, index) => item(comment, index, imagePaths)),
     'Reply to each with design_canvas {action: "reply", id, body}; resolve with {action: "resolve", id}.',
     REPLY_RULE,

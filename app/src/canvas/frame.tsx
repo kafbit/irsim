@@ -67,6 +67,7 @@ export const Frame = memo(function Frame({
   approval,
   thumb,
   onSelect,
+  onComment,
   onPlay,
   onStop,
 }: {
@@ -80,6 +81,7 @@ export const Frame = memo(function Frame({
   approval?: ApprovalState | undefined
   thumb?: Thumb | undefined
   onSelect: (name: string) => void
+  onComment: (name: string) => void
   onPlay: (name: string, mode: PlayMode) => void
   onStop: (name: string) => void
 }) {
@@ -103,8 +105,12 @@ export const Frame = memo(function Frame({
       <button
         type="button"
         data-frame-title=""
-        onClick={() => onSelect(board.name)}
-        className="absolute start-0 bottom-full flex origin-bottom-left cursor-pointer items-baseline gap-2 overflow-hidden pb-1.5 text-start text-xs whitespace-nowrap text-foreground -outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring in-data-labels-off:invisible"
+        onClick={() => (commenting ? onComment(board.name) : onSelect(board.name))}
+        className={`peer absolute start-0 bottom-full flex origin-bottom-left items-baseline gap-2 overflow-hidden pb-1.5 text-start text-xs whitespace-nowrap text-foreground -outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring ${
+          commenting
+            ? 'cursor-crosshair in-data-labels-off:opacity-0'
+            : 'cursor-pointer in-data-labels-off:invisible'
+        }`}
         style={{ maxInlineSize: labelMaxInline(board.width), transform: 'scale(var(--inv, 1))' }}
       >
         {board.interactive ? (
@@ -170,6 +176,17 @@ export const Frame = memo(function Frame({
           </div>
         ) : null}
       </div>
+      {commenting ? (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 hidden outline-pick peer-hover:block peer-focus-visible:block"
+          style={{
+            outlineWidth: 'calc(2px * var(--inv, 1))',
+            outlineOffset: 'calc(-2px * var(--inv, 1))',
+            outlineStyle: 'solid',
+          }}
+        />
+      ) : null}
     </div>
   )
 })

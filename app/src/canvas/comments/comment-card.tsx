@@ -3,6 +3,7 @@
 /* oxlint-disable next/no-img-element -- comment images come from /api/comments/images, no optimiser */
 
 import { Badge, Button, IconButton, Textarea } from '../../ui'
+import { placeText, targetText } from '../../lib/place-text'
 import { Check, DeleteIcon, EditIcon } from '../../ui/icons'
 import { useState } from 'react'
 import { ClampedText } from './clamped-text'
@@ -78,7 +79,6 @@ export function CommentCard({
     setEditing(false)
   }
 
-  const { element } = comment
   return (
     <li
       id={`comment-${comment.id}`}
@@ -96,7 +96,7 @@ export function CommentCard({
             {number}
           </span>
           <code dir="ltr" className="truncate text-xs text-muted-foreground">
-            {comment.file}:{comment.line}
+            {placeText(comment)}
           </code>
         </button>
         <Badge size="sm" tone={comment.status === 'delivered' ? 'success' : 'neutral'}>
@@ -104,8 +104,7 @@ export function CommentCard({
         </Badge>
       </div>
       <p dir="ltr" className="m-0 truncate text-xs text-muted-foreground">
-        {element.path}
-        {element.text ? <span dir="auto"> "{element.text}"</span> : null}
+        {targetText(comment)}
       </p>
       {editing ? (
         <div className="flex flex-col gap-2">

@@ -1,4 +1,5 @@
 import { formatNumber } from '../../lib/format-number'
+import { isWholeBoard } from '../../lib/place-text'
 import type { Rect, Size, View } from '../geometry'
 import { CHROME_FORMAT } from '../chrome-format'
 import type { Comment, PickedElement, Session } from './types'
@@ -31,6 +32,27 @@ export function parsePick(data: unknown): PickedElement | null {
     rect,
     element: { tag, path, text: typeof text === 'string' ? text : '' },
   }
+}
+
+/** The pick for a comment on a whole board: line 0, the board title as text and the whole frame as rect. */
+export function boardPick(board: {
+  name: string
+  title: string
+  width: number
+  height: number
+}): PickedElement {
+  return {
+    board: board.name,
+    file: `design/${board.name}.dc.html`,
+    line: 0,
+    element: { tag: 'board', path: '', text: board.title || board.name },
+    rect: { x: 0, y: 0, width: board.width, height: board.height },
+  }
+}
+
+/** The rect a comment is placed by: a whole-board comment follows the board's current size, an element comment keeps its stored rect. */
+export function placedRect(frame: Size, comment: { line: number; rect: Rect }): Rect {
+  return isWholeBoard(comment) ? { x: 0, y: 0, width: frame.width, height: frame.height } : comment.rect
 }
 
 /** The screen rectangle (relative to the viewport) of `rect`, which is in the coordinates of the board placed at `frame`. */

@@ -10,15 +10,15 @@
 <helmet>
 <style>
 body{margin:0}
-.cf-root{--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a;--play:#2563eb;--play-hover:#1d4ed8;--mock-bg:#f6f6f3;--mock-ink:#14161a;--mock-on-ink:#ecece8;--mock-card:#ffffff;--mock-line:#e4e4e0;--mock-bar:#d6d7d2;--mock-accent:#2563eb}
-.cf-root.dark{--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8;--play:#60a5fa;--play-hover:#93c5fd}
+.cf-root{--pick:#14161a;--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a;--play:#2563eb;--play-hover:#1d4ed8;--mock-bg:#f6f6f3;--mock-ink:#14161a;--mock-on-ink:#ecece8;--mock-card:#ffffff;--mock-line:#e4e4e0;--mock-bar:#d6d7d2;--mock-accent:#2563eb}
+.cf-root.dark{--pick:#14161a;--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8;--play:#60a5fa;--play-hover:#93c5fd}
 .cf-pulse{animation:cf-pulse 2s cubic-bezier(0.4,0,0.6,1) infinite}
 @keyframes cf-pulse{50%{opacity:0.5}}
 </style>
 </helmet>
 <div dir="ltr" lang="en" class="cf-root {{themeClass}}" style="position: relative; box-sizing: border-box; width: 100%; min-height: var(--cv-h, 100vh); padding: 48px 20px 20px 20px; background: var(--cv-bg, var(--shell)); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
 <div data-board="Dialog" style="position: relative; width: {{boxWidth}}; height: {{boxHeight}};">
-<button type="button" style="position: absolute; left: 0; bottom: 100%; display: flex; align-items: baseline; gap: 8px; max-width: 100%; box-sizing: border-box; margin: 0; padding: 0 0 6px 0; border: 0; background: transparent; overflow: hidden; font: inherit; font-size: 12px; line-height: 16px; white-space: nowrap; text-align: start; color: var(--foreground);">
+<button type="button" style="position: absolute; left: 0; bottom: 100%; display: flex; align-items: baseline; gap: 8px; max-width: 100%; box-sizing: border-box; margin: 0; padding: 0 0 6px 0; border: 0; background: transparent; overflow: hidden; font: inherit; font-size: 12px; line-height: 16px; white-space: nowrap; text-align: start; color: var(--foreground); cursor: {{titleCursor}};">
 <sc-if value="{{isPrototype}}" hint-placeholder-val="{{false}}">
 <span role="img" aria-label="Prototype" style="flex-shrink: 0; align-self: center; width: 8px; height: 8px; border-radius: 50%; background: #2563eb;"></span>
 </sc-if>
@@ -79,6 +79,9 @@ body{margin:0}
 <sc-for list="{{handles}}" as="handle"><span style="position: absolute; left: {{handle.left}}; top: {{handle.top}}; width: 8px; height: 8px; box-sizing: border-box; border: 1px solid var(--ring); background: #ffffff; transform: translate(-50%, -50%);"></span></sc-for>
 </div>
 </sc-if>
+<sc-if value="{{titleHover}}" hint-placeholder-val="{{false}}">
+<div aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; border-radius: 12px; outline: 2px solid var(--pick); outline-offset: -2px; pointer-events: none;"></div>
+</sc-if>
 <sc-if value="{{commenting}}" hint-placeholder-val="{{false}}">
 <div style="position: absolute; left: 0; top: 0; pointer-events: none;">
 <div data-pin="" aria-label="Comment 1" style="position: absolute; left: {{pinOneLeft}}; top: {{pinOneTop}}; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: var(--primary-foreground); font-size: 12px; font-weight: 600; transform: translate(-50%, -50%);">1<span aria-hidden="true" style="position: absolute; right: -2px; top: -2px; width: 8px; height: 8px; border-radius: 50%; background: var(--highlight);"></span></div>
@@ -88,10 +91,10 @@ body{margin:0}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"live","options":["live","selected","thumbnail","pending","failed","playing","commenting"]},"prototype":{"editor":"enum","default":"no","options":["no","yes"]},"approval":{"editor":"enum","default":"none","options":["none","approved","changed"]},"width":{"editor":"number","default":360},"height":{"editor":"number","default":240},"$preview":{"width":400,"height":308}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"live","options":["live","selected","thumbnail","pending","failed","playing","commenting"]},"prototype":{"editor":"enum","default":"no","options":["no","yes"]},"hover":{"editor":"enum","default":"none","options":["none","title"]},"approval":{"editor":"enum","default":"none","options":["none","approved","changed"]},"width":{"editor":"number","default":360},"height":{"editor":"number","default":240},"$preview":{"width":400,"height":308}}'>
 class Component extends DCLogic {
   renderVals() {
-    const { state, prototype, approval, theme } = this.props
+    const { state, prototype, approval, theme, hover } = this.props
     const width = Number(this.props.width)
     const height = Number(this.props.height)
     const playing = state === 'playing'
@@ -112,6 +115,8 @@ class Component extends DCLogic {
       fillClass: state === 'pending' ? 'cf-pulse' : '',
       selected: state === 'selected',
       commenting: state === 'commenting',
+      titleCursor: state === 'commenting' ? 'crosshair' : 'pointer',
+      titleHover: state === 'commenting' && hover === 'title',
       handles: [
         { left: '0%', top: '0%' },
         { left: '50%', top: '0%' },

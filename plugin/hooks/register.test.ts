@@ -100,6 +100,28 @@ function world(
       })
     }
     if (url.pathname === '/api/comments/claim') return json(claim)
+    if (url.pathname === '/api/comments') {
+      return json([
+        {
+          id: 'c_1',
+          status: 'queued',
+          file: 'design/Leads.dc.html',
+          line: 57,
+          element: { tag: 'button', path: 'button', text: 'New lead' },
+          body: 'Use the primary button.',
+          replies: [],
+        },
+        {
+          id: 'c_2',
+          status: 'queued',
+          file: 'design/Leads.dc.html',
+          line: 0,
+          element: { tag: 'div', path: 'div', text: 'Leads table' },
+          body: 'Widen the first column.',
+          replies: [{ author: 'claude', body: 'Done.' }],
+        },
+      ])
+    }
     if (url.pathname === '/api/boards/Leads/check') {
       return json([
         { board: 'Leads', ok: true, ms: 820, errors: [], warnings: [], screenshot: '/w/Leads.png' },
@@ -196,6 +218,20 @@ test('the reply and resolve tool calls hit the right routes', async ($, on) => {
     { method: 'POST', path: '/api/comments/c_2/reply', body: { body: 'Fixed.', author: 'claude' } },
     { method: 'PATCH', path: '/api/comments/c_2', body: { status: 'resolved' } },
   ])
+})
+
+test('the comments action names an element by file:line and a whole board by the word board', async ($, on) => {
+  world(on)
+  await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
+
+  const { result } = await $.tool.call({ tool: TOOL, action: 'comments' })
+
+  expect(result).toBe(
+    [
+      'c_1 queued design/Leads.dc.html:57 button "New lead" Use the primary button.',
+      'c_2 queued design/Leads.dc.html board "Leads table" Widen the first column. (1 reply)',
+    ].join('\n'),
+  )
 })
 
 test('the page action returns one line per board', async ($, on) => {
