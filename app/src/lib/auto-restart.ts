@@ -1,6 +1,7 @@
 import { RESTART_CODE, exitProcess } from './restart'
 import { isUpdating } from './update-state'
 import { installedVersion, runningVersion } from './version-state'
+import { newer } from './version-info'
 
 type Timer = { unref?: () => unknown }
 
@@ -9,6 +10,7 @@ export type AutoRestartDeps = {
   running?: () => string
   exit?: (code: number) => void
   isUpdating?: () => boolean
+  drain?: () => Promise<void>
   intervalMs?: number
   graceMs?: number
   enabled?: boolean
@@ -19,6 +21,13 @@ export type AutoRestartDeps = {
 }
 
 const FLAG = '__irsimAutoRestart'
+const DRAIN_TIMEOUT_MS = 5000
+const VERSION = /^\d+\.\d+\.\d+/
+
+const drainWrites = async (): Promise<void> => {
+  const { whenWritesIdle } = await import('./comments-store')
+  await whenWritesIdle(DRAIN_TIMEOUT_MS)
+}
 
 const enabledByEnv = (): boolean =>
   process.env.IRSIM_AUTO_RESTART !== '0' &&
@@ -31,6 +40,7 @@ export const startAutoRestart = (deps: AutoRestartDeps = {}): (() => void) => {
     running = runningVersion,
     exit = exitProcess,
     isUpdating: updating = isUpdating,
+    drain = drainWrites,
     intervalMs = 30_000,
     graceMs = 2_000,
     enabled = enabledByEnv(),
@@ -47,15 +57,28 @@ export const startAutoRestart = (deps: AutoRestartDeps = {}): (() => void) => {
   let exitTimer: Timer | null = null
   let checking = false
 
+  const restart = () => {
+    if (updating()) {
+      exitTimer = setTimeoutFn(restart, graceMs)
+      exitTimer.unref?.()
+      return
+    }
+    drain()
+      .catch(() => {})
+      .then(() => exit(RESTART_CODE))
+  }
+
   const interval = setIntervalFn(() => {
     if (scheduled || checking || updating()) return
     checking = true
     installed()
       .then((next) => {
-        if (scheduled || next === null || next === running()) return
+        const current = running()
+        if (scheduled || next === null || !VERSION.test(next) || !VERSION.test(current)) return
+        if (!newer(next, current)) return
         scheduled = true
         clearIntervalFn(interval)
-        exitTimer = setTimeoutFn(() => exit(RESTART_CODE), graceMs)
+        exitTimer = setTimeoutFn(restart, graceMs)
         exitTimer.unref?.()
       })
       .catch(() => {})

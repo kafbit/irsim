@@ -15,3 +15,14 @@ describe('update state', () => {
     expect(isUpdating()).toBe(false)
   })
 })
+
+describe('shared state', () => {
+  it('is shared by two separately loaded instances', async () => {
+    const a = await import('../src/lib/update-state?a')
+    const b = await import('../src/lib/update-state?b')
+    a.setUpdating(true)
+    expect(b.isUpdating()).toBe(true)
+    b.setUpdating(false)
+    expect(a.isUpdating()).toBe(false)
+  })
+})

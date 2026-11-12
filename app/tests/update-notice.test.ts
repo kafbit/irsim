@@ -1,5 +1,11 @@
-import { describe, expect, it } from 'vitest'
-import { dismissalKey, shouldReload, unlessDismissed } from '../src/canvas/use-update'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import {
+  acquireWatcher,
+  dismissalKey,
+  hasDraft,
+  shouldReload,
+  unlessDismissed,
+} from '../src/canvas/use-update'
 import { newer, noticeOf, type VersionInfo } from '../src/lib/version-info'
 
 const info = (overrides: Partial<VersionInfo> = {}): VersionInfo => ({
@@ -90,18 +96,80 @@ describe('unlessDismissed', () => {
 
 describe('shouldReload', () => {
   it('does nothing before a baseline is known', () => {
-    expect(shouldReload(null, info())).toBe(false)
+    expect(shouldReload(null, info(), false)).toBe(false)
   })
 
   it('does nothing when the fetch failed', () => {
-    expect(shouldReload('0.1.3', null)).toBe(false)
+    expect(shouldReload('0.1.3', null, false)).toBe(false)
   })
 
   it('does nothing while the running version is unchanged', () => {
-    expect(shouldReload('0.1.3', info({ running: '0.1.3' }))).toBe(false)
+    expect(shouldReload('0.1.3', info({ running: '0.1.3' }), false)).toBe(false)
   })
 
   it('reloads when the running version changed', () => {
-    expect(shouldReload('0.1.3', info({ running: '0.1.4' }))).toBe(true)
+    expect(shouldReload('0.1.3', info({ running: '0.1.4' }), false)).toBe(true)
+  })
+
+  it('does not reload while the user has a draft', () => {
+    expect(shouldReload('0.1.3', info({ running: '0.1.4' }), true)).toBe(false)
+  })
+})
+
+describe('hasDraft', () => {
+  const doc = (values: string[], composer: boolean) => ({
+    querySelectorAll: (selector: string) =>
+      selector === 'textarea'
+        ? values.map((value) => ({ value }))
+        : composer && selector === '[role="dialog"][aria-label="New comment"]'
+          ? [{}]
+          : [],
+  })
+
+  it('is true for a textarea with text', () => {
+    expect(hasDraft(doc(['', 'hello'], false))).toBe(true)
+  })
+
+  it('is false for empty textareas', () => {
+    expect(hasDraft(doc(['', ''], false))).toBe(false)
+    expect(hasDraft(doc([], false))).toBe(false)
+  })
+
+  it('is true while the comment composer is open', () => {
+    expect(hasDraft(doc([], true))).toBe(true)
+  })
+})
+
+describe('acquireWatcher', () => {
+  afterEach(() => vi.useRealTimers())
+
+  it('shares one interval and stops it when the last holder releases', () => {
+    vi.useFakeTimers()
+    const first = vi.fn()
+    const second = vi.fn()
+    const releaseFirst = acquireWatcher(first)
+    const releaseSecond = acquireWatcher(second)
+    vi.advanceTimersByTime(5000)
+    expect(first).toHaveBeenCalledTimes(1)
+    expect(second).not.toHaveBeenCalled()
+    releaseFirst()
+    vi.advanceTimersByTime(5000)
+    expect(second).toHaveBeenCalledTimes(1)
+    releaseSecond()
+    vi.advanceTimersByTime(20_000)
+    expect(first).toHaveBeenCalledTimes(1)
+    expect(second).toHaveBeenCalledTimes(1)
+  })
+
+  it('starts a new interval after every holder released', () => {
+    vi.useFakeTimers()
+    const fn = vi.fn()
+    acquireWatcher(fn)()
+    const again = vi.fn()
+    const release = acquireWatcher(again)
+    vi.advanceTimersByTime(5000)
+    expect(fn).not.toHaveBeenCalled()
+    expect(again).toHaveBeenCalledTimes(1)
+    release()
   })
 })

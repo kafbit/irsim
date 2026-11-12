@@ -1,7 +1,10 @@
-let updating = false
+type State = { updating: boolean }
 
-export const isUpdating = (): boolean => updating
+const holder = globalThis as typeof globalThis & { __irsimUpdating?: State }
+const state = (holder.__irsimUpdating ??= { updating: false })
+
+export const isUpdating = (): boolean => state.updating
 
 export const setUpdating = (value: boolean): void => {
-  updating = value
+  state.updating = value
 }

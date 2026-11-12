@@ -54,6 +54,21 @@ const enqueue = <T>(task: () => Promise<T>): Promise<T> => {
   return run
 }
 
+export const whenWritesIdle = (timeoutMs: number): Promise<void> =>
+  new Promise((resolve) => {
+    const timer = setTimeout(resolve, timeoutMs)
+    const settle = async () => {
+      let tail: Promise<unknown>
+      do {
+        tail = queue.tail
+        await tail
+      } while (tail !== queue.tail)
+      clearTimeout(timer)
+      resolve()
+    }
+    settle().catch(() => {})
+  })
+
 const readList = async <T>(name: string): Promise<T[]> => {
   try {
     return JSON.parse(await readFile(join(dataDir(), name), 'utf8')) as T[]

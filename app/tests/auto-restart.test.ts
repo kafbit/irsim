@@ -10,6 +10,7 @@ describe('startAutoRestart', () => {
   let installed: string | null
   let updating: boolean
   let exit: ReturnType<typeof vi.fn<(code: number) => void>>
+  let running: string
 
   let now: number
   let tasks: { at: number; every: number | null; callback: () => void }[]
@@ -41,7 +42,8 @@ describe('startAutoRestart', () => {
   const start = (extra: Parameters<typeof startAutoRestart>[0] = {}) => {
     stop = startAutoRestart({
       installed: async () => installed,
-      running: () => '0.1.0',
+      running: () => running,
+      drain: async () => {},
       exit,
       isUpdating: () => updating,
       intervalMs: 1000,
@@ -62,6 +64,7 @@ describe('startAutoRestart', () => {
     for (const key of KEYS) saved[key] = process.env[key]
     delete state.__irsimAutoRestart
     installed = '0.1.0'
+    running = '0.1.0'
     updating = false
     exit = vi.fn()
   })
@@ -102,6 +105,56 @@ describe('startAutoRestart', () => {
     updating = false
     await advance(1200)
     expect(exit).toHaveBeenCalledTimes(1)
+  })
+
+  it('re-arms the grace timer instead of exiting when an update starts inside the grace window', async () => {
+    installed = '0.2.0'
+    start()
+    await advance(1000)
+    updating = true
+    await advance(1000)
+    expect(exit).not.toHaveBeenCalled()
+    updating = false
+    await advance(200)
+    expect(exit).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not restart when the installed version is older than the running one', async () => {
+    installed = '0.1.0'
+    running = '0.2.0'
+    start()
+    await advance(10_000)
+    expect(exit).not.toHaveBeenCalled()
+  })
+
+  it('does not restart when the running version is unknown', async () => {
+    running = 'unknown'
+    installed = '0.2.0'
+    start()
+    await advance(10_000)
+    expect(exit).not.toHaveBeenCalled()
+  })
+
+  it('awaits the drain before exiting', async () => {
+    installed = '0.2.0'
+    let release: () => void = () => {}
+    const drain = vi.fn(() => new Promise<void>((resolve) => (release = resolve)))
+    start({ drain })
+    await advance(1200)
+    expect(drain).toHaveBeenCalledTimes(1)
+    expect(exit).not.toHaveBeenCalled()
+    release()
+    await advance(0)
+    for (let i = 0; i < 5; i++) await Promise.resolve()
+    expect(exit).toHaveBeenCalledWith(75)
+  })
+
+  it('still exits when the drain rejects', async () => {
+    installed = '0.2.0'
+    start({ drain: async () => Promise.reject(new Error('stuck')) })
+    await advance(1200)
+    for (let i = 0; i < 5; i++) await Promise.resolve()
+    expect(exit).toHaveBeenCalledWith(75)
   })
 
   it('does nothing on a second call in the same process', async () => {
