@@ -7,6 +7,8 @@ import type { Comment, PickedElement, Session } from './types'
 const isNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value)
 
+const isLine = (value: unknown): value is number => Number.isInteger(value) && (value as number) >= 0
+
 const isRect = (value: unknown): value is Rect => {
   if (typeof value !== 'object' || value === null) return false
   const { x, y, width, height } = value as Record<string, unknown>
@@ -21,7 +23,7 @@ export function parsePick(data: unknown): PickedElement | null {
     return null
   }
   const { file, line, element, rect } = details as Record<string, unknown>
-  if (typeof file !== 'string' || !isNumber(line) || !isRect(rect)) return null
+  if (typeof file !== 'string' || !isLine(line) || !isRect(rect)) return null
   if (typeof element !== 'object' || element === null) return null
   const { tag, path, text } = element as Record<string, unknown>
   if (typeof tag !== 'string' || typeof path !== 'string') return null

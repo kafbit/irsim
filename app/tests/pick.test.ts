@@ -91,23 +91,30 @@ describe('comment mode hover outline', () => {
     expect(outline().style.get('top')).toBe('20px')
   })
 
-  it('measures the origin of the fixed layer once for several shows', () => {
+  it('measures the origin of the fixed layer on every show', () => {
     const { hover, outline } = setup('#123456', { left: 15, top: 0 })
     const measure = vi.spyOn(outline(), 'getBoundingClientRect')
     hover(new FakeElement(true))
     hover(new FakeElement(true))
     hover(new FakeElement(true))
-    expect(measure).toHaveBeenCalledTimes(1)
+    expect(measure).toHaveBeenCalledTimes(3)
     expect(outline().style.get('left')).toBe('-5px')
   })
 
-  it('measures the origin again after a window resize', () => {
-    const { hover, outline, resize } = setup('#123456')
-    const measure = vi.spyOn(outline(), 'getBoundingClientRect')
+  it('measures the origin again when the scrollbar appears without a resize', () => {
+    const { hover, outline } = setup('#123456')
     hover(new FakeElement(true))
-    resize()
+    expect(outline().style.get('left')).toBe('10px')
+    vi.spyOn(outline(), 'getBoundingClientRect').mockReturnValue({
+      left: 15,
+      top: 0,
+      width: 0,
+      height: 0,
+      x: 0,
+      y: 0,
+    } as DOMRect)
     hover(new FakeElement(true))
-    expect(measure).toHaveBeenCalledTimes(2)
+    expect(outline().style.get('left')).toBe('-5px')
   })
 
   it('hides the outline again over an element with no stamp', () => {

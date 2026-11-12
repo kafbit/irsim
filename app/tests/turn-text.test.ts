@@ -34,7 +34,7 @@ describe('buildTurnText', () => {
     ])
     expect(text).toBe(
       [
-        'Design canvas: 2 comments on page sales (batch b_1). Read only the lines named; a comment without a line is about the whole board, so read the board file as needed. Boards live in design/.',
+        'Design canvas: 2 comments on page sales (batch b_1). Read only the lines named. Boards live in design/.',
         '1. design/Table.dc.html:142 · td.bt-row > span "خالد الشهري" · on board Leads',
         '   Make the name column wider.',
         '2. design/Leads.dc.html:57 · button "عميل جديد"',
@@ -56,6 +56,36 @@ describe('buildTurnText', () => {
     ])
     expect(text.split('\n')[1]).toBe('1. design/Leads.dc.html · board "Leads table"')
     expect(text).not.toContain(':0')
+  })
+
+  it('builds the whole-board file from the design folder it is given', () => {
+    const whole = comment({
+      line: 0,
+      element: { tag: 'board', path: '', text: 'Leads table' },
+    })
+    const text = buildTurnText([whole], {}, 'ui-boards')
+    expect(text.split('\n')[1]).toBe('1. ui-boards/Leads.dc.html · board "Leads table"')
+    expect(text).not.toContain('design/Leads.dc.html')
+  })
+
+  it('keeps the file of an element comment as stored', () => {
+    expect(buildTurnText([comment({})], {}, 'ui-boards')).toContain(
+      '1. design/Leads.dc.html:57 · button',
+    )
+  })
+
+  it('explains a comment without a line only when one is in the batch', () => {
+    const whole = comment({ line: 0, element: { tag: 'board', path: '', text: 'Leads' } })
+    const sentence = 'A comment without a line is about the whole board, so read the board file as needed.'
+    expect(buildTurnText([comment({})]).split('\n')[0]).not.toContain(sentence)
+    expect(buildTurnText([comment({ id: 'c_2' }), whole]).split('\n')[0]).toContain(
+      `Read only the lines named. ${sentence} Boards live in design/.`,
+    )
+  })
+
+  it('leaves out the quoted text of an element with no text', () => {
+    const text = buildTurnText([comment({ element: { tag: 'img', path: 'div > img', text: '' } })])
+    expect(text.split('\n')[1]).toBe('1. design/Leads.dc.html:57 · div > img')
   })
 
   it('decides a whole-board comment by the line, not by the tag', () => {
@@ -123,7 +153,7 @@ describe('buildTurnText', () => {
       const text = buildTurnText([followUp()])
       expect(text).toBe(
         [
-          'Design canvas: 1 comment (0 new, 1 follow-up) on page sales (batch b_1). Read only the lines named; a comment without a line is about the whole board, so read the board file as needed. Boards live in design/.',
+          'Design canvas: 1 comment (0 new, 1 follow-up) on page sales (batch b_1). Read only the lines named. Boards live in design/.',
           '1. design/Leads.dc.html:57 · button "عميل جديد" · follow-up',
           '   Use the primary button.',
           '   You: First ask',

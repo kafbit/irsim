@@ -11,7 +11,7 @@ port=${2:-$(cd "$project" && "$irsim" port)}
 
 listeners() {
   if command -v ss >/dev/null 2>&1; then
-    ss -ltnHp "sport = :$1" 2>/dev/null | sed -n 's/.*pid=\([0-9][0-9]*\).*/\1/p' | sort -u
+    ss -ltnHp "sport = :$1" 2>/dev/null | grep -o 'pid=[0-9]*' | cut -d= -f2 | sort -u
   else
     lsof -ti "tcp:$1" -sTCP:LISTEN 2>/dev/null | sort -u
   fi
@@ -27,10 +27,14 @@ stop() {
 held=$(listeners "$port")
 if [ -n "$held" ]; then
   served=$(curl -s -m 3 "http://localhost:$port/api/health" | sed -n 's/.*"root":"\([^"]*\)".*/\1/p')
-  if [ "$served" != "$project" ]; then
-    echo "reload: port $port is held by something that does not serve $project, not touching it" >&2
-    exit 1
-  fi
+  served=$(cd "$served" 2>/dev/null && pwd -P || echo "$served")
+  case "$project" in
+    "$served" | "$served"/*) ;;
+    *)
+      echo "reload: port $port is held by something that does not serve $project, not touching it" >&2
+      exit 1
+      ;;
+  esac
   stop "$held"
 fi
 

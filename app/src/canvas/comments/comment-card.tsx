@@ -3,7 +3,7 @@
 /* oxlint-disable next/no-img-element -- comment images come from /api/comments/images, no optimiser */
 
 import { Badge, Button, IconButton, Textarea } from '../../ui'
-import { placeText, targetText } from '../../lib/place-text'
+import { placeText, targetName } from '../../lib/place-text'
 import { Check, DeleteIcon, EditIcon } from '../../ui/icons'
 import { useState } from 'react'
 import { ClampedText } from './clamped-text'
@@ -104,7 +104,8 @@ export function CommentCard({
         </Badge>
       </div>
       <p dir="ltr" className="m-0 truncate text-xs text-muted-foreground">
-        {targetText(comment)}
+        {targetName(comment)}
+        {comment.element.text ? <span dir="auto"> "{comment.element.text}"</span> : null}
       </p>
       {editing ? (
         <div className="flex flex-col gap-2">

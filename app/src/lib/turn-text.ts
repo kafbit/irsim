@@ -1,5 +1,5 @@
 import type { Approval, Comment, Reply } from './comments-types'
-import { placeText, targetText } from './place-text'
+import { isWholeBoard, placeText, targetText } from './place-text'
 
 export const REPLY_RULE =
   'Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.'
@@ -26,8 +26,17 @@ const replyLines = (reply: Reply, fresh: boolean): string => {
   return [`${label}${first}`, ...rest.map((line) => `      ${line}`)].join('\n')
 }
 
-const item = (comment: Comment, index: number, imagePaths: Record<string, string>): string => {
-  const place = placeText(comment)
+const item = (
+  comment: Comment,
+  index: number,
+  imagePaths: Record<string, string>,
+  designFolder: string,
+): string => {
+  const place = placeText(
+    isWholeBoard(comment)
+      ? { file: `${designFolder}/${comment.board}.dc.html`, line: 0 }
+      : comment,
+  )
   const target = targetText(comment)
   const board = boardOf(comment.file) === comment.board ? '' : ` · on board ${comment.board}`
   const fresh = unseenUserReplies(comment)
@@ -62,9 +71,12 @@ export const buildTurnText = (
     followUps > 0
       ? ` (${comments.length - followUps} new, ${followUps} follow-up${followUps === 1 ? '' : 's'})`
       : ''
+  const wholeBoard = comments.some(isWholeBoard)
+    ? ' A comment without a line is about the whole board, so read the board file as needed.'
+    : ''
   return [
-    `Design canvas: ${comments.length} ${noun}${mix} ${where} (${batch}). Read only the lines named; a comment without a line is about the whole board, so read the board file as needed. Boards live in ${designFolder}/.`,
-    ...comments.map((comment, index) => item(comment, index, imagePaths)),
+    `Design canvas: ${comments.length} ${noun}${mix} ${where} (${batch}). Read only the lines named.${wholeBoard} Boards live in ${designFolder}/.`,
+    ...comments.map((comment, index) => item(comment, index, imagePaths, designFolder)),
     'Reply to each with design_canvas {action: "reply", id, body}; resolve with {action: "resolve", id}.',
     REPLY_RULE,
     `Ids: ${comments.map((comment) => comment.id).join(', ')}`,

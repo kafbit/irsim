@@ -23,7 +23,7 @@ serve: deps
 	cd "$(PROJECT)" && exec "$(IRSIM)" serve $(PORT_ARG) $(DESIGN_DIR_ARG)
 
 reload: deps
-	@scripts/reload.sh "$(PROJECT)" $(PORT)
+	@scripts/reload.sh "$(PROJECT)" $(if $(PORT_ARG),$(PORT))
 	cd "$(PROJECT)" && exec "$(IRSIM)" serve $(PORT_ARG) $(DESIGN_DIR_ARG)
 
 port:

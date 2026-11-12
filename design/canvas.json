@@ -150,6 +150,22 @@
           "height": 308
         },
         {
+          "name": "CanvasFrameCommentingBoard",
+          "title": "Frame: comment mode, whole-board comment",
+          "x": 2400,
+          "y": 2348,
+          "width": 400,
+          "height": 308
+        },
+        {
+          "name": "CanvasFrameCommentingBoardDraft",
+          "title": "Frame: comment mode, whole-board draft",
+          "x": 2880,
+          "y": 2348,
+          "width": 400,
+          "height": 308
+        },
+        {
           "name": "CanvasSidebar",
           "title": "Canvas sidebar",
           "x": 0,

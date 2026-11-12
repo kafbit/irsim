@@ -82,19 +82,25 @@ body{margin:0}
 <sc-if value="{{titleHover}}" hint-placeholder-val="{{false}}">
 <div aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; border-radius: 12px; outline: 2px solid var(--pick); outline-offset: -2px; pointer-events: none;"></div>
 </sc-if>
+<sc-if value="{{wholeComposing}}" hint-placeholder-val="{{false}}">
+<div aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; outline: 2px solid var(--pick); outline-offset: -2px; pointer-events: none;"></div>
+</sc-if>
 <sc-if value="{{commenting}}" hint-placeholder-val="{{false}}">
 <div style="position: absolute; left: 0; top: 0; pointer-events: none;">
 <div data-pin="" aria-label="Comment 1" style="position: absolute; left: {{pinOneLeft}}; top: {{pinOneTop}}; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: var(--primary-foreground); font-size: 12px; font-weight: 600; transform: translate(-50%, -50%);">1<span aria-hidden="true" style="position: absolute; right: -2px; top: -2px; width: 8px; height: 8px; border-radius: 50%; background: var(--highlight);"></span></div>
 <div data-pin="" aria-label="Comment 2" style="position: absolute; left: {{pinTwoLeft}}; top: {{pinTwoTop}}; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--muted-foreground); color: var(--primary-foreground); font-size: 12px; font-weight: 600; transform: translate(-50%, -50%);">2</div>
+<sc-if value="{{wholePin}}" hint-placeholder-val="{{false}}">
+<div data-pin="" aria-label="Comment 3" style="position: absolute; left: {{pinWholeLeft}}; top: 20px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--muted-foreground); color: var(--primary-foreground); font-size: 12px; font-weight: 600; transform: translate(-50%, -50%);">3</div>
+</sc-if>
 </div>
 </sc-if>
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"live","options":["live","selected","thumbnail","pending","failed","playing","commenting"]},"prototype":{"editor":"enum","default":"no","options":["no","yes"]},"hover":{"editor":"enum","default":"none","options":["none","title"]},"approval":{"editor":"enum","default":"none","options":["none","approved","changed"]},"width":{"editor":"number","default":360},"height":{"editor":"number","default":240},"$preview":{"width":400,"height":308}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"live","options":["live","selected","thumbnail","pending","failed","playing","commenting"]},"prototype":{"editor":"enum","default":"no","options":["no","yes"]},"hover":{"editor":"enum","default":"none","options":["none","title"]},"whole":{"editor":"enum","default":"none","options":["none","pin","composing"]},"approval":{"editor":"enum","default":"none","options":["none","approved","changed"]},"width":{"editor":"number","default":360},"height":{"editor":"number","default":240},"$preview":{"width":400,"height":308}}'>
 class Component extends DCLogic {
   renderVals() {
-    const { state, prototype, approval, theme, hover } = this.props
+    const { state, prototype, approval, theme, hover, whole } = this.props
     const width = Number(this.props.width)
     const height = Number(this.props.height)
     const playing = state === 'playing'
@@ -117,6 +123,9 @@ class Component extends DCLogic {
       commenting: state === 'commenting',
       titleCursor: state === 'commenting' ? 'crosshair' : 'pointer',
       titleHover: state === 'commenting' && hover === 'title',
+      wholePin: state === 'commenting' && whole === 'pin',
+      wholeComposing: state === 'commenting' && whole === 'composing',
+      pinWholeLeft: `${width - 20}px`,
       handles: [
         { left: '0%', top: '0%' },
         { left: '50%', top: '0%' },

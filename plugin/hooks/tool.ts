@@ -26,7 +26,7 @@ export const TOOL_SCHEMA = {
   required: ['action'],
 }
 
-const isWholeBoard = (comment: Comment): boolean => !(comment.line > 0)
+const isWholeBoard = (comment: Comment): boolean => comment.line === 0
 
 export function commentLine(comment: Comment): string {
   const replies = comment.replies.length

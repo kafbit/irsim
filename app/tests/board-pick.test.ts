@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import { boardPick, placedRect } from '../src/canvas/comments/model'
-import { placeText } from '../src/lib/place-text'
 
 describe('boardPick', () => {
   it('picks the whole frame as a board element on line 0', () => {
@@ -32,15 +31,5 @@ describe('placedRect', () => {
 
   it('keeps the stored rect for an element comment', () => {
     expect(placedRect({ width: 1000, height: 500 }, { line: 12, rect: stored })).toBe(stored)
-  })
-})
-
-describe('placeText', () => {
-  it('prints file:line for a picked element', () => {
-    expect(placeText({ file: 'design/Leads.dc.html', line: 57 })).toBe('design/Leads.dc.html:57')
-  })
-
-  it('prints only the file for line 0', () => {
-    expect(placeText({ file: 'design/Leads.dc.html', line: 0 })).toBe('design/Leads.dc.html')
   })
 })

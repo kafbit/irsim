@@ -108,7 +108,7 @@ export const Frame = memo(function Frame({
         onClick={() => (commenting ? onComment(board.name) : onSelect(board.name))}
         className={`peer absolute start-0 bottom-full flex origin-bottom-left items-baseline gap-2 overflow-hidden pb-1.5 text-start text-xs whitespace-nowrap text-foreground -outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring ${
           commenting
-            ? 'cursor-crosshair in-data-labels-off:opacity-0'
+            ? 'cursor-crosshair in-data-labels-off:invisible'
             : 'cursor-pointer in-data-labels-off:invisible'
         }`}
         style={{ maxInlineSize: labelMaxInline(board.width), transform: 'scale(var(--inv, 1))' }}
@@ -179,7 +179,7 @@ export const Frame = memo(function Frame({
       {commenting ? (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 hidden outline-pick peer-hover:block peer-focus-visible:block"
+          className="pointer-events-none absolute inset-0 hidden rounded-xl outline-pick peer-hover:block peer-focus-visible:block"
           style={{
             outlineWidth: 'calc(2px * var(--inv, 1))',
             outlineOffset: 'calc(-2px * var(--inv, 1))',

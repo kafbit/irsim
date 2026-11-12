@@ -98,8 +98,6 @@ export const createPicker = (post) => {
   let cursor = null
   /** @type {Element | null} */
   let hovered = null
-  /** @type {{ left: number, top: number } | null} */
-  let origin = null
 
   /** @param {Element | null} element */
   const showOutline = (element) => {
@@ -113,13 +111,10 @@ export const createPicker = (post) => {
     const css = (/** @type {number} */ left, /** @type {number} */ top) =>
       `${BASE};outline:${lineWidth()}px solid ${ringColor()};left:${left}px;top:${top}px;width:${box.width}px;height:${box.height}px`
     // A fixed box is placed inside the viewport's scrollbars, getBoundingClientRect outside them: an
-    // RTL page has its scrollbar on the left, so read the real origin back and subtract it. It only
-    // changes with the window size, so it is measured once and again after a resize.
-    if (!origin) {
-      outline.style.cssText = css(0, 0)
-      const measured = outline.getBoundingClientRect()
-      origin = { left: measured.left, top: measured.top }
-    }
+    // RTL page has its scrollbar on the left, so read the real origin back and subtract it. A
+    // scrollbar can appear without a resize, so the origin is measured on every show.
+    outline.style.cssText = css(0, 0)
+    const origin = outline.getBoundingClientRect()
     outline.style.cssText = css(box.left - origin.left, box.top - origin.top)
   }
 
@@ -145,11 +140,6 @@ export const createPicker = (post) => {
 
   const refresh = () => showOutline(hovered)
 
-  const forgetOrigin = () => {
-    origin = null
-    refresh()
-  }
-
   /** @param {boolean} on */
   const setOn = (on) => {
     const action = on ? 'addEventListener' : 'removeEventListener'
@@ -157,7 +147,7 @@ export const createPicker = (post) => {
     document[action]('click', onClick, true)
     for (const type of SWALLOWED) document[action](type, swallow, true)
     window[action]('scroll', refresh, true)
-    window[action]('resize', forgetOrigin)
+    window[action]('resize', refresh)
     if (on && !outline) {
       outline = document.createElement('div')
       outline.style.cssText = `${BASE};display:none`
@@ -171,7 +161,6 @@ export const createPicker = (post) => {
       outline = null
       cursor = null
       hovered = null
-      origin = null
     }
   }
 
