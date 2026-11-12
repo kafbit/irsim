@@ -35,18 +35,22 @@ class FakeElement {
 
 type Handler = (event: unknown) => void
 
-const setup = (ring: string | null | 'throws') => {
+const setup = (ring: string | null | 'throws', origin = { left: 0, top: 0 }) => {
   const handlers = new Map<string, Handler>()
   const made: FakeElement[] = []
   vi.stubGlobal('Element', FakeElement)
   vi.stubGlobal('scrollX', 0)
   vi.stubGlobal('scrollY', 0)
-  vi.stubGlobal('window', { addEventListener: vi.fn(), removeEventListener: vi.fn() })
+  const windowHandlers = new Map<string, Handler>()
+  vi.stubGlobal('window', {
+    addEventListener: (type: string, handler: Handler) => windowHandlers.set(type, handler),
+    removeEventListener: (type: string) => windowHandlers.delete(type),
+  })
   vi.stubGlobal('document', {
     addEventListener: (type: string, handler: Handler) => handlers.set(type, handler),
     removeEventListener: (type: string) => handlers.delete(type),
     createElement: () => {
-      const node = new FakeElement()
+      const node = new FakeElement(false, { ...origin, width: 0, height: 0, x: 0, y: 0 })
       made.push(node)
       return node
     },
@@ -62,7 +66,8 @@ const setup = (ring: string | null | 'throws') => {
   const picker = createPicker(vi.fn())
   picker.setOn(true)
   const hover = (target: FakeElement) => handlers.get('mousemove')?.({ target })
-  return { hover, outline: () => made[0] as FakeElement }
+  const resize = () => windowHandlers.get('resize')?.({})
+  return { hover, resize, outline: () => made[0] as FakeElement }
 }
 
 beforeEach(() => vi.unstubAllGlobals())
@@ -77,6 +82,32 @@ describe('comment mode hover outline', () => {
     expect(style.get('outline')).toBe('2px solid #123456')
     expect(style.get('left')).toBe('10px')
     expect(style.get('width')).toBe('100px')
+  })
+
+  it('moves the outline back by the offset of the fixed layer, such as an RTL left scrollbar', () => {
+    const { hover, outline } = setup('#123456', { left: 15, top: 0 })
+    hover(new FakeElement(true))
+    expect(outline().style.get('left')).toBe('-5px')
+    expect(outline().style.get('top')).toBe('20px')
+  })
+
+  it('measures the origin of the fixed layer once for several shows', () => {
+    const { hover, outline } = setup('#123456', { left: 15, top: 0 })
+    const measure = vi.spyOn(outline(), 'getBoundingClientRect')
+    hover(new FakeElement(true))
+    hover(new FakeElement(true))
+    hover(new FakeElement(true))
+    expect(measure).toHaveBeenCalledTimes(1)
+    expect(outline().style.get('left')).toBe('-5px')
+  })
+
+  it('measures the origin again after a window resize', () => {
+    const { hover, outline, resize } = setup('#123456')
+    const measure = vi.spyOn(outline(), 'getBoundingClientRect')
+    hover(new FakeElement(true))
+    resize()
+    hover(new FakeElement(true))
+    expect(measure).toHaveBeenCalledTimes(2)
   })
 
   it('hides the outline again over an element with no stamp', () => {
