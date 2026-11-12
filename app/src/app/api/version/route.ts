@@ -5,9 +5,10 @@ import { canUpdate, installedVersion, runningVersion } from '../../../lib/versio
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-export async function GET(): Promise<Response> {
+export async function GET(request?: Request): Promise<Response> {
+  const skipLatest = request ? new URL(request.url).searchParams.get('latest') === '0' : false
   const installed = await installedVersion()
-  const release = installed === null ? null : await latestRelease()
+  const release = installed === null || skipLatest ? null : await latestRelease()
   const info: VersionInfo = {
     running: runningVersion(),
     installed,

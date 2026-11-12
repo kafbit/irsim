@@ -69,4 +69,31 @@ describe('GET /api/version', () => {
     expect(body.canUpdate).toBe(false)
     expect(latestRelease).not.toHaveBeenCalled()
   })
+
+  it('skips the release check and answers latest null for ?latest=0', async () => {
+    mkdirSync(join(dir, '0.2.0'))
+    symlinkSync('0.2.0', join(dir, 'current'))
+    process.env.IRSIM_PREFIX = dir
+    process.env.IRSIM_VERSION = '0.1.9'
+    process.env.IRSIM_LAUNCHER = join(dir, '0.2.0', 'bin', 'irsim')
+    const body = await (await GET(new Request('http://localhost/api/version?latest=0'))).json()
+    expect(body).toEqual({
+      running: '0.1.9',
+      installed: '0.2.0',
+      latest: null,
+      releaseUrl: null,
+      canUpdate: true,
+    })
+    expect(latestRelease).not.toHaveBeenCalled()
+  })
+
+  it('still checks the latest release for a request without ?latest=0', async () => {
+    mkdirSync(join(dir, '0.2.0'))
+    symlinkSync('0.2.0', join(dir, 'current'))
+    process.env.IRSIM_PREFIX = dir
+    process.env.IRSIM_LAUNCHER = join(dir, '0.2.0', 'bin', 'irsim')
+    const body = await (await GET(new Request('http://localhost/api/version'))).json()
+    expect(body.latest).toBe('0.3.0')
+    expect(latestRelease).toHaveBeenCalledTimes(1)
+  })
 })

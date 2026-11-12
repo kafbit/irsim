@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { unlessDismissed } from '../src/canvas/use-update'
+import { dismissalKey, unlessDismissed } from '../src/canvas/use-update'
 import { newer, noticeOf, type VersionInfo } from '../src/lib/version-info'
 
 const info = (overrides: Partial<VersionInfo> = {}): VersionInfo => ({
@@ -59,17 +59,31 @@ describe('newer', () => {
 
 describe('unlessDismissed', () => {
   const notice = { kind: 'available', version: '0.1.4', releaseUrl: null } as const
+  const restart = { kind: 'restart', version: '0.1.4', releaseUrl: null } as const
 
-  it('hides the notice for the dismissed version', () => {
-    expect(unlessDismissed(notice, '0.1.4')).toBeNull()
+  it('keys a dismissal by kind and version', () => {
+    expect(dismissalKey(notice)).toBe('available:0.1.4')
+    expect(dismissalKey(restart)).toBe('restart:0.1.4')
+  })
+
+  it('hides the notice for the dismissed kind and version', () => {
+    expect(unlessDismissed(notice, 'available:0.1.4')).toBeNull()
   })
 
   it('shows a different version again', () => {
-    expect(unlessDismissed(notice, '0.1.3')).toBe(notice)
+    expect(unlessDismissed(notice, 'available:0.1.3')).toBe(notice)
     expect(unlessDismissed(notice, null)).toBe(notice)
   })
 
+  it('shows the restart notice for a version whose available notice was dismissed', () => {
+    expect(unlessDismissed(restart, dismissalKey(notice))).toBe(restart)
+  })
+
+  it('ignores a bare version stored by an older build', () => {
+    expect(unlessDismissed(notice, '0.1.4')).toBe(notice)
+  })
+
   it('passes a missing notice through', () => {
-    expect(unlessDismissed(null, '0.1.4')).toBeNull()
+    expect(unlessDismissed(null, 'available:0.1.4')).toBeNull()
   })
 })

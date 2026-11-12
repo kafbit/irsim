@@ -70,6 +70,57 @@ describe('latestRelease', () => {
     expect(JSON.parse(readFileSync(cacheFile, 'utf8'))).toEqual({ checkedAt: clock, release: null })
   })
 
+  it('keeps the previous release when the refresh fails and retries after 1 hour', async () => {
+    const run = vi.fn<() => Promise<string>>(async () => output('v0.2.0'))
+    await latestRelease(deps(run))
+    clock += 6 * HOUR
+    run.mockRejectedValueOnce(new Error('offline'))
+    expect((await latestRelease(deps(run)))?.version).toBe('0.2.0')
+    expect(JSON.parse(readFileSync(cacheFile, 'utf8'))).toEqual({
+      checkedAt: clock - 5 * HOUR,
+      release: { version: '0.2.0', url: 'https://example.test/v0.2.0' },
+    })
+    clock += HOUR - 1
+    expect((await latestRelease(deps(run)))?.version).toBe('0.2.0')
+    expect(run).toHaveBeenCalledTimes(2)
+    clock += 1
+    run.mockResolvedValueOnce(output('v0.3.0'))
+    expect((await latestRelease(deps(run)))?.version).toBe('0.3.0')
+    expect(run).toHaveBeenCalledTimes(3)
+  })
+
+  it('keeps the previous release when the refresh output cannot be parsed', async () => {
+    const run = vi.fn<() => Promise<string>>(async () => output('v0.2.0'))
+    await latestRelease(deps(run))
+    clock += 6 * HOUR
+    run.mockResolvedValueOnce('not json')
+    expect((await latestRelease(deps(run)))?.version).toBe('0.2.0')
+    expect(JSON.parse(readFileSync(cacheFile, 'utf8')).release.version).toBe('0.2.0')
+  })
+
+  it('writes release null for a failure with no previous release', async () => {
+    const run = vi.fn<() => Promise<string>>(async () => {
+      throw new Error('offline')
+    })
+    expect(await latestRelease(deps(run))).toBeNull()
+    expect(JSON.parse(readFileSync(cacheFile, 'utf8'))).toEqual({ checkedAt: clock, release: null })
+  })
+
+  it('stores the cache under IRSIM_CACHE_DIR by default', async () => {
+    const saved = process.env.IRSIM_CACHE_DIR
+    process.env.IRSIM_CACHE_DIR = join(dir, 'cache-root')
+    try {
+      const run = vi.fn(async () => output('v0.2.0'))
+      await latestRelease({ run, now: () => clock })
+      expect(JSON.parse(readFileSync(join(dir, 'cache-root', 'latest-release.json'), 'utf8')).release.version).toBe(
+        '0.2.0',
+      )
+    } finally {
+      if (saved === undefined) delete process.env.IRSIM_CACHE_DIR
+      else process.env.IRSIM_CACHE_DIR = saved
+    }
+  })
+
   it('shares one gh call between concurrent requests', async () => {
     let release: (value: string) => void = () => {}
     const run = vi.fn(

@@ -1,8 +1,8 @@
 import { execFile } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
-import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
+import { cacheRoot } from './cache-root'
 
 export type Release = { version: string; url: string }
 
@@ -20,10 +20,6 @@ const FAILURE_TTL_MS = 60 * 60 * 1000
 const TIMEOUT_MS = 10_000
 
 const globals = globalThis as { __irsimReleaseCheck?: Promise<Release | null> }
-
-const cacheDir = (): string =>
-  process.env.IRSIM_CACHE_DIR ||
-  join(process.env.XDG_CACHE_HOME || join(homedir(), '.cache'), 'irsim')
 
 const runGh = (): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -76,7 +72,7 @@ const fresh = (cache: Cache, now: number): boolean => {
 }
 
 const check = async (deps: ReleaseDeps): Promise<Release | null> => {
-  const file = deps.cacheFile ?? join(cacheDir(), 'latest-release.json')
+  const file = deps.cacheFile ?? join(cacheRoot(), 'latest-release.json')
   const now = deps.now ?? Date.now
   const cached = await readCache(file)
   if (cached && fresh(cached, now())) return cached.release
@@ -86,14 +82,14 @@ const check = async (deps: ReleaseDeps): Promise<Release | null> => {
   } catch {
     release = null
   }
+  if (release === null && cached?.release) {
+    await writeCache(file, { checkedAt: now() - (SUCCESS_TTL_MS - FAILURE_TTL_MS), release: cached.release })
+    return cached.release
+  }
   await writeCache(file, { checkedAt: now(), release })
   return release
 }
 
-/**
- * The newest release of kafbit/irsim, read with `gh` because the repository is private. A success
- * is cached for 6 hours and a failure for 1 hour, in one file shared by every running canvas.
- */
 export const latestRelease = (deps: ReleaseDeps = {}): Promise<Release | null> => {
   if (globals.__irsimReleaseCheck) return globals.__irsimReleaseCheck
   const pending = check(deps).finally(() => {

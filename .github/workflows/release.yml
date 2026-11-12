@@ -22,6 +22,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 26
+      - name: Check the tag matches the package version
+        run: |
+          version="$(node -p "require('./app/package.json').version")"
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "tag $GITHUB_REF_NAME does not match app/package.json version $version, so the release assets would be named irsim-$version-*" >&2
+            exit 1
+          fi
       - run: scripts/build-release.sh
       - name: Publish
         env:

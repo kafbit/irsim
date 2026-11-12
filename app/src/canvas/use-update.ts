@@ -12,9 +12,10 @@ const POLL_EVERY_MS = 1000
 const GIVE_UP_AFTER_MS = 60 * 1000
 const NOT_BACK = 'The canvas did not come back. Run irsim serve in the project.'
 
-/** The notice, unless the user dismissed exactly this version. */
+export const dismissalKey = (notice: Notice): string => `${notice.kind}:${notice.version}`
+
 export const unlessDismissed = (notice: Notice | null, dismissed: string | null): Notice | null =>
-  notice !== null && notice.version === dismissed ? null : notice
+  notice !== null && dismissalKey(notice) === dismissed ? null : notice
 
 const readDismissed = (): string | null => {
   try {
@@ -24,39 +25,36 @@ const readDismissed = (): string | null => {
   }
 }
 
-const writeDismissed = (version: string) => {
+const writeDismissed = (key: string) => {
   try {
-    window.localStorage.setItem(DISMISSED_KEY, version)
+    window.localStorage.setItem(DISMISSED_KEY, key)
   } catch {}
 }
 
-const readInfo = async (): Promise<VersionInfo | null> => {
-  const response = await fetch('/api/version', {
+const readInfo = async ({ probe }: { probe: boolean }): Promise<VersionInfo | null> => {
+  const response = await fetch(probe ? '/api/version?latest=0' : '/api/version', {
     cache: 'no-store',
-    signal: AbortSignal.timeout(2000),
+    signal: AbortSignal.timeout(probe ? 2000 : 15000),
   })
   return response.ok ? ((await response.json()) as VersionInfo) : null
 }
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
-/**
- * Checks `/api/version` on mount and hourly, and runs the update from the canvas. While an update
- * runs, `notice` stays the one the user clicked, so a later check cannot change the card under them.
- */
 export function useUpdate() {
   const [info, setInfo] = useState<VersionInfo | null>(null)
   const [dismissed, setDismissed] = useState<string | null>(null)
   const [phase, setPhase] = useState<UpdatePhase>('idle')
   const [error, setError] = useState<string | null>(null)
   const [active, setActive] = useState<Notice | null>(null)
+  const [restartFailed, setRestartFailed] = useState(false)
   const mounted = useRef(false)
 
   useMountEffect(() => {
     mounted.current = true
     setDismissed(readDismissed())
     const check = () => {
-      readInfo()
+      readInfo({ probe: false })
         .then((next) => {
           if (mounted.current && next !== null) setInfo(next)
         })
@@ -70,9 +68,10 @@ export function useUpdate() {
     }
   })
 
-  const fail = (message: string) => {
+  const fail = (message: string, didNotComeBack = false) => {
     if (!mounted.current) return
     setError(message)
+    setRestartFailed(didNotComeBack)
     setPhase('failed')
   }
 
@@ -81,14 +80,14 @@ export function useUpdate() {
     while (mounted.current && Date.now() < deadline) {
       await wait(POLL_EVERY_MS)
       try {
-        const next = await readInfo()
+        const next = await readInfo({ probe: true })
         if (next?.running === version && mounted.current) {
           window.location.reload()
           return
         }
       } catch {}
     }
-    fail(NOT_BACK)
+    fail(NOT_BACK, true)
   }
 
   const notice = phase === 'idle' ? unlessDismissed(info && noticeOf(info), dismissed) : active
@@ -97,6 +96,7 @@ export function useUpdate() {
     if (notice === null || phase === 'updating' || phase === 'restarting') return
     setActive(notice)
     setError(null)
+    setRestartFailed(false)
     setPhase(notice.kind === 'available' ? 'updating' : 'restarting')
     try {
       const response = await fetch('/api/update', { method: 'POST' })
@@ -116,13 +116,15 @@ export function useUpdate() {
   }
 
   const dismiss = () => {
-    if (notice !== null) {
-      writeDismissed(notice.version)
-      setDismissed(notice.version)
+    if (notice !== null && phase !== 'failed') {
+      const key = dismissalKey(notice)
+      writeDismissed(key)
+      setDismissed(key)
     }
     setPhase('idle')
     setError(null)
+    setRestartFailed(false)
   }
 
-  return { notice, phase, error, running: info?.running ?? null, dismiss, start }
+  return { notice, phase, error, restartFailed, running: info?.running ?? null, dismiss, start }
 }

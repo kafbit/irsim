@@ -58,7 +58,7 @@ irsim uninstall [--purge] [--yes] [--dry-run]
 
 `update` downloads the release asset for this platform with `gh`, switches `current` to it and refreshes the managed block in the current project. `uninstall --purge` also removes `~/.cache/irsim`.
 
-The canvas shows a card in the sidebar and on the page index when a newer release exists. The check runs `gh release view` and is cached for 6 hours in `~/.cache/irsim/latest-release.json`, shared by every running canvas. "Update and restart" runs `irsim update` and restarts the canvas on the same port. A canvas that still runs an older version than the installed one offers a restart. A source checkout shows no card. `irsim update` keeps a version directory while a canvas runs from it.
+The canvas shows a card in the sidebar and on the page index when a newer release exists. The check runs `gh release view` and is cached for 6 hours in `~/.cache/irsim/latest-release.json`, shared by every running canvas. Set `IRSIM_CACHE_DIR` to move that directory. "Update and restart" runs `irsim update` and restarts the canvas on the same port. A canvas that still runs an older version than the installed one offers a restart. A source checkout shows no card. `irsim update` keeps a version directory while a canvas runs from it.
 
 ## Develop
 
