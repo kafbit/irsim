@@ -8,9 +8,8 @@ import { useUpdate } from './use-update'
 
 const COMMAND = 'irsim update'
 
-/** The "newer irsim" card: one click updates the install and restarts this canvas. */
 export function UpdateNotice({ className }: { className?: string }) {
-  const { notice, phase, error, running, dismiss, start } = useUpdate()
+  const { notice, phase, error, restartFailed, running, dismiss, start } = useUpdate()
   const [copied, setCopied] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   useMountEffect(() => () => clearTimeout(timer.current))
@@ -108,7 +107,7 @@ export function UpdateNotice({ className }: { className?: string }) {
           ) : null}
         </div>
       ) : null}
-      {failed ? (
+      {failed && !restartFailed ? (
         <>
           <div className="text-xs text-muted-foreground">Run the update in a terminal:</div>
           <div className="flex items-center gap-2">

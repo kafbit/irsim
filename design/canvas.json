@@ -278,6 +278,14 @@
           "height": 560
         },
         {
+          "name": "UpdateNoticeNotBack",
+          "title": "Update notice: canvas did not come back",
+          "x": 4000,
+          "y": 4776,
+          "width": 720,
+          "height": 560
+        },
+        {
           "name": "Home",
           "title": "irsim canvas",
           "x": 0,

@@ -58,7 +58,7 @@ irsim uninstall [--purge] [--yes] [--dry-run]
 
 `update` downloads the release asset for this platform with `gh`, switches `current` to it and refreshes the managed block in the current project. `uninstall --purge` also removes `~/.cache/irsim`.
 
-The canvas shows a card in the sidebar and on the page index when a newer release exists. The check runs `gh release view` and is cached for 6 hours in `~/.cache/irsim/latest-release.json`, shared by every running canvas. "Update and restart" runs `irsim update` and restarts the canvas on the same port. A canvas that still runs an older version than the installed one offers a restart. A source checkout shows no card. `irsim update` keeps a version directory while a canvas runs from it.
+The canvas shows a card in the sidebar and on the page index when a newer release exists. The check runs `gh release view` and is cached for 6 hours in `~/.cache/irsim/latest-release.json`, shared by every running canvas. Set `IRSIM_CACHE_DIR` to move that directory. "Update and restart" runs `irsim update` and restarts the canvas on the same port. A canvas that still runs an older version than the installed one offers a restart. A source checkout shows no card. `irsim update` keeps a version directory while a canvas runs from it.
 
 ## Develop
 
@@ -69,7 +69,5 @@ bun run dev
 bun run typecheck
 bun test --isolate
 ```
-
-`make serve` runs this checkout's canvas without installing it or updating the plugin. It installs `app/node_modules` on first use, then runs `bin/irsim serve` from `PROJECT` (default: this repo), for example `make serve PROJECT=~/Projects/CRM`. `PORT` and `DESIGN_DIR` are optional. `make port`, `make build` and `make thumbs` run the matching `irsim` commands the same way, and `make help` lists them.
 
 `bin/irsim serve` in a source checkout runs `next dev` in `app/`. `scripts/build-release.sh` builds `dist/irsim-<version>-<os>-<arch>.tar.gz` for the host platform. Pushing a tag `v<version>` builds all four platforms and attaches them to the release.

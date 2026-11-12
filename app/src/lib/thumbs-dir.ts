@@ -1,5 +1,5 @@
-import { homedir } from 'node:os'
 import { join } from 'node:path'
+import { cacheRoot } from './cache-root'
 
 export const THUMB_WIDTH = 480
 
@@ -14,8 +14,7 @@ export const THUMB_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000
 export const thumbsDir = (): string => {
   const override = process.env.IRSIM_THUMBS_DIR || process.env.CANVAS_THUMBS_DIR
   if (override) return override
-  const cache = process.env.XDG_CACHE_HOME || join(homedir(), '.cache')
-  return join(cache, 'irsim', 'thumbs')
+  return join(cacheRoot(), 'thumbs')
 }
 
 export const thumbFile = (board: string, hash: string): string => `${board}.${hash}.webp`
