@@ -21,8 +21,6 @@ A change to one updates the other in the same pull request.
 | `canvas/canvas.tsx`, `canvas/page-canvas.tsx` and any layout of the parts above | `CanvasApp` and the `CanvasApp*` state boards |
 | `app/ui-tokens.css`, `app/globals.css` | the token block in every `Canvas*` and `UpdateNotice*` board |
 
-`Home` is the sample board that `irsim init` creates. It draws no part of the app and has no row above.
-
 ## When you change the canvas app
 
 1. Load the `irsim-workflow` skill before changing what a screen shows.
