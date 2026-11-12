@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process'
 import { latestRelease } from '../../../lib/release'
 import { RESTART_CODE, exitProcess } from '../../../lib/restart'
+import { isUpdating, setUpdating } from '../../../lib/update-state'
 import { newer } from '../../../lib/version-info'
 import { canUpdate, installedVersion, runningVersion } from '../../../lib/version-state'
 
@@ -9,8 +10,6 @@ export const runtime = 'nodejs'
 
 const UPDATE_TIMEOUT_MS = 5 * 60 * 1000
 const NO_STORE = { 'Cache-Control': 'no-store' }
-
-let running = false
 
 const runUpdate = (launcher: string): Promise<string | null> =>
   new Promise((resolve) => {
@@ -66,8 +65,8 @@ export async function POST(request: Request): Promise<Response> {
   if (!startedFromCanvas(request)) {
     return reply({ error: 'the update must be started from the canvas' }, 403)
   }
-  if (running) return reply({ error: 'an update is already running' }, 409)
-  running = true
+  if (isUpdating()) return reply({ error: 'an update is already running' }, 409)
+  setUpdating(true)
   try {
     const before = await installedVersion()
     const launcher = process.env.IRSIM_LAUNCHER
@@ -87,6 +86,6 @@ export async function POST(request: Request): Promise<Response> {
     setTimeout(() => exitProcess(RESTART_CODE), 300)
     return reply({ restarting: true, version }, 202)
   } finally {
-    running = false
+    setUpdating(false)
   }
 }

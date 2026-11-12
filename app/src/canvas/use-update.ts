@@ -9,6 +9,7 @@ export type UpdatePhase = 'idle' | 'updating' | 'restarting' | 'failed'
 export const DISMISSED_KEY = 'irsim.update.dismissed'
 const CHECK_EVERY_MS = 60 * 60 * 1000
 const POLL_EVERY_MS = 1000
+const WATCH_EVERY_MS = 5000
 const GIVE_UP_AFTER_MS = 60 * 1000
 const NOT_BACK = 'The canvas did not come back. Run irsim serve in the project.'
 
@@ -16,6 +17,9 @@ export const dismissalKey = (notice: Notice): string => `${notice.kind}:${notice
 
 export const unlessDismissed = (notice: Notice | null, dismissed: string | null): Notice | null =>
   notice !== null && dismissalKey(notice) === dismissed ? null : notice
+
+export const shouldReload = (baseline: string | null, next: VersionInfo | null): boolean =>
+  baseline !== null && next !== null && next.running !== baseline
 
 const readDismissed = (): string | null => {
   try {
@@ -49,6 +53,9 @@ export function useUpdate() {
   const [active, setActive] = useState<Notice | null>(null)
   const [restartFailed, setRestartFailed] = useState(false)
   const mounted = useRef(false)
+  const baseline = useRef<string | null>(null)
+  const phaseRef = useRef<UpdatePhase>('idle')
+  phaseRef.current = phase
 
   useMountEffect(() => {
     mounted.current = true
@@ -56,15 +63,28 @@ export function useUpdate() {
     const check = () => {
       readInfo({ probe: false })
         .then((next) => {
+          if (next !== null && baseline.current === null) baseline.current = next.running
           if (mounted.current && next !== null) setInfo(next)
         })
         .catch(() => {})
     }
     check()
     const timer = setInterval(check, CHECK_EVERY_MS)
+    const watch = () => {
+      if (document.visibilityState !== 'visible' || phaseRef.current !== 'idle') return
+      readInfo({ probe: true })
+        .then((next) => {
+          if (!mounted.current || phaseRef.current !== 'idle') return
+          if (baseline.current === null && next !== null) baseline.current = next.running
+          else if (shouldReload(baseline.current, next)) window.location.reload()
+        })
+        .catch(() => {})
+    }
+    const watcher = setInterval(watch, WATCH_EVERY_MS)
     return () => {
       mounted.current = false
       clearInterval(timer)
+      clearInterval(watcher)
     }
   })
 

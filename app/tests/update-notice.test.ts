@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dismissalKey, unlessDismissed } from '../src/canvas/use-update'
+import { dismissalKey, shouldReload, unlessDismissed } from '../src/canvas/use-update'
 import { newer, noticeOf, type VersionInfo } from '../src/lib/version-info'
 
 const info = (overrides: Partial<VersionInfo> = {}): VersionInfo => ({
@@ -85,5 +85,23 @@ describe('unlessDismissed', () => {
 
   it('passes a missing notice through', () => {
     expect(unlessDismissed(null, 'available:0.1.4')).toBeNull()
+  })
+})
+
+describe('shouldReload', () => {
+  it('does nothing before a baseline is known', () => {
+    expect(shouldReload(null, info())).toBe(false)
+  })
+
+  it('does nothing when the fetch failed', () => {
+    expect(shouldReload('0.1.3', null)).toBe(false)
+  })
+
+  it('does nothing while the running version is unchanged', () => {
+    expect(shouldReload('0.1.3', info({ running: '0.1.3' }))).toBe(false)
+  })
+
+  it('reloads when the running version changed', () => {
+    expect(shouldReload('0.1.3', info({ running: '0.1.4' }))).toBe(true)
   })
 })
