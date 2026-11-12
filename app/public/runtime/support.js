@@ -27,6 +27,7 @@ const readEnv = () => {
 }
 
 const env = readEnv()
+const onCanvas = new URLSearchParams(location.search).get('canvas') === '1'
 
 /** @type {{ message: string, where: string }[]} */
 const problems = []
@@ -124,6 +125,7 @@ window.addEventListener(
   (event) => {
     if (event.defaultPrevented) return
     if (!(event.ctrlKey || event.metaKey)) {
+      if (!onCanvas) return
       const root = document.scrollingElement
       const target = event.target instanceof Element ? event.target : null
       const styleOf = (/** @type {any} */ node) => getComputedStyle(node)

@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import sharp from 'sharp'
@@ -55,9 +55,21 @@ describe('thumb queue', () => {
     const designPath = join(root, 'design')
     thumbsPath = join(root, 'thumbs')
     mkdirSync(designPath)
-    for (const name of ['Once', 'Broken', 'Gone']) {
+    for (const name of ['Once', 'Broken', 'Gone', 'Racing']) {
       writeFileSync(join(designPath, `${name}.dc.html`), `<x-dc>${name}</x-dc>`)
     }
+    writeFileSync(
+      join(designPath, 'canvas.json'),
+      JSON.stringify({
+        pages: [
+          {
+            id: 'p',
+            title: 'P',
+            boards: [{ name: 'Racing', title: 'Racing', x: 0, y: 0, width: 100, height: 100 }],
+          },
+        ],
+      }),
+    )
     process.env.IRSIM_DESIGN_DIR = designPath
     process.env.IRSIM_THUMBS_DIR = thumbsPath
   })
@@ -81,7 +93,19 @@ describe('thumb queue', () => {
     expect(rendered.filter((name) => name === 'Once')).toHaveLength(1)
     const { hash } = await closureOf('Once')
     expect(existsSync(join(thumbsPath, thumbFile('Once', hash)))).toBe(true)
-    expect(existsSync(join(thumbsPath, `${thumbFile('Once', hash)}.tmp`))).toBe(false)
+    expect(readdirSync(thumbsPath).filter((file) => file.startsWith(`${thumbFile('Once', hash)}.`))).toEqual([])
+  })
+
+  it('renders a board once when two enqueues for it start together', async () => {
+    const finished = done('Racing')
+    const results = await Promise.all([
+      enqueueThumb('Racing', 'http://localhost:1'),
+      enqueueThumb('Racing', 'http://localhost:1'),
+    ])
+    expect(results).toEqual(['queued', 'queued'])
+    expect((await finished).data).toEqual({ board: 'Racing', ok: true })
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    expect(rendered.filter((name) => name === 'Racing')).toHaveLength(1)
   })
 
   it('remembers a failed render: no retry, the message is reported, a failed event is emitted', async () => {

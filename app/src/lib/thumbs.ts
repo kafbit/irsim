@@ -41,7 +41,7 @@ export const renderThumb = async (
   const inspection = await inspectBoard(browser, base, target)
   if (inspection.fatal) throw new Error(inspection.fatal)
   if (!inspection.png) throw new Error('no screenshot')
-  const temporary = `${out}.tmp`
+  const temporary = `${out}.${process.pid}.${Math.random().toString(36).slice(2)}`
   try {
     await sharp(inspection.png).resize({ width: THUMB_WIDTH }).webp({ quality: 70 }).toFile(temporary)
     await rename(temporary, out)
@@ -100,11 +100,18 @@ export const enqueueThumb = async (board: string, base: string): Promise<'queued
   const key = `${board}.${hash}`
   if (state.failed.has(key) || state.noChromium) return 'failed'
   if (state.keys.has(key)) return 'queued'
-  const placed = (await readCanvasPages())
-    .flatMap((page) => page.boards)
-    .find((candidate) => candidate.name === board)
   state.keys.add(key)
-  state.waiting.push({ key, board, hash, base, target: targetOf(board, placed) })
+  let target: BoardTarget
+  try {
+    const placed = (await readCanvasPages())
+      .flatMap((page) => page.boards)
+      .find((candidate) => candidate.name === board)
+    target = targetOf(board, placed)
+  } catch (error) {
+    state.keys.delete(key)
+    throw error
+  }
+  state.waiting.push({ key, board, hash, base, target })
   pump(state)
   return 'queued'
 }

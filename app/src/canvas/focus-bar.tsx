@@ -12,6 +12,7 @@ export function FocusBar({ title, onExit }: { title: string; onExit: () => void 
       role="status"
       lang="en"
       dir="ltr"
+      onPointerDown={(event) => event.stopPropagation()}
       className="absolute start-1/2 top-20 flex -translate-x-1/2 items-center gap-3 rounded-xl border border-blue-600 bg-card py-1 ps-3 pe-1 text-sm shadow-[0_14px_36px_rgba(20,22,26,0.14)]"
     >
       <span className="max-w-64 truncate">

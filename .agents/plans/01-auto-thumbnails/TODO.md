@@ -21,3 +21,11 @@
 - [x] README: the browser requirement and `IRSIM_BROWSER`, drop the `playwright install` line
 - [x] Verify: 17 tests in 3 files, typecheck, lint; CRM `Leads`, `LeadDetail`, `Badge` rendered by headless Brave with `PLAYWRIGHT_BROWSERS_PATH=/nonexistent`; `bun run build` contains `playwright-core`
 - [x] A bad `IRSIM_BROWSER` stops the thumbnail queue like a missing browser, instead of failing once per board
+
+## Revision: review fixes
+
+- [x] Wheel: only a canvas frame (`/b/<board>?canvas=1`) passes a plain wheel to the parent; "Open alone" scrolls again
+- [x] `FocusBar` stops `pointerdown` from reaching the viewport
+- [x] `Placeholder` requests a thumbnail only while the frame is not mounted
+- [x] `enqueueThumb` marks the key queued before the `await`; `renderThumb` writes to a unique temp name
+- [x] Verify: typecheck, lint, 40 tests in 4 files

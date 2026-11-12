@@ -9,7 +9,15 @@ import type { PlayMode } from './use-play-links'
 
 type Thumb = { rev: number; ok: boolean }
 
-function Placeholder({ board, thumb }: { board: PlacedBoard; thumb: Thumb | undefined }) {
+function Placeholder({
+  board,
+  thumb,
+  mounted,
+}: {
+  board: PlacedBoard
+  thumb: Thumb | undefined
+  mounted: boolean
+}) {
   const rev = thumb?.rev ?? 0
   const [seen, setSeen] = useState<{ rev: number; state: 'loaded' | 'pending' | 'failed' } | null>(
     null,
@@ -30,7 +38,7 @@ function Placeholder({ board, thumb }: { board: PlacedBoard; thumb: Thumb | unde
     <div className="absolute inset-0 flex items-center justify-center text-3xl text-muted-foreground">
       <div className={`absolute inset-0 bg-secondary ${pending ? 'animate-pulse' : ''}`} />
       <span className="relative">{board.name}</span>
-      {failed || pending ? null : (
+      {(!mounted || seen !== null) && !failed && !pending ? (
         // oxlint-disable-next-line next/no-img-element -- dev canvas thumbnails are served by /api/thumbs, no optimiser
         <img
           key={rev}
@@ -43,7 +51,7 @@ function Placeholder({ board, thumb }: { board: PlacedBoard; thumb: Thumb | unde
           onError={onError}
           className="absolute inset-0 size-full bg-white object-cover object-top"
         />
-      )}
+      ) : null}
     </div>
   )
 }
@@ -136,12 +144,12 @@ export const Frame = memo(function Frame({
           playing ? 'outline-2 outline-blue-600' : 'outline-1 outline-border'
         }`}
       >
-        <Placeholder board={board} thumb={thumb} />
+        <Placeholder board={board} thumb={thumb} mounted={mounted} />
         {mounted ? (
           <iframe
             ref={frame}
             key={reload}
-            src={`/b/${encodeURIComponent(board.name)}`}
+            src={`/b/${encodeURIComponent(board.name)}?canvas=1`}
             title={board.name}
             sandbox="allow-scripts allow-same-origin"
             className={`absolute inset-0 block size-full border-0 bg-white transition-opacity duration-120 ease-out ${
