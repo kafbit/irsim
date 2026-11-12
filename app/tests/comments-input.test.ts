@@ -32,17 +32,22 @@ describe('parseNewComment view', () => {
     ).toMatchObject({ view: { width: 390, height: 844, preset: 'fit', scrollX: 0, scrollY: 10 } })
   })
 
+  it('accepts a negative scrollX and rounds it', () => {
+    expect(
+      parseNewComment(body({ view: { ...goodView, scrollX: -120.4 } })),
+    ).toMatchObject({ view: { scrollX: -120 } })
+  })
+
   it('rejects a view that is not a record or lacks a field', () => {
     for (const view of [null, 'phone', [], {}, { ...goodView, preset: undefined }]) {
       expect(parseNewComment(body({ view }))).toBe(VIEW_ERROR)
     }
   })
 
-  it('rejects non-positive sizes, negative scrolls and non-finite numbers', () => {
+  it('rejects non-positive sizes, a negative scrollY and non-finite numbers', () => {
     for (const patch of [
       { width: 0 },
       { height: -1 },
-      { scrollX: -1 },
       { scrollY: -0.6 },
       { width: Number.NaN },
       { width: '390' },

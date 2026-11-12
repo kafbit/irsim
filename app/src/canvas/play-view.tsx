@@ -44,7 +44,16 @@ const SHADOW = 'shadow-[0_14px_36px_rgba(20,22,26,0.14)]'
 const GRIP = 'absolute rounded-[3px] bg-border-strong'
 
 type Axis = { x: boolean; y: boolean }
-type Drag = { x: number; y: number; width: number; height: number; k: number; axis: Axis }
+type Drag = {
+  x: number
+  y: number
+  width: number
+  height: number
+  k: number
+  axis: Axis
+  last: ViewportState | null
+}
+type Picked = { pick: PickedElement; view: CommentView }
 
 const readStored = (key: string): string | null => {
   try {
@@ -90,7 +99,11 @@ const typing = (target: EventTarget) => {
 }
 
 const radiusOf = (preset: PresetId, fill: boolean) =>
-  fill ? 0 : preset === 'phone' || preset === 'large-phone' ? 18 : preset === 'fit' ? 12 : 10
+  fill ? 0 : preset === 'phone' || preset === 'large-phone' ? 18 : 10
+
+const insideMenu = (target: HTMLElement) =>
+  target.closest('[role="menu"], [role="menuitemradio"], [data-radix-popper-content-wrapper]') !==
+  null
 
 /**
  * Play full screen: one board over the whole window, live. The header picks a device viewport or a
@@ -122,15 +135,17 @@ export function PlayView({
   )
   const [zoom, setZoom] = useState<ZoomMode>(() => readZoom(readStored(ZOOM_KEY)))
   const [commenting, setCommenting] = useState(false)
-  const [pick, setPick] = useState<PickedElement | null>(null)
+  const [picked, setPicked] = useState<Picked | null>(null)
   const [panelOpen, setPanelOpen] = useState(start !== null)
   const [activeId, setActiveId] = useState<string | null>(start?.commentId ?? null)
-  const [dragging, setDragging] = useState(false)
+  const [dragScale, setDragScale] = useState<number | null>(null)
   const frameKey = `${board.name}:${reload}`
   const [readyKey, setReadyKey] = useState<string | null>(null)
   const [scroll, setScroll] = useState({ key: frameKey, x: 0, y: 0 })
   const frameRef = useRef<HTMLIFrameElement>(null)
   const drag = useRef<Drag | null>(null)
+  const pick = picked?.pick ?? null
+  const dragging = dragScale !== null
   const pending = useRef(start?.commentId ?? null)
 
   const boardKey = `${board.name}:${board.width}:${board.height}`
@@ -156,15 +171,21 @@ export function PlayView({
   const shown: ViewportState = fillFit
     ? { ...state, width: Math.round(space?.width ?? 0), height: Math.round(space?.height ?? 0) }
     : state
-  const k = fillFit ? 1 : space ? zoomScale(zoom, shown, space) : 0
+  const k = fillFit ? 1 : (dragScale ?? (space ? zoomScale(zoom, shown, space) : 0))
   const visible = fillFit || k > 0
   const boxWidth = shown.width * k
   const boxHeight = shown.height * k
   const responsive = state.preset === 'responsive'
   const ready = readyKey === frameKey
 
+  const latest = useRef(shown)
+  useEffect(() => {
+    latest.current = shown
+  })
+
   const change = (next: ViewportState) => {
     setState(next)
+    setPicked(null)
     store(STORAGE_KEY, writeViewport(next))
   }
 
@@ -176,12 +197,13 @@ export function PlayView({
   const setComment = (on: boolean) => {
     setCommenting(on)
     if (on) setPanelOpen(true)
-    else setPick(null)
+    else setPicked(null)
   }
 
   const onPick = useCallback(
     (next: PickedElement) => {
-      if (next.board === board.name) setPick(next)
+      if (next.board !== board.name) return
+      setPicked({ pick: next, view: viewOf(latest.current, next.scroll ?? { x: 0, y: 0 }) })
     },
     [board.name],
   )
@@ -210,9 +232,14 @@ export function PlayView({
 
   const locate = (comment: Comment) => {
     setActiveId(comment.id)
+    if (comment.board !== board.name) {
+      setPanelOpen(true)
+      return
+    }
     const { view } = comment
     if (view && (view.width !== shown.width || view.height !== shown.height)) {
       setState(stateFromView(view))
+      setPicked(null)
     }
     requestAnimationFrame(() => scrollFrameTo(frameRef.current?.contentWindow, comment))
   }
@@ -247,7 +274,9 @@ export function PlayView({
   // Syncs with the window keyboard, an external system: focus can sit on the page after a comment is saved.
   useEffect(() => {
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.defaultPrevented) return
       const target = event.target as HTMLElement
+      if (insideMenu(target)) return
       if (event.key === 'Escape') {
         if (target.closest('textarea')) return
         event.preventDefault()
@@ -274,24 +303,28 @@ export function PlayView({
       height: shown.height,
       k,
       axis,
+      last: null,
     }
-    setDragging(true)
+    setDragScale(k)
   }
   const moveDrag = (event: PointerEvent<HTMLDivElement>) => {
     const current = drag.current
     if (!current) return
-    change(
-      withSize(
-        state,
-        current.axis.x ? current.width + (event.clientX - current.x) / current.k : current.width,
-        current.axis.y ? current.height + (event.clientY - current.y) / current.k : current.height,
-      ),
+    const next = withSize(
+      state,
+      current.axis.x ? current.width + (event.clientX - current.x) / current.k : current.width,
+      current.axis.y ? current.height + (event.clientY - current.y) / current.k : current.height,
     )
+    current.last = next
+    setState(next)
+    setPicked(null)
   }
   const endDrag = (event: PointerEvent<HTMLDivElement>) => {
-    if (!drag.current) return
+    const current = drag.current
+    if (!current) return
     drag.current = null
-    setDragging(false)
+    setDragScale(null)
+    if (current.last) store(STORAGE_KEY, writeViewport(current.last))
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId)
     }
@@ -321,16 +354,17 @@ export function PlayView({
     () => [{ ...board, x: 0, y: 0, width: boxWidth, height: boxHeight }],
     [board, boxWidth, boxHeight],
   )
+  const atBoardSize = shown.width === board.width && shown.height === board.height
   const boardComments = useMemo(
     () =>
       thread.comments
-        .filter((comment) => comment.board === board.name)
+        .filter(
+          (comment) =>
+            comment.board === board.name &&
+            (comment.view !== undefined || atBoardSize),
+        )
         .map((comment) => ({ ...comment, rect: scaled(comment.rect, k, offset) })),
-    [thread.comments, board.name, k, offset],
-  )
-  const panelComments = useMemo(
-    () => thread.comments.filter((comment) => comment.board === board.name),
-    [thread.comments, board.name],
+    [thread.comments, board.name, atBoardSize, k, offset],
   )
   const shownPick = useMemo(
     () => (pick ? { ...pick, rect: scaled(pick.rect, k, offset) } : null),
@@ -406,7 +440,7 @@ export function PlayView({
               className={
                 fillFit
                   ? 'absolute inset-0'
-                  : 'm-auto flex min-h-0 shrink-0 flex-col items-center p-6'
+                  : 'm-auto flex min-h-0 shrink-0 flex-col items-center p-6 pb-0'
               }
             >
               <div
@@ -458,7 +492,7 @@ export function PlayView({
                     onOpen={openThread}
                     viewport={viewport}
                   />
-                  {commenting && pick && shownPick ? (
+                  {commenting && picked && pick && shownPick ? (
                     <div className="pointer-events-auto">
                       <FrameComposer
                         key={`${pick.file}:${pick.line}:${pick.rect.x}:${pick.rect.y}`}
@@ -468,13 +502,13 @@ export function PlayView({
                           await thread.create({
                             ...pick,
                             page,
-                            view: viewOf(shown, pick.scroll ?? { x: 0, y: 0 }),
+                            view: picked.view,
                             body,
                             images,
                           })
-                          setPick(null)
+                          setPicked(null)
                         }}
-                        onCancel={() => setPick(null)}
+                        onCancel={() => setPicked(null)}
                       />
                     </div>
                   ) : null}
@@ -494,7 +528,7 @@ export function PlayView({
         </div>
         {panelOpen ? (
           <ThreadPanel
-            comments={panelComments}
+            comments={thread.comments}
             numbers={numbers}
             activeId={activeId}
             error={thread.error}

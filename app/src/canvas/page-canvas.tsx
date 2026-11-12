@@ -282,12 +282,12 @@ export function PageCanvas({
   const byName = useMemo(() => new Map(shown.map((board) => [board.name, board])), [shown])
   const locate = (comment: Comment) => {
     setActiveComment(comment.id)
+    const board = byName.get(comment.board)
+    if (!board) return
     if (comment.view) {
       openFullPlay(comment.board, { view: comment.view, commentId: comment.id })
       return
     }
-    const board = byName.get(comment.board)
-    if (!board) return
     const rect = placedRect(board, comment)
     cameraActions.focusRect({ ...rect, x: board.x + rect.x, y: board.y + rect.y })
   }

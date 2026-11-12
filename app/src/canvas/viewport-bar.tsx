@@ -58,7 +58,12 @@ function SideInput({
         event.currentTarget.blur()
       }}
       onBlur={(event) => {
-        const next = clampSide(Number.parseInt(event.currentTarget.value, 10))
+        const typed = Number.parseInt(event.currentTarget.value, 10)
+        if (!Number.isFinite(typed)) {
+          event.currentTarget.value = String(value)
+          return
+        }
+        const next = clampSide(typed)
         event.currentTarget.value = String(next)
         if (next !== value) onCommit(next)
       }}

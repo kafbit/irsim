@@ -69,7 +69,7 @@ describe('rotate', () => {
 
 describe('withSize', () => {
   it('turns any preset into responsive with clamped sides', () => {
-    expect(withSize(presetState('phone', board), 100, 9000)).toEqual({
+    expect(withSize(presetState('phone', board), 100, 90000)).toEqual({
       preset: 'responsive',
       width: MIN_SIDE,
       height: MAX_SIDE,

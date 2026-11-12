@@ -107,7 +107,8 @@ export function CommentCard({
     <li
       id={`comment-${comment.id}`}
       onClick={(event) => {
-        if (!(event.target as Element).closest('button, a, input, textarea, select')) {
+        if (window.getSelection()?.toString()) return
+        if (!(event.target as Element).closest('button, a, input, textarea, select, [data-reply]')) {
           onLocate(comment)
         }
       }}
@@ -192,7 +193,7 @@ export function CommentCard({
         </ul>
       ) : null}
       {comment.replies.length > 0 ? (
-        <ul className="m-0 flex list-none flex-col gap-1.5 border-s-2 border-border p-0 ps-2">
+        <ul data-reply className="m-0 flex list-none flex-col gap-1.5 border-s-2 border-border p-0 ps-2">
           {comment.replies.map((reply) => (
             <li key={reply.at + reply.author} className="flex flex-col gap-0.5 text-sm">
               <span>

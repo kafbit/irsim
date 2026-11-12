@@ -54,7 +54,6 @@ const parseView = (value: unknown): CommentView | string | undefined => {
     !isNumber(value.scrollY) ||
     value.width <= 0 ||
     value.height <= 0 ||
-    value.scrollX < 0 ||
     value.scrollY < 0 ||
     typeof value.preset !== 'string' ||
     value.preset === '' ||

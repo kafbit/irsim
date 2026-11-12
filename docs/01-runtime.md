@@ -135,7 +135,7 @@ Every board has a full screen Play view, whether or not it is a prototype. Its h
 viewport the board lays out for, so the board's media queries answer to it: Fit window, Phone
 390 x 844, Large phone 430 x 932, Tablet 768 x 1024, Laptop 1280 x 800, Desktop 1440 x 900, Board
 size, or Responsive, where the edges of the frame are dragged and the width and height boxes accept
-a size from 200 to 4000. Rotate swaps width and height. The board is shown at 100% and a board
+a size from 200 to 20000. Rotate swaps width and height. The board is shown at 100% and a board
 larger than the stage scrolls inside it; the zoom menu next to the percentage switches to Fit width
 (the width fills the stage) or Contain (the whole board shrinks to fit). The choices are kept in the
 browser. The

@@ -7,7 +7,7 @@ export type PresetId = 'fit' | 'board' | 'responsive' | DevicePresetId
 export type ViewportState = { preset: PresetId; width: number; height: number }
 
 export const MIN_SIDE = 200
-export const MAX_SIDE = 4000
+export const MAX_SIDE = 20000
 export const DEFAULT_RESPONSIVE: Size = { width: 720, height: 520 }
 
 const PAD = 24
