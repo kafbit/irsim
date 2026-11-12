@@ -44,6 +44,8 @@ A selected board has an Approve button (in the inspector, and at the top of the 
 
 `irsim serve` prints `irsim: http://localhost:<port>`. The port is stable per project, in 3200 to 3299. `irsim port` prints it without starting the server.
 
+Below 25% zoom the canvas shows a thumbnail of each board instead of a live frame. The server renders a missing thumbnail the first time it is shown, with Playwright's headless Chromium (`npx playwright install chromium-headless-shell`). `irsim thumbs [--page <id>] [--board <name>] [--force]` renders them ahead of time on the running server. Thumbnails are cached in `~/.cache/irsim/thumbs`.
+
 The plugin ships the `irsim-workflow` skill. It makes a change to what a screen shows start in the board: change the board, report its route, stop, then build the app after the user's confirmation.
 
 ## Update and uninstall

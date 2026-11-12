@@ -65,14 +65,14 @@ export function useCamera({ layout, pageId, focus, onCommit }: Options) {
   )
 
   const actions = useMemo(() => {
-    const zoomTo = (k: number) => camera.go(zoomAtCenter(camera.view, k, camera.size))
+    const zoomTo = (k: number) => camera.go(zoomAtCenter(camera.target, k, camera.size))
     const focusBoard = (name: string) => {
       const board = layout.boards.find((candidate) => candidate.name === name)
       if (board) camera.go(fitRect(boardRegion(board), camera.size, FOCUS_PADDING))
     }
     return {
       zoomTo,
-      zoomStep: (direction: 1 | -1) => zoomTo(stepZoom(camera.view.k, direction)),
+      zoomStep: (direction: 1 | -1) => zoomTo(stepZoom(camera.target.k, direction)),
       actualSize: () => zoomTo(1),
       fit: () => camera.go(fitRect(layout.all, camera.size)),
       focusBoard,

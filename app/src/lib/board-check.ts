@@ -258,7 +258,7 @@ const browserOf = (state: Shared): Promise<Browser> => {
 }
 
 /** Closes the browser a minute after the last check in flight ends. */
-const withBrowser = async <T>(use: (browser: Browser) => Promise<T>): Promise<T> => {
+export const withBrowser = async <T>(use: (browser: Browser) => Promise<T>): Promise<T> => {
   const state = shared()
   clearTimeout(state.timer)
   state.timer = undefined

@@ -1,13 +1,13 @@
 import { mkdir, readdir, rm, stat, utimes } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { Browser } from 'playwright-core'
-import sharp from 'sharp'
-import { inspectBoard, launchChromium } from '../src/lib/board-check'
-import { readCanvasPages, type CanvasBoard } from '../src/lib/canvas-pages'
+import { launchChromium } from '../src/lib/board-check'
+import { readCanvasPages } from '../src/lib/canvas-pages'
 import { closureOf } from '../src/lib/closure'
 import { projectRoot } from '../src/lib/design-dir'
 import { canvasPort } from '../src/lib/port'
-import { THUMB_MAX_AGE_MS, THUMB_WIDTH, thumbFile, thumbsDir } from '../src/lib/thumbs-dir'
+import { renderThumb } from '../src/lib/thumbs'
+import { THUMB_MAX_AGE_MS, thumbFile, thumbsDir } from '../src/lib/thumbs-dir'
 
 const CONCURRENCY = 3
 
@@ -37,13 +37,6 @@ const pruneStale = async (dir: string): Promise<void> => {
     const path = join(dir, file)
     if ((await stat(path)).mtimeMs < cutoff) await rm(path, { force: true })
   }
-}
-
-const render = async (browser: Browser, target: CanvasBoard, out: string): Promise<void> => {
-  const inspection = await inspectBoard(browser, base, target)
-  if (inspection.fatal) throw new Error(inspection.fatal)
-  if (!inspection.png) throw new Error('no screenshot')
-  await sharp(inspection.png).resize({ width: THUMB_WIDTH }).webp({ quality: 70 }).toFile(out)
 }
 
 const main = async (): Promise<void> => {
@@ -88,7 +81,7 @@ const main = async (): Promise<void> => {
           continue
         }
         launching ??= launchChromium()
-        await render(await launching, target, out)
+        await renderThumb(await launching, base, target, out)
         done('new')
       } catch (error) {
         done('fail', error instanceof Error ? error.message.split('\n')[0] : String(error))

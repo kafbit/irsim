@@ -131,10 +131,15 @@ export function PageCanvas({
     },
     [reloadBoard, refreshFlags, refetchApprovals],
   )
+  const [thumbs, setThumbs] = useState<Record<string, { rev: number; ok: boolean }>>({})
+  const onThumb = useCallback((name: string, ok: boolean) => {
+    setThumbs((prev) => ({ ...prev, [name]: { rev: (prev[name]?.rev ?? 0) + 1, ok } }))
+  }, [])
   useEvents({
     onBoard: onBoardChange,
     onComments: comments.refetch,
     onApprovals: refetchApprovals,
+    onThumb,
   })
   useCommentMode(commenting, camera, setPick)
   useFrameEscape(() => {
@@ -322,6 +327,7 @@ export function PageCanvas({
                 commenting={commenting}
                 reload={reloads.counters[board.name] ?? 0}
                 approval={approvalStateOf(approvals.approvals.get(board.name))}
+                thumb={thumbs[board.name]}
                 onSelect={select}
                 onPlay={playBoard}
                 onStop={stopPlay}

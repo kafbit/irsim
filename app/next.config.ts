@@ -19,6 +19,8 @@ const config: NextConfig = {
   // The board check loads playwright-core with a dynamic import, which the tracer does not follow.
   outputFileTracingIncludes: {
     '/api/**/check': ['./node_modules/playwright-core/**'],
+    '/api/thumbs/**': ['./node_modules/playwright-core/**'],
+    '/api/thumbs': ['./node_modules/playwright-core/**'],
   },
   reactStrictMode: true,
   // Next writes AGENTS.md and CLAUDE.md next to the config; this package is a dev tool with no

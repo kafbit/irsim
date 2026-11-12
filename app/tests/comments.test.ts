@@ -182,6 +182,19 @@ describe('wheelView', () => {
     expect((200 - next.x) / next.k).toBeCloseTo(200)
     expect((100 - next.y) / next.k).toBeCloseTo(100)
   })
+
+  it('a pinch of 100 * ln(2) in small steps doubles the zoom', () => {
+    let next = view
+    for (let i = 0; i < 10; i++) {
+      next = wheelView(next, { ...input, deltaY: (-100 * Math.LN2) / 10, ctrlKey: true }, 0, 0)
+    }
+    expect(next.k).toBeCloseTo(2)
+  })
+
+  it('a mouse notch is clamped to one zoom step', () => {
+    const notch = wheelView(view, { ...input, deltaY: -120, ctrlKey: true }, 0, 0)
+    expect(notch.k).toBeCloseTo(Math.exp(0.24))
+  })
 })
 
 describe('labelMaxInline', () => {

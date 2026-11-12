@@ -5,6 +5,7 @@ export type CanvasEvent =
   | { event: 'board'; data: { board: string } }
   | { event: 'comments'; data: { ids: string[] } }
   | { event: 'approvals'; data: { ids: string[] } }
+  | { event: 'thumb'; data: { board: string; ok: boolean } }
 
 type Listener = (event: CanvasEvent) => void
 

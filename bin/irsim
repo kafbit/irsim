@@ -38,6 +38,8 @@ commands:
   serve [--design-dir <path>] [--port <n>]   start the canvas (registers new boards in canvas.json first)
   build [--design-dir <path>]                create or update canvas.json from the boards on disk
   port                                       print the port serve would use here
+  thumbs [--page <id>] [--board <name>] [--force]
+                                             queue the board thumbnails on the running canvas
   init [--design-dir <path>] [--refresh-block]
                                              write ${CONFIG_FILE}, ignore .irsim/, add the managed block to AGENTS.md and CLAUDE.md
   update [--check]                           install the latest release (needs gh)
@@ -198,6 +200,31 @@ const canvasPort = async (root) => {
     }
   }
   fail(`no free canvas port in ${PORT_MIN}..${PORT_MIN + PORT_COUNT - 1}`)
+}
+
+const thumbs = async (args) => {
+  const opts = parse(args, { '--page': 'value', '--board': 'value', '--force': 'bool' })
+  const { port, serving } = await canvasPort(projectRoot(process.cwd()))
+  if (!serving && (await probePort(port)).state !== 'canvas')
+    fail('the server is not running, start it with irsim serve')
+  const body = {
+    ...(opts.page ? { page: opts.page } : {}),
+    ...(opts.board ? { board: opts.board } : {}),
+    ...(opts.force ? { force: true } : {}),
+  }
+  let response
+  try {
+    response = await fetch(`http://localhost:${port}/api/thumbs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+  } catch {
+    fail('the server is not running, start it with irsim serve')
+  }
+  const result = await response.json().catch(() => ({}))
+  if (!response.ok) fail(result.error ?? `the server answered ${response.status}`)
+  console.log(`irsim: queued ${result.queued}, present ${result.present}, failed ${result.failed}`)
 }
 
 const loadBuildCanvas = () => import(pathToFileURL(join(ROOT, 'bin', 'lib', 'build-canvas.mjs')).href)
@@ -461,6 +488,9 @@ switch (command) {
     console.log(port)
     break
   }
+  case 'thumbs':
+    await thumbs(rest)
+    break
   case 'init':
     init(rest)
     break

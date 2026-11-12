@@ -7,20 +7,40 @@ import { labelMaxInline, type PlacedBoard } from './geometry'
 import type { Report } from './mount-policy'
 import type { PlayMode } from './use-play-links'
 
-function Placeholder({ board }: { board: PlacedBoard }) {
-  const [failed, setFailed] = useState(false)
+type Thumb = { rev: number; ok: boolean }
+
+function Placeholder({ board, thumb }: { board: PlacedBoard; thumb: Thumb | undefined }) {
+  const rev = thumb?.rev ?? 0
+  const [seen, setSeen] = useState<{ rev: number; state: 'loaded' | 'pending' | 'failed' } | null>(
+    null,
+  )
+  const current = seen?.rev === rev ? seen : null
+  const failed = thumb?.ok === false || current?.state === 'failed'
+  const pending = !failed && current?.state === 'pending'
+  const src = `/api/thumbs/${encodeURIComponent(board.name)}?h=${board.hash}`
+  const onError = () => {
+    setSeen({ rev, state: 'pending' })
+    void fetch(src, { cache: 'no-store' })
+      .then((response) => {
+        if (!response.ok) setSeen({ rev, state: 'failed' })
+      })
+      .catch(() => setSeen({ rev, state: 'failed' }))
+  }
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-secondary text-3xl text-muted-foreground">
-      {board.name}
-      {failed ? null : (
+    <div className="absolute inset-0 flex items-center justify-center text-3xl text-muted-foreground">
+      <div className={`absolute inset-0 bg-secondary ${pending ? 'animate-pulse' : ''}`} />
+      <span className="relative">{board.name}</span>
+      {failed || pending ? null : (
         // oxlint-disable-next-line next/no-img-element -- dev canvas thumbnails are served by /api/thumbs, no optimiser
         <img
-          src={`/api/thumbs/${encodeURIComponent(board.name)}?h=${board.hash}`}
+          key={rev}
+          src={thumb ? `${src}&r=${thumb.rev}` : src}
           alt=""
           draggable={false}
           loading="lazy"
           decoding="async"
-          onError={() => setFailed(true)}
+          onLoad={() => setSeen({ rev, state: 'loaded' })}
+          onError={onError}
           className="absolute inset-0 size-full bg-white object-cover object-top"
         />
       )}
@@ -37,6 +57,7 @@ export const Frame = memo(function Frame({
   commenting,
   reload,
   approval,
+  thumb,
   onSelect,
   onPlay,
   onStop,
@@ -49,6 +70,7 @@ export const Frame = memo(function Frame({
   commenting: boolean
   reload: number
   approval?: ApprovalState | undefined
+  thumb?: Thumb | undefined
   onSelect: (name: string) => void
   onPlay: (name: string, mode: PlayMode) => void
   onStop: (name: string) => void
@@ -114,7 +136,7 @@ export const Frame = memo(function Frame({
           playing ? 'outline-2 outline-blue-600' : 'outline-1 outline-border'
         }`}
       >
-        <Placeholder board={board} />
+        <Placeholder board={board} thumb={thumb} />
         {mounted ? (
           <iframe
             ref={frame}
