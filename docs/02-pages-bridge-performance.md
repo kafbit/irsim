@@ -92,14 +92,14 @@ Added 2026-11-08 at the user's request ("better UI/UX and enhanced rendering"). 
 │   Inventory │ │   Leads ─────────┐  LeadsEmpty ─────┐                  │ │ 1440 × 1500  │
 │ ─ boards ── │ │   │  live frame  │  │  thumbnail    │                  │ │ design/Leads │
 │ 🔍 search   │ │   └──────────────┘  └───────────────┘                  │ │ imports: 7   │
-│ Leads       │ │                                       ┌ minimap ┐ 57% ▾│ │ Open alone   │
+│ Leads       │ │                                       ┌ minimap ┐ 57% ▾│ │ Play         │
 └─────────────┘ └───────────────────────────────────────┴─────────┴──────┘ └──────────────┘
 ```
 
 - Left panel: pages with board counts, then the current page's boards with search. The selected board is highlighted and scrolled into view.
 - Top toolbar: Move (`V`), Hand (`H`), Comment (`C`, wired in M2c).
 - Bottom right: zoom menu (zoom in, zoom out, 50%, 100%, 200%, fit page, fit selection) and a minimap toggle.
-- Right panel, only with a selection: board name and title, size, file path with copy, imported boards (each a link that focuses it), Open alone. M3's variables panel takes this slot when nothing is selected.
+- Right panel, only with a selection: board name and title, size, file path with copy, imported boards (each a link that focuses it), Play (plays the board full screen). M3's variables panel takes this slot when nothing is selected.
 
 ### Interaction
 

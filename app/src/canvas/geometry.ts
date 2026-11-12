@@ -72,6 +72,21 @@ export function fitRect(rect: Rect, size: Size, padding = 48): View {
   }
 }
 
+/**
+ * The view that centres `rect` on screen. It zooms in no further than actual size, or than the
+ * current zoom `k` when that is larger, and zooms out only as far as `rect` needs to fit.
+ */
+export function focusRect(rect: Rect, size: Size, k: number, padding = 96): View {
+  const fit = fitRect(rect, size, padding)
+  const next = Math.min(fit.k, clampScale(Math.max(k, 1)))
+  if (next === fit.k) return fit
+  return {
+    k: next,
+    x: size.width / 2 - (rect.x + rect.width / 2) * next,
+    y: size.height / 2 - (rect.y + rect.height / 2) * next,
+  }
+}
+
 /** Zooms to `k` keeping the world point under the screen point `(px, py)` fixed. */
 export function zoomAt(view: View, k: number, px: number, py: number): View {
   const next = clampScale(k)

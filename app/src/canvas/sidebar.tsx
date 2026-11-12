@@ -2,11 +2,13 @@
 
 import { formatNumber } from '../lib/format-number'
 import { Input } from '../ui'
+import { Play } from '../ui/icons'
 import Link from 'next/link'
 import { type Ref, useCallback, useState } from 'react'
 import { CHROME_FORMAT } from './chrome-format'
 import type { ManifestBoard, PageSummary } from './types'
 import { UpdateNotice } from './update-notice'
+import { playHref } from './use-play-links'
 
 const row =
   'block rounded-lg px-2 py-1.5 text-sm text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring'
@@ -45,10 +47,12 @@ function BoardRow({
         <span className="block truncate text-xs text-muted-foreground">{board.name}</span>
       </button>
       <Link
-        href={`/p/${encodeURIComponent(pageId)}?board=${encodeURIComponent(board.name)}&alone=1`}
-        className="shrink-0 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+        href={playHref(pageId, board.name, 'full')}
+        aria-label={`Play ${board.title || board.name}`}
+        className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring"
       >
-        Open alone
+        <Play className="size-3 fill-current" />
+        Play
       </Link>
     </li>
   )

@@ -1,5 +1,6 @@
 import { IMAGE_ID, imagePath } from './comment-images'
 import type { NewComment } from './comments-store'
+import type { CommentView } from './comments-types'
 
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -41,6 +42,35 @@ export const parseImages = (value: unknown): string[] | string => {
 export const hasUnknownImage = async (ids: string[]): Promise<boolean> =>
   (await Promise.all(ids.map(imagePath))).some((path) => path === null)
 
+const MAX_PRESET = 32
+
+const parseView = (value: unknown): CommentView | string | undefined => {
+  if (value === undefined) return undefined
+  if (
+    !isRecord(value) ||
+    !isNumber(value.width) ||
+    !isNumber(value.height) ||
+    !isNumber(value.scrollX) ||
+    !isNumber(value.scrollY) ||
+    value.width <= 0 ||
+    value.height <= 0 ||
+    value.scrollX < 0 ||
+    value.scrollY < 0 ||
+    typeof value.preset !== 'string' ||
+    value.preset === '' ||
+    value.preset.length > MAX_PRESET
+  ) {
+    return 'view must hold width, height, preset, scrollX and scrollY'
+  }
+  return {
+    width: Math.round(value.width),
+    height: Math.round(value.height),
+    preset: value.preset,
+    scrollX: Math.round(value.scrollX),
+    scrollY: Math.round(value.scrollY),
+  }
+}
+
 export const parseNewComment = (body: Record<string, unknown>): NewComment | string => {
   const { page, board, file, line, element, rect } = body
   if (!isText(page) || !isText(board) || !isText(file)) return 'page, board and file must be text'
@@ -65,6 +95,8 @@ export const parseNewComment = (body: Record<string, unknown>): NewComment | str
   }
   const images = parseImages(body.images)
   if (typeof images === 'string') return images
+  const view = parseView(body.view)
+  if (typeof view === 'string') return view
   return {
     page,
     board,
@@ -74,5 +106,6 @@ export const parseNewComment = (body: Record<string, unknown>): NewComment | str
     rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
     body: body.body,
     images,
+    ...(view ? { view } : {}),
   }
 }

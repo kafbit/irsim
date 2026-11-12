@@ -64,7 +64,7 @@ const pathOf = (element) => {
 
 /**
  * @param {Element} element
- * @returns {{ file: string, line: number, element: { tag: string, path: string, text: string }, rect: { x: number, y: number, width: number, height: number } }}
+ * @returns {{ file: string, line: number, element: { tag: string, path: string, text: string }, rect: { x: number, y: number, width: number, height: number }, scroll: { x: number, y: number } }}
  */
 const detailsOf = (element) => {
   const stamp = element.getAttribute('data-dc-at') ?? ''
@@ -84,6 +84,7 @@ const detailsOf = (element) => {
       width: Math.round(box.width),
       height: Math.round(box.height),
     },
+    scroll: { x: Math.round(scrollX), y: Math.round(scrollY) },
   }
 }
 

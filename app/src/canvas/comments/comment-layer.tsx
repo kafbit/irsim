@@ -21,18 +21,24 @@ export const CommentLayer = memo(function CommentLayer({
   numbers,
   activeId,
   onOpen,
+  viewport = null,
 }: {
   boards: PlacedBoard[]
   comments: Comment[]
   numbers: ReadonlyMap<string, number>
   activeId: string | null
   onOpen: (id: string) => void
+  viewport?: { width: number; height: number } | null
 }) {
   return (
     <div className="pointer-events-none absolute start-0 top-0">
       {comments.map((comment) => {
         const frame = boards.find((board) => board.name === comment.board)
         if (!frame || comment.status === 'resolved') return null
+        const { view } = comment
+        if (view && !(viewport && view.width === viewport.width && view.height === viewport.height)) {
+          return null
+        }
         const number = numbers.get(comment.id) ?? 0
         const whole = isWholeBoard(comment)
         const rect = placedRect(frame, comment)

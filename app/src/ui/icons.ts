@@ -9,9 +9,13 @@ export {
   Hand,
   MapIcon,
   MessageSquare,
+  Monitor,
   MousePointer2,
   Play,
+  RefreshCcw as RotateIcon,
   Search as SearchIcon,
   Send,
+  Smartphone,
+  Tablet,
   X,
 } from 'lucide-react'

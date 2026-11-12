@@ -2,6 +2,14 @@ export type CommentStatus = 'draft' | 'queued' | 'delivered' | 'resolved'
 
 export type Reply = { author: 'claude' | 'user'; body: string; at: string; seen: boolean }
 
+export type CommentView = {
+  width: number
+  height: number
+  preset: string
+  scrollX: number
+  scrollY: number
+}
+
 export type Comment = {
   id: string
   page: string
@@ -17,6 +25,7 @@ export type Comment = {
   batch: string | null
   replies: Reply[]
   reopened?: boolean
+  view?: CommentView
   createdAt: string
 }
 

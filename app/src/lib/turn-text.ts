@@ -1,5 +1,6 @@
 import type { Approval, Comment, Reply } from './comments-types'
 import { isWholeBoard, placeText, targetText } from './place-text'
+import { viewportLine } from './view-label'
 
 export const REPLY_RULE =
   'Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.'
@@ -50,6 +51,7 @@ const item = (
   return [
     `${index + 1}. ${place} · ${target}${board}${followUp}`,
     indent(comment.body),
+    ...(comment.view ? [`   ${viewportLine(comment.view)}`] : []),
     ...images,
     ...replies,
   ].join('\n')

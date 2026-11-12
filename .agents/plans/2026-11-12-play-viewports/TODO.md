@@ -1,0 +1,21 @@
+# TODO · 2026-11-12 play viewports
+
+- [x] Comments in Play decided: carry viewport context (`view`) on the comment
+- [x] Preset list confirmed by the user
+- [x] Branch off `feat/frame-comment` (the boards and Makefile live there)
+- [x] Board `CanvasPlayView`: header with preset menu, width and height inputs, rotate, zoom readout; Fit window state
+- [x] State boards: `CanvasPlayViewFit`, `CanvasPlayViewMenu`, `CanvasPlayViewResponsive` (resize handles), `CanvasPlayViewCommenting`, `CanvasThreadViewing` (toggle on, pin, thread panel)
+- [x] `CanvasThread` and `CanvasThreadResolved`: viewport chip on a card, and the card of a comment from another viewport
+- [x] `CanvasInspector` and `CanvasSidebar`: Play replaces Open alone
+- [x] Positions in `design/canvas.json`, `AGENTS.md` table row for `canvas/play-view.tsx`
+- [x] `design_canvas check` ok, screenshots looked at
+- [x] User confirms the boards
+- [x] `play-view.tsx`: viewport state, presets, inputs, rotate, resize handles, persistence
+- [x] Comment `view`: type, store, API validation, `turn-text.ts`, `plugin/hooks/tool.ts`, `comment-card.tsx`, `comment-form.tsx`
+- [x] Play comment mode: toggle, picks capture `view`, pins gated by viewport, locate opens Play at the stored viewport
+- [x] `inspector.tsx`, `sidebar.tsx`: Play for every board
+- [x] Remove `single-board.tsx`, the `alone` route in `canvas.tsx`, update `use-legacy-redirect.ts`
+- [x] Docs: `README.md`, `docs/01-runtime.md` Play section, `docs/02-pages-bridge-performance.md`
+- [x] Tests: preset clamp, rotate, persistence parsing, `view` in store and turn text, pin gating
+- [x] Compare board and running canvas, light and dark
+- [x] Verify: typecheck, lint, affected tests

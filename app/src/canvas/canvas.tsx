@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { type ReactNode, Suspense } from 'react'
 import { PageCanvas } from './page-canvas'
-import { SingleBoard } from './single-board'
 import type { PageManifest, PageSummary } from './types'
 import { type ApiState, useApi } from './use-api'
 
@@ -20,7 +19,7 @@ export function Shell({ children }: { children: ReactNode }) {
   )
 }
 
-/** `/p/<pageId>`: that page's canvas, or one board alone with `?alone=1`. `?play=canvas|full` plays `?board=`. */
+/** `/p/<pageId>` is that page's canvas; `?play=canvas|full` plays `?board=`. */
 export function PageRoute({ pageId }: { pageId: string }) {
   return (
     <Shell>
@@ -32,16 +31,11 @@ export function PageRoute({ pageId }: { pageId: string }) {
 function PageData({ pageId }: { pageId: string }) {
   const params = useSearchParams()
   const board = params.get('board')
-  const alone = params.get('alone') === '1'
   const play = params.get('play')
   const manifest = useApi<PageManifest>(`/api/pages/${encodeURIComponent(pageId)}`)
   const pages = useApi<PageSummary[]>('/api/pages')
 
   if (manifest.status === 'ready') {
-    if (board && alone) {
-      const found = manifest.data.boards.find((candidate) => candidate.name === board)
-      return <SingleBoard name={board} pageId={pageId} board={found} />
-    }
     return (
       <PageCanvas
         key={board ?? ''}

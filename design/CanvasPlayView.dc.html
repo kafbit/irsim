@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<title>Play view</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.cv-root{--pick:#14161a;--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a;--play:#2563eb;--play-hover:#1d4ed8;--mock-bg:#f6f6f3;--mock-ink:#14161a;--mock-on-ink:#ecece8;--mock-card:#ffffff;--mock-line:#e4e4e0;--mock-bar:#d6d7d2;--mock-accent:#2563eb}
+.cv-root.dark{--pick:#14161a;--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8;--play:#60a5fa;--play-hover:#93c5fd}
+</style>
+</helmet>
+<div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="display: flex; flex-direction: column; width: 100%; height: var(--cv-h, 100vh); min-height: 100vh; overflow: hidden; background: var(--surface); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
+<div role="dialog" aria-label="Playing Landing" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
+<header style="position: relative; z-index: 2; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; flex-shrink: 0; height: 48px; box-sizing: border-box; padding: 0 12px; border-bottom: 1px solid var(--border); background: var(--card);">
+<div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+<button type="button" aria-keyshortcuts="Escape" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; box-sizing: border-box; padding: 0 10px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--foreground); font: inherit; font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>Back to canvas</button>
+<span dir="auto" style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 500;">Landing page</span>
+<span style="flex-shrink: 0; color: var(--muted-foreground);">Landing</span>
+</div>
+<div role="toolbar" aria-label="Viewport" style="position: relative; display: flex; align-items: center; gap: 8px;">
+<button type="button" aria-haspopup="menu" aria-expanded="{{menuExpanded}}" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; box-sizing: border-box; padding: 0 10px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--foreground); font: inherit; font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer; border-color: var(--border-strong); background: {{presetBg}};"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>{{presetLabel}}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+<div style="display: flex; align-items: center; gap: 6px; color: var(--muted-foreground);"><span aria-label="Width" style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 32px; box-sizing: border-box; border: 1px solid var(--input); border-radius: 8px; font-size: 13px; font-variant-numeric: tabular-nums; color: var(--foreground);">{{width}}</span>×<span aria-label="Height" style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 32px; box-sizing: border-box; border: 1px solid var(--input); border-radius: 8px; font-size: 13px; font-variant-numeric: tabular-nums; color: var(--foreground);">{{height}}</span></div>
+<button type="button" aria-label="Rotate" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; box-sizing: border-box; padding: 0 10px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--foreground); font: inherit; font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer; width: 32px; padding: 0; color: var(--muted-foreground); opacity: {{rotateOpacity}};"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg></button>
+<span style="min-width: 36px; text-align: end; font-size: 13px; font-variant-numeric: tabular-nums; color: var(--muted-foreground);">{{zoom}}%</span>
+<sc-if value="{{menuOpen}}" hint-placeholder-val="{{false}}">
+<div role="menu" aria-label="Viewport presets" style="position: absolute; left: 0; top: 40px; z-index: 5; display: flex; flex-direction: column; width: 248px; box-sizing: border-box; padding: 4px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); box-shadow: 0 14px 36px rgba(20,22,26,0.14);">
+<sc-for list="{{items}}" as="item"><div role="menuitemradio" aria-checked="{{item.checked}}" style="display: flex; align-items: center; gap: 8px; box-sizing: border-box; height: 32px; padding: 0 8px; border-radius: 6px; background: {{item.bg}}; border-top: {{item.line}}; font-size: 13px;"><span style="display: inline-flex; width: 14px; flex-shrink: 0;">{{item.mark}}</span><span style="flex: 1;">{{item.label}}</span><span style="font-size: 12px; font-variant-numeric: tabular-nums; color: var(--muted-foreground);">{{item.size}}</span></div></sc-for>
+</div>
+</sc-if>
+</div>
+<div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
+<button type="button" aria-pressed="{{commenting}}" aria-keyshortcuts="C" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; box-sizing: border-box; padding: 0 10px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--foreground); font: inherit; font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer; background: {{commentBg}};"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z"/></svg>Comment</button>
+<span style="flex-shrink: 0; font-size: 12px; color: var(--muted-foreground);">Esc to stop</span>
+</div>
+</header>
+<div style="display: flex; flex: 1; min-height: 0;">
+<div style="position: relative; display: flex; flex: 1; min-width: 0; flex-direction: column; align-items: center; justify-content: center; gap: 8px;">
+<div style="position: relative; width: {{boxW}}px; height: {{boxH}}px; flex-shrink: 0;">
+<div style="position: relative; width: 100%; height: 100%; box-sizing: border-box; overflow: hidden; border-radius: {{radius}}px; background: var(--mock-bg); box-shadow: 0 14px 36px rgba(20,22,26,0.14);">
+<div style="position: absolute; left: 0; right: 0; top: 0; height: {{barH}}%; background: var(--mock-ink);">
+<div style="position: absolute; left: 5%; top: 30%; width: 9%; height: 40%; border-radius: 3px; background: var(--mock-on-ink);"></div>
+<div style="position: absolute; right: 5%; top: 40%; width: 8%; height: 20%; border-radius: 2px; background: var(--mock-bar);"></div>
+</div>
+<sc-for list="{{cards}}" as="card"><div style="position: absolute; left: {{card.left}}%; top: {{card.top}}%; width: {{card.width}}%; height: {{card.height}}%; box-sizing: border-box; border: 1px solid var(--mock-line); border-radius: 6px; background: var(--mock-card);">
+<div style="position: absolute; left: 10%; top: 12%; width: 55%; height: 10%; border-radius: 2px; background: var(--mock-ink);"></div>
+<div style="position: absolute; left: 10%; top: 34%; width: 80%; height: 6%; border-radius: 2px; background: var(--mock-bar);"></div>
+<div style="position: absolute; left: 10%; top: 48%; width: 70%; height: 6%; border-radius: 2px; background: var(--mock-bar);"></div>
+<div style="position: absolute; left: 10%; top: 62%; width: 50%; height: 6%; border-radius: 2px; background: var(--mock-bar);"></div>
+</div></sc-for>
+</div>
+<sc-if value="{{responsive}}" hint-placeholder-val="{{false}}">
+<div aria-hidden="true" style="position: absolute; right: -14px; top: 50%; width: 6px; height: 48px; border-radius: 3px; background: var(--border-strong); transform: translateY(-50%); cursor: ew-resize;"></div>
+<div aria-hidden="true" style="position: absolute; left: 50%; bottom: -14px; width: 48px; height: 6px; border-radius: 3px; background: var(--border-strong); transform: translateX(-50%); cursor: ns-resize;"></div>
+<div aria-hidden="true" style="position: absolute; right: -14px; bottom: -14px; width: 10px; height: 10px; border-radius: 3px; background: var(--border-strong); cursor: nwse-resize;"></div>
+</sc-if>
+<sc-if value="{{commenting}}" hint-placeholder-val="{{false}}">
+<div data-pin="" aria-label="Comment 1" style="position: absolute; left: {{pinLeft}}%; top: {{pinTop}}%; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: var(--primary-foreground); font-size: 12px; font-weight: 600; transform: translate(-50%, -50%);">1<span aria-hidden="true" style="position: absolute; right: -2px; top: -2px; width: 8px; height: 8px; border-radius: 50%; background: var(--highlight);"></span></div>
+</sc-if>
+</div>
+<p style="margin: {{captionGap}}px 0 0; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--muted-foreground);">{{caption}}</p>
+</div>
+<sc-if value="{{commenting}}" hint-placeholder-val="{{false}}">
+<div style="flex-shrink: 0; width: 320px; height: 100%; overflow: hidden;">
+<dc-import name="CanvasThread" theme="{{theme}}" state="open" viewing="yes" hint-size="320px,820px"></dc-import>
+</div>
+</sc-if>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"preset":{"editor":"enum","default":"phone","options":["fit","phone","large-phone","tablet","laptop","desktop","board","responsive"]},"menu":{"editor":"enum","default":"closed","options":["closed","open"]},"commenting":{"editor":"enum","default":"no","options":["no","yes"]},"rotated":{"editor":"enum","default":"no","options":["no","yes"]},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const { theme, preset, menu, commenting, rotated } = this.props
+    const presets = [
+      { id: 'fit', label: 'Fit window', w: 960, h: 600, size: '' },
+      { id: 'phone', label: 'Phone', w: 390, h: 844 },
+      { id: 'large-phone', label: 'Large phone', w: 430, h: 932 },
+      { id: 'tablet', label: 'Tablet', w: 768, h: 1024 },
+      { id: 'laptop', label: 'Laptop', w: 1280, h: 800 },
+      { id: 'desktop', label: 'Desktop', w: 1440, h: 900 },
+      { id: 'board', label: 'Board size', w: 960, h: 600 },
+      { id: 'responsive', label: 'Responsive', w: 720, h: 520, size: 'Drag edges' },
+    ]
+    const current = presets.find((item) => item.id === preset) || presets[1]
+    const swap = rotated === 'yes' && current.id !== 'fit'
+    const w = swap ? current.h : current.w
+    const h = swap ? current.w : current.h
+    const commentingOn = commenting === 'yes'
+    const stageW = 1440 - (commentingOn ? 320 : 0)
+    const stageH = 852
+    const k = Math.min(1, (stageW - 48) / w, (stageH - 48) / h)
+    const narrow = w < 600
+    const cards = narrow
+      ? [
+          { left: 5, top: 14, width: 90, height: 34 },
+          { left: 5, top: 52, width: 90, height: 34 },
+        ]
+      : [
+          { left: 5, top: 24, width: 42, height: 44 },
+          { left: 53, top: 24, width: 42, height: 44 },
+        ]
+    const menuOpen = menu === 'open'
+    return {
+      themeClass: theme === 'dark' ? 'dark' : '',
+      theme,
+      menuOpen,
+      menuExpanded: menuOpen,
+      presetLabel: current.label,
+      presetBg: menuOpen ? 'var(--secondary)' : 'transparent',
+      width: String(w),
+      height: String(h),
+      zoom: Math.round(k * 100),
+      rotateOpacity: current.id === 'fit' ? 0.4 : 1,
+      commenting: commentingOn,
+      commentBg: commentingOn ? 'var(--secondary)' : 'transparent',
+      boxW: Math.round(w * k),
+      boxH: Math.round(h * k),
+      radius: current.id === 'phone' || current.id === 'large-phone' ? 18 : 10,
+      barH: narrow ? 8 : 16,
+      cards,
+      responsive: current.id === 'responsive',
+      pinLeft: narrow ? 95 : 47,
+      pinTop: narrow ? 14 : 24,
+      captionGap: current.id === 'responsive' ? 16 : 0,
+      caption: `${current.label} · ${w} × ${h}`,
+      items: presets.map((item, index) => ({
+        label: item.label,
+        size: item.size === undefined ? `${item.w} × ${item.h}` : item.size,
+        checked: item.id === current.id,
+        mark: item.id === current.id ? '✓' : '',
+        bg: item.id === current.id ? 'var(--secondary)' : 'transparent',
+        line: index === 1 || index === 6 ? '1px solid var(--border)' : '0',
+      })),
+    }
+  }
+}
+</script>
+</body>
+</html>

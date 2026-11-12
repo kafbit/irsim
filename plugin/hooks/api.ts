@@ -20,6 +20,7 @@ export type Comment = {
   line: number
   element: { path: string; text: string }
   body: string
+  view?: { width: number; height: number }
   status: 'draft' | 'queued' | 'delivered' | 'resolved'
   replies: { author: string; body: string }[]
 }

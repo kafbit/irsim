@@ -80,7 +80,7 @@ bound literal). No board is ever rewritten.
 10. `apps/design/scripts/build-canvas.ts` — create `design/canvas.json`: pages, a grid layout
     per page from `$preview` sizes, `title` from the board `<title>`.
 11. `apps/design/src/canvas/` — viewport (pan, zoom, fit, page jump), lazy-mounted frames via
-    `IntersectionObserver`, board sidebar with search and page filter, single-board view
+    `IntersectionObserver`, board sidebar with search and page filter, full screen Play
     (`?board=`).
 
 ### M3 · Variables

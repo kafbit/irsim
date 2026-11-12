@@ -5,6 +5,7 @@ import type {
   Approval,
   BoardApproval,
   Comment,
+  CommentView,
   PageApprovals,
   Reply,
   Session,
@@ -18,7 +19,7 @@ import { buildApprovalText, buildTurnText, unseenUserReplies } from './turn-text
 export type NewComment = Pick<
   Comment,
   'page' | 'board' | 'file' | 'line' | 'element' | 'rect' | 'body'
-> & { images?: string[] | undefined }
+> & { images?: string[] | undefined; view?: CommentView | undefined }
 
 export type CommentFilter = {
   status?: string | undefined
@@ -131,10 +132,12 @@ export const listComments = async (filter: CommentFilter = {}): Promise<Comment[
 export const createComment = (input: NewComment, now = Date.now()): Promise<Comment> =>
   enqueue(async () => {
     const all = await readComments()
+    const { view, ...rest } = input
     const comment: Comment = {
       id: newId('c'),
-      ...input,
+      ...rest,
       images: input.images ?? [],
+      ...(view ? { view } : {}),
       status: 'draft',
       sessionId: null,
       batch: null,

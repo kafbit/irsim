@@ -46,9 +46,10 @@ body{margin:0}
 <section style="display: flex; flex-direction: column; gap: 8px;">
 <h3 style="margin: 0; font-size: 12px; font-weight: 600; color: var(--muted-foreground);">Sent (1)</h3>
 <ul style="display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none;">
-<li style="display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card);">
+<li style="display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; padding: 12px; border: 1px solid {{sentBorder}}; border-radius: 10px; background: var(--card);">
 <div style="display: flex; align-items: center; gap: 8px;"><span style="display: flex; flex: 1; min-width: 0; align-items: center; gap: 8px;"><span style="display: grid; place-items: center; flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; background: var(--muted); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;">1</span><code style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted-foreground);">Dialog.dc.html:31</code></span><span style="display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; height: 20px; box-sizing: border-box; padding: 0 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; white-space: nowrap; background: var(--success); color: var(--success-foreground);">Delivered</span></div>
 <p style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted-foreground);">div.dialog &gt; p.message <span>"Delete this item?"</span></p>
+<p style="margin: 0;"><span style="display: inline-flex; align-items: center; gap: 4px; height: 20px; box-sizing: border-box; padding: 0 8px; border-radius: 9999px; background: {{sentChipBg}}; color: {{sentChipFg}}; font-size: 11px; font-weight: 600; white-space: nowrap;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>{{sentChip}}</span></p>
 <p style="margin: 0; font-size: 14px; line-height: 20px; white-space: pre-wrap;">Name the reservation that will be removed.</p>
 <ul style="display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0 0 0 8px; border-left: 2px solid var(--border); list-style: none;">
 <li style="display: flex; flex-direction: column; gap: 2px; font-size: 14px;"><span style="font-weight: 600;">Claude</span><p style="margin: 0; font-size: 14px; line-height: 20px; white-space: pre-wrap;">The dialog text now includes the guest name and the dates.</p></li>
@@ -68,6 +69,7 @@ body{margin:0}
 <li style="display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); opacity: 0.7;">
 <div style="display: flex; align-items: center; gap: 8px;"><span style="display: flex; flex: 1; min-width: 0; align-items: center; gap: 8px;"><span style="display: grid; place-items: center; flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; background: var(--muted); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;">3</span><code style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted-foreground);">Dialog.dc.html:12</code></span><span style="display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; height: 20px; box-sizing: border-box; padding: 0 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; white-space: nowrap; background: var(--muted); color: var(--foreground);">Resolved</span></div>
 <p style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted-foreground);">h2.title <span>"Delete item"</span></p>
+<p style="margin: 0;"><span style="display: inline-flex; align-items: center; gap: 4px; height: 20px; box-sizing: border-box; padding: 0 8px; border-radius: 9999px; background: var(--info); color: var(--info-foreground); font-size: 11px; font-weight: 600; white-space: nowrap;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>Tablet 768 × 1024</span></p>
 <p style="margin: 0; font-size: 14px; line-height: 20px; white-space: pre-wrap;">Use sentence case in the title.</p>
 <div style="display: flex; flex-direction: column; gap: 8px;">
 <p style="margin: 0; font-size: 12px; color: var(--muted-foreground);">Replying reopens this comment.</p>
@@ -87,10 +89,11 @@ body{margin:0}
 </aside>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"open","options":["open","resolved","empty"]},"$preview":{"width":320,"height":820}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"open","options":["open","resolved","empty"]},"viewing":{"editor":"enum","default":"no","options":["no","yes"]},"$preview":{"width":320,"height":820}}'>
 class Component extends DCLogic {
   renderVals() {
     const state = this.props.state
+    const viewing = this.props.viewing === 'yes'
     const isEmpty = state === 'empty'
     const resolvedOpen = state === 'resolved'
     return {
@@ -101,6 +104,10 @@ class Component extends DCLogic {
       chevronAngle: resolvedOpen ? 0 : -90,
       bodyJustify: resolvedOpen ? 'flex-end' : 'flex-start',
       count: isEmpty ? 0 : 4,
+      sentChip: viewing ? 'Viewing at Phone 390 × 844' : 'Phone 390 × 844',
+      sentChipBg: viewing ? '#2563eb' : 'var(--info)',
+      sentChipFg: viewing ? '#ffffff' : 'var(--info-foreground)',
+      sentBorder: viewing ? 'var(--ring)' : 'var(--border)',
       sendLabel: isEmpty ? 'Send 0 comments' : 'Send 2 comments',
       sendOpacity: isEmpty ? 0.5 : 1,
     }

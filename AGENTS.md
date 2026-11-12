@@ -15,7 +15,8 @@ A change to one updates the other in the same pull request.
 | `canvas/view-controls.tsx`, `canvas/minimap.tsx` | `CanvasZoomBar`, `CanvasZoomBarMenu` |
 | `canvas/focus-bar.tsx` | `CanvasFocusBar` |
 | `canvas/toast.tsx` | `CanvasToast` |
-| `canvas/comments/thread-panel.tsx`, `canvas/comments/comment-card.tsx` | `CanvasThread`, `CanvasThreadResolved`, `CanvasThreadEmpty` |
+| `canvas/comments/thread-panel.tsx`, `canvas/comments/comment-card.tsx` | `CanvasThread`, `CanvasThreadResolved`, `CanvasThreadEmpty`, `CanvasThreadViewing` |
+| `canvas/play-view.tsx` | `CanvasPlayView` and the `CanvasPlayView*` state boards (`Fit`, `Menu`, `Responsive`, `Commenting`) |
 | `canvas/frame.tsx`, `canvas/overlay.tsx` | `CanvasFrame` and the `CanvasFrame*` state boards, among them `CanvasFrameCommentingTitle` for the frame title in comment mode |
 | `canvas/update-notice.tsx`, `canvas/use-update.ts` | `UpdateNotice` and the `UpdateNotice*` state boards |
 | `canvas/canvas.tsx`, `canvas/page-canvas.tsx` and any layout of the parts above | `CanvasApp` and the `CanvasApp*` state boards |

@@ -21,6 +21,7 @@ type Props = {
   onResolve: (id: string) => Promise<void>
   onReply: (id: string, body: string) => Promise<void>
   onSend: (sessionId: string) => Promise<void>
+  viewport?: { width: number; height: number } | null
 }
 
 /** The end-side panel: the page's comments as Draft, Sent and Resolved, and the footer that sends the drafts. */
@@ -31,6 +32,7 @@ export function ThreadPanel({
   error,
   onClose,
   onLocate,
+  viewport = null,
   ...actions
 }: Props) {
   const groups = groupComments(comments)
@@ -57,6 +59,12 @@ export function ThreadPanel({
       onDelete={actions.onDelete}
       onResolve={actions.onResolve}
       onReply={actions.onReply}
+      viewing={
+        comment.view !== undefined &&
+        viewport !== null &&
+        comment.view.width === viewport.width &&
+        comment.view.height === viewport.height
+      }
       sessionEnded={
         session.loaded &&
         comment.status === 'queued' &&

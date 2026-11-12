@@ -1,10 +1,11 @@
 'use client'
 
 import { Button, IconButton } from '../ui'
-import { Check, CopyIcon } from '../ui/icons'
+import { Check, CopyIcon, Play } from '../ui/icons'
 import Link from 'next/link'
 import { useState } from 'react'
 import type { ManifestBoard, PageSummary } from './types'
+import { playHref } from './use-play-links'
 
 const link =
   'block truncate rounded-md px-2 py-1 text-start text-sm text-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring'
@@ -18,7 +19,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   )
 }
 
-/** The selected board: name, title, size, file path with copy, the boards it imports, and a link to open it alone. */
+/** The selected board: name, title, size, file path with copy, the boards it imports, and a link to play it full screen. */
 export function Inspector({
   board,
   pageId,
@@ -32,7 +33,7 @@ export function Inspector({
   pages: PageSummary[]
   placed: ReadonlySet<string>
   onFocusBoard: (name: string) => void
-  /** Actions on the board, shown above Open alone. */
+  /** Actions on the board, shown above Play. */
   children?: React.ReactNode
 }) {
   const [copied, setCopied] = useState(false)
@@ -109,10 +110,9 @@ export function Inspector({
       </dl>
       {children}
       <Button asChild variant="secondary" size="sm">
-        <Link
-          href={`/p/${encodeURIComponent(pageId)}?board=${encodeURIComponent(board.name)}&alone=1`}
-        >
-          Open alone
+        <Link href={playHref(pageId, board.name, 'full')}>
+          <Play className="size-3.5 fill-current" />
+          Play
         </Link>
       </Button>
     </aside>

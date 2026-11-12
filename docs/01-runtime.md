@@ -131,6 +131,17 @@ board on another page opens on that page. `href="#id"` scrolls inside the board,
 `mailto:` or `tel:` link opens a new tab. Each board keeps its own `state`. Esc, Stop or "Back to
 canvas" ends Play.
 
+Every board has a full screen Play view, whether or not it is a prototype. Its header picks the
+viewport the board lays out for, so the board's media queries answer to it: Fit window, Phone
+390 x 844, Large phone 430 x 932, Tablet 768 x 1024, Laptop 1280 x 800, Desktop 1440 x 900, Board
+size, or Responsive, where the edges of the frame are dragged and the width and height boxes accept
+a size from 200 to 4000. Rotate swaps width and height. The choice is kept in the browser. The
+Comment button (or C) picks an element in the frame. The comment stores a `view` with the viewport
+size, its preset and the scroll position of the frame. A comment card with a `view` shows the
+viewport as a chip, and shows "Viewing at ..." while Play is at that size. Clicking such a card on
+the canvas opens the board in Play at the stored viewport and scrolls to the element. Esc leaves
+comment mode first, then ends Play.
+
 ## Limits, deliberately
 
 - No `else` branch, no expression language, no host component protocol beyond the five tags.

@@ -120,6 +120,16 @@ function world(
           body: 'Widen the first column.',
           replies: [{ author: 'claude', body: 'Done.' }],
         },
+        {
+          id: 'c_3',
+          status: 'queued',
+          file: 'design/Leads.dc.html',
+          line: 12,
+          element: { tag: 'button', path: 'button', text: 'OK' },
+          body: 'Make it bigger.',
+          view: { width: 390, height: 844 },
+          replies: [],
+        },
       ])
     }
     if (url.pathname === '/api/boards/Leads/check') {
@@ -230,6 +240,7 @@ test('the comments action names an element by file:line and a whole board by the
     [
       'c_1 queued design/Leads.dc.html:57 button "New lead" Use the primary button.',
       'c_2 queued design/Leads.dc.html board "Leads table" Widen the first column. (1 reply)',
+      'c_3 queued design/Leads.dc.html:12 viewport 390x844 button "OK" Make it bigger.',
     ].join('\n'),
   )
 })

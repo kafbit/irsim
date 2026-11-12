@@ -9,9 +9,9 @@ import { ApproveBox } from './approvals/approve-box'
 import { approvalStateOf, useApprovals } from './approvals/use-approvals'
 import { CommentLayer } from './comments/comment-layer'
 import { Composer } from './comments/composer'
-import { boardPick, numberComments } from './comments/model'
+import { boardPick, numberComments, placedRect } from './comments/model'
 import { ThreadPanel } from './comments/thread-panel'
-import type { Comment, PickedElement } from './comments/types'
+import type { Comment, CommentView, PickedElement } from './comments/types'
 import { useBoardReloads } from './comments/use-board-reloads'
 import { useCommentMode } from './comments/use-comment-mode'
 import { useComments } from './comments/use-comments'
@@ -82,6 +82,7 @@ export function PageCanvas({
     (initial: Selection) => initial,
   )
   const [fullPlay, setFullPlay] = useState<string | null>(play === 'full' ? focus : null)
+  const [playStart, setPlayStart] = useState<{ view: CommentView; commentId: string } | null>(null)
   const [notice, setNotice] = useNotice()
   const router = useRouter()
   const [tool, setTool] = useState<Tool>('move')
@@ -144,10 +145,7 @@ export function PageCanvas({
   })
   useCommentMode(commenting, camera, setPick)
   useFrameEscape(() => {
-    if (fullPlay) {
-      closeFullPlay()
-      return
-    }
+    if (fullPlay) return
     dispatch({ type: 'escape' })
     setPick(null)
     setTool((current) => (current === 'comment' ? 'move' : current))
@@ -187,11 +185,20 @@ export function PageCanvas({
     setPick(null)
     dispatch({ type: 'interact', name })
   }, [])
-  const playBoard = useCallback(
-    (name: string, mode: PlayMode) => (mode === 'full' ? setFullPlay(name) : playOnCanvas(name)),
-    [playOnCanvas],
+  const openFullPlay = useCallback(
+    (name: string, start: { view: CommentView; commentId: string } | null = null) => {
+      setTool('move')
+      setPick(null)
+      setPlayStart(start)
+      setFullPlay(name)
+    },
+    [],
   )
-  const playFull = useCallback((name: string) => setFullPlay(name), [])
+  const playBoard = useCallback(
+    (name: string, mode: PlayMode) => (mode === 'full' ? openFullPlay(name) : playOnCanvas(name)),
+    [openFullPlay, playOnCanvas],
+  )
+  const playFull = useCallback((name: string) => openFullPlay(name), [openFullPlay])
   const stopPlay = select
   /** Back to the canvas on the board that was playing last, so a walk through a flow ends there. */
   const closeFullPlay = useCallback(() => {
@@ -211,6 +218,7 @@ export function PageCanvas({
     if (playing !== from) return
     if (onPage.has(target)) {
       if (full) {
+        setPlayStart(null)
         setFullPlay(target)
         return
       }
@@ -228,10 +236,6 @@ export function PageCanvas({
       .catch((error: unknown) => run === playRun.current && setNotice(linkProblem(target, error)))
   })
 
-  const locate = (comment: Comment) => {
-    setActiveComment(comment.id)
-    actions.focusBoard(comment.board)
-  }
   const selectedBoard = manifest.boards.find((board) => board.name === selection.name)
   const playingOnCanvas = selection.interacting ? selection.name : null
   const toggleMinimap = () => {
@@ -276,6 +280,17 @@ export function PageCanvas({
     [boards, playFlags.flags],
   )
   const byName = useMemo(() => new Map(shown.map((board) => [board.name, board])), [shown])
+  const locate = (comment: Comment) => {
+    setActiveComment(comment.id)
+    if (comment.view) {
+      openFullPlay(comment.board, { view: comment.view, commentId: comment.id })
+      return
+    }
+    const board = byName.get(comment.board)
+    if (!board) return
+    const rect = placedRect(board, comment)
+    cameraActions.focusRect({ ...rect, x: board.x + rect.x, y: board.y + rect.y })
+  }
   // Read through a ref so `commentOnBoard` stays stable while a drag changes `byName`, and the memoized frames do not re-render.
   const latestByName = useRef(byName)
   useEffect(() => {
@@ -290,8 +305,8 @@ export function PageCanvas({
     [byName, order],
   )
   const fullBoard = fullPlay ? byName.get(fullPlay) : undefined
-  const playCommands = useMemo<CommandHandlers>(() => ({ escape: closeFullPlay }), [closeFullPlay])
-  // Full screen play owns the keyboard: only Esc, which closes it. A name with no board on this
+  const playCommands = useMemo<CommandHandlers>(() => ({}), [])
+  // Full screen play owns the keyboard: the view handles Esc and C itself. A name with no board on this
   // page shows no view, so the canvas keeps its shortcuts.
   useShortcuts(fullBoard ? playCommands : commands, setSpace)
 
@@ -311,7 +326,7 @@ export function PageCanvas({
         role="application"
         aria-label="Design canvas"
         {...handlers}
-        className={`relative min-w-0 flex-1 touch-none overflow-hidden outline-none select-none ${
+        className={`relative min-w-0 flex-1 touch-none overflow-clip outline-none select-none ${
           tool === 'hand' ? 'cursor-grab' : ''
         }`}
         style={GRID_STYLE}
@@ -429,6 +444,10 @@ export function PageCanvas({
           board={fullBoard}
           reload={reloads.counters[fullBoard.name] ?? 0}
           onClose={closeFullPlay}
+          page={manifest.id}
+          thread={comments}
+          numbers={numbers}
+          start={playStart}
         />
       ) : null}
     </div>

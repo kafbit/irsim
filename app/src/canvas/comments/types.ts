@@ -1,4 +1,7 @@
 import type { Rect } from '../geometry'
+import type { CommentView } from '../../lib/comments-types'
+
+export type { CommentView }
 
 export type CommentStatus = 'draft' | 'queued' | 'delivered' | 'resolved'
 
@@ -20,6 +23,7 @@ export type Comment = {
   sessionId: string | null
   batch: string | null
   replies: Reply[]
+  view?: CommentView
   createdAt: string
 }
 
@@ -31,6 +35,8 @@ export type PickedElement = {
   line: number
   element: CommentElement
   rect: Rect
+  scroll?: { x: number; y: number }
+  view?: CommentView
 }
 
 export type NewComment = PickedElement & { page: string; body: string; images?: string[] }
