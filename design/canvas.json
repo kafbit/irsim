@@ -2,20 +2,6 @@
   "version": 1,
   "pages": [
     {
-      "id": "unsorted",
-      "title": "Unsorted",
-      "boards": [
-        {
-          "name": "Home",
-          "title": "irsim canvas",
-          "x": 0,
-          "y": 0,
-          "width": 960,
-          "height": 600
-        }
-      ]
-    },
-    {
       "id": "canvas-app",
       "title": "Canvas app",
       "boards": [
@@ -290,6 +276,14 @@
           "y": 4776,
           "width": 720,
           "height": 560
+        },
+        {
+          "name": "Home",
+          "title": "irsim canvas",
+          "x": 0,
+          "y": 5416,
+          "width": 960,
+          "height": 600
         }
       ]
     }
