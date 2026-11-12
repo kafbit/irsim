@@ -25,6 +25,7 @@ const PORT_MIN = 3200
 const PORT_COUNT = 100
 const START = '<!-- IRSIM_START -->'
 const END = '<!-- IRSIM_END -->'
+const RESTART_CODE = 75
 
 const ROOT = resolve(dirname(realpathSync(fileURLToPath(import.meta.url))), '..')
 const SERVER = join(ROOT, 'server', 'server.js')
@@ -258,6 +259,7 @@ const serve = async (args) => {
   const cwd = process.cwd()
   const root = projectRoot(cwd)
   const design = resolveDesignDir(cwd, opts['design-dir'])
+  const prefix = prefixOf()
   let port
   let serving = false
   if (opts.port !== undefined) {
@@ -279,6 +281,9 @@ const serve = async (args) => {
     IRSIM_ROOT: root,
     PORT: String(port),
     HOSTNAME: '127.0.0.1',
+    IRSIM_VERSION: installedVersion(),
+    IRSIM_LAUNCHER: join(ROOT, 'bin', 'irsim'),
+    IRSIM_PREFIX: prefix ?? '',
   }
   let command
   let argv
@@ -298,9 +303,47 @@ const serve = async (args) => {
   }
   console.log(`irsim: ${url}`)
   const child = spawn(command, argv, { cwd: childCwd, env, stdio: 'inherit' })
+  let active = child
   for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP'])
-    process.on(signal, () => child.kill(signal))
-  child.on('exit', (code, signal) => process.exit(code ?? (signal ? 1 : 0)))
+    process.on(signal, () => active.kill(signal))
+  child.on('error', (error) => {
+    console.error(`irsim: could not start the server: ${error.message}`)
+    process.exit(1)
+  })
+  let pidFile = prefix && child.pid ? join(ROOT, '.pids', String(child.pid)) : null
+  if (pidFile) {
+    try {
+      mkdirSync(dirname(pidFile), { recursive: true })
+      writeFileSync(pidFile, '')
+    } catch {
+      pidFile = null
+    }
+  }
+  const relaunch = () => {
+    const next = spawn(join(prefix, 'current', 'bin', 'irsim'), ['serve', ...args], {
+      cwd: process.cwd(),
+      env: { ...process.env, IRSIM_RELAUNCHED: '1' },
+      stdio: 'inherit',
+    })
+    active = next
+    next.on('error', (error) => {
+      console.error(`irsim: could not restart: ${error.message}`)
+      process.exit(1)
+    })
+    next.on('exit', (nextCode, nextSignal) => {
+      if (nextCode === RESTART_CODE) relaunch()
+      else process.exit(nextCode ?? (nextSignal ? 1 : 0))
+    })
+  }
+  child.on('exit', (code, signal) => {
+    if (pidFile) rmSync(pidFile, { force: true })
+    if (code === RESTART_CODE && prefix) {
+      if (process.env.IRSIM_RELAUNCHED === '1') process.exit(RESTART_CODE)
+      relaunch()
+      return
+    }
+    process.exit(code ?? (signal ? 1 : 0))
+  })
 }
 
 const block = () => {
@@ -373,13 +416,29 @@ const gh = (args, options = {}) => {
 }
 
 const newer = (a, b) => {
-  const parts = (v) => v.split(/[.+-]/).map((n) => Number.parseInt(n, 10) || 0)
-  const [x, y] = [parts(a), parts(b)]
-  for (let i = 0; i < Math.max(x.length, y.length); i++) {
-    const d = (x[i] ?? 0) - (y[i] ?? 0)
+  const split = (v) => {
+    const [base] = v.split('+')
+    const dash = base.indexOf('-')
+    const core = (dash === -1 ? base : base.slice(0, dash)).split('.').map((n) => Number.parseInt(n, 10) || 0)
+    const pre = dash === -1 ? null : base.slice(dash + 1).split('.')
+    return { core, pre }
+  }
+  const [x, y] = [split(a), split(b)]
+  for (let i = 0; i < Math.max(x.core.length, y.core.length); i++) {
+    const d = (x.core[i] ?? 0) - (y.core[i] ?? 0)
     if (d !== 0) return d > 0
   }
-  return false
+  if (!x.pre || !y.pre) return !x.pre && Boolean(y.pre)
+  const numeric = (id) => /^\d+$/.test(id)
+  for (let i = 0; i < Math.min(x.pre.length, y.pre.length); i++) {
+    const [p, q] = [x.pre[i], y.pre[i]]
+    if (p === q) continue
+    if (numeric(p) && numeric(q)) return Number(p) > Number(q)
+    if (numeric(p)) return false
+    if (numeric(q)) return true
+    return p > q
+  }
+  return x.pre.length > y.pre.length
 }
 
 const prefixOf = () => {
@@ -389,6 +448,60 @@ const prefixOf = () => {
     if (lstatSync(current).isSymbolicLink() && real(current) === ROOT) return prefix
   } catch {}
   return null
+}
+
+const pidAlive = (pid) => {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch (error) {
+    return error?.code === 'EPERM'
+  }
+}
+
+const hasLiveServer = (dir) => {
+  const pids = join(dir, '.pids')
+  let alive = false
+  let names
+  try {
+    names = readdirSync(pids)
+  } catch {
+    return false
+  }
+  for (const name of names) {
+    const pid = Number(name)
+    if (Number.isInteger(pid) && pid > 0 && pidAlive(pid)) alive = true
+    else rmSync(join(pids, name), { force: true })
+  }
+  return alive
+}
+
+const acquireLock = (prefix) => {
+  const lockDir = join(prefix, '.update.lock')
+  for (let attempt = 0; ; attempt++) {
+    try {
+      mkdirSync(lockDir)
+      writeFileSync(join(lockDir, 'pid'), String(process.pid))
+      break
+    } catch (error) {
+      if (error?.code !== 'EEXIST') throw error
+      let pid = 0
+      try {
+        pid = Number.parseInt(readFileSync(join(lockDir, 'pid'), 'utf8'), 10)
+      } catch {}
+      if (Number.isInteger(pid) && pid > 0 && pidAlive(pid)) fail(`another update is running (pid ${pid})`)
+      if (attempt > 0) fail(`could not take ${lockDir}`)
+      rmSync(lockDir, { recursive: true, force: true })
+    }
+  }
+  let released = false
+  const release = () => {
+    if (released) return
+    released = true
+    rmSync(lockDir, { recursive: true, force: true })
+  }
+  process.on('exit', release)
+  return release
 }
 
 const update = (args) => {
@@ -408,31 +521,52 @@ const update = (args) => {
   }
   const prefix = prefixOf()
   if (!prefix) fail(`${ROOT} is not a release install, reinstall with install.sh`)
-  const asset = `irsim-${latest}-${platformTag()}.tar.gz`
-  const work = mkdtempSync(join(tmpdir(), 'irsim-update-'))
+  const release = acquireLock(prefix)
   try {
-    gh(['release', 'download', tag, '--repo', REPO, '--pattern', asset, '--dir', work])
-    const target = join(prefix, latest)
-    const staging = `${target}.partial`
-    rmSync(staging, { recursive: true, force: true })
-    mkdirSync(staging, { recursive: true })
-    const untar = spawnSync('tar', ['-xzf', join(work, asset), '-C', staging, '--strip-components=1'], {
-      stdio: 'inherit',
-    })
-    if (untar.status !== 0) fail('could not extract the release archive')
-    rmSync(target, { recursive: true, force: true })
-    renameSync(staging, target)
-    const link = join(prefix, '.current.new')
-    rmSync(link, { force: true })
-    symlinkSync(latest, link)
-    renameSync(link, join(prefix, 'current'))
-    for (const entry of readdirSync(prefix)) {
-      if (/^\d+\.\d+\.\d+/.test(entry) && entry !== latest && entry !== basename(ROOT))
-        rmSync(join(prefix, entry), { recursive: true, force: true })
+    const active = (() => {
+      try {
+        return basename(real(join(prefix, 'current')))
+      } catch {
+        return installed
+      }
+    })()
+    if (!newer(latest, active)) {
+      console.log('irsim is up to date')
+      return
     }
-    console.log(`updated to ${latest}`)
+    const asset = `irsim-${latest}-${platformTag()}.tar.gz`
+    const work = mkdtempSync(join(tmpdir(), 'irsim-update-'))
+    try {
+      gh(['release', 'download', tag, '--repo', REPO, '--pattern', asset, '--dir', work])
+      const target = join(prefix, latest)
+      const staging = `${target}.partial`
+      rmSync(staging, { recursive: true, force: true })
+      mkdirSync(staging, { recursive: true })
+      const untar = spawnSync('tar', ['-xzf', join(work, asset), '-C', staging, '--strip-components=1'], {
+        stdio: 'inherit',
+      })
+      if (untar.status !== 0) fail('could not extract the release archive')
+      rmSync(target, { recursive: true, force: true })
+      renameSync(staging, target)
+      const link = join(prefix, '.current.new')
+      rmSync(link, { force: true })
+      symlinkSync(latest, link)
+      renameSync(link, join(prefix, 'current'))
+      for (const entry of readdirSync(prefix)) {
+        if (
+          /^\d+\.\d+\.\d+/.test(entry) &&
+          entry !== latest &&
+          entry !== basename(ROOT) &&
+          !hasLiveServer(join(prefix, entry))
+        )
+          rmSync(join(prefix, entry), { recursive: true, force: true })
+      }
+      console.log(`updated to ${latest}`)
+    } finally {
+      rmSync(work, { recursive: true, force: true })
+    }
   } finally {
-    rmSync(work, { recursive: true, force: true })
+    release()
   }
   const project = findConfigDir(process.cwd())
   if (project) {
@@ -461,7 +595,10 @@ const uninstall = async (args) => {
   try {
     if (lstatSync(binLink).isSymbolicLink() && real(binLink).startsWith(`${prefix}/`)) targets.push(binLink)
   } catch {}
-  if (opts.purge) targets.push(join(process.env.XDG_CACHE_HOME || join(homedir(), '.cache'), 'irsim'))
+  if (opts.purge)
+    targets.push(
+      process.env.IRSIM_CACHE_DIR || join(process.env.XDG_CACHE_HOME || join(homedir(), '.cache'), 'irsim'),
+    )
   for (const target of targets) console.log(`${opts['dry-run'] ? 'would remove' : 'remove'}: ${target}`)
   if (opts['dry-run']) return
   if (!opts.yes) {

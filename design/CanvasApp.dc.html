@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<title>Canvas app</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.cv-root{--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted:#efefeb;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a;--play:#2563eb;--mock-bg:#f6f6f3;--mock-ink:#14161a;--mock-card:#ffffff;--mock-line:#e4e4e0;--mock-bar:#d6d7d2}
+.cv-root.dark{--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8;--play:#60a5fa}
+</style>
+</helmet>
+<div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="display: flex; width: 100%; min-height: 100vh; overflow: hidden; background: var(--surface); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
+<div style="display: flex; flex-shrink: 0; align-self: stretch; width: 288px; overflow: hidden;">
+<dc-import name="CanvasSidebar" theme="{{theme}}" page="Components" selected="{{sidebarSelected}}" update="{{update}}" hint-size="288px,820px"></dc-import>
+</div>
+<div role="application" aria-label="Design canvas" style="position: relative; flex: 1; min-width: 0; align-self: stretch; overflow: hidden; background-color: var(--surface); background-image: radial-gradient(circle, color-mix(in srgb, var(--border-strong) 100%, transparent) 1px, transparent 1.5px); background-size: {{gridSize}}px {{gridSize}}px; background-position: {{gridPos}};">
+<h2 dir="auto" style="position: absolute; left: {{label.x}}px; top: {{label.y}}px; margin: 0; font-size: {{label.size}}px; line-height: 1; font-weight: 600; white-space: nowrap; color: var(--foreground);">Components</h2>
+<sc-for list="{{frames}}" as="f">
+<div style="position: absolute; left: {{f.titleX}}px; top: {{f.titleY}}px; display: flex; align-items: flex-end; width: {{f.w}}px; height: 28px; box-sizing: border-box; overflow: hidden; font-size: 12px; line-height: 16px; white-space: nowrap; color: var(--foreground);">
+<div style="display: flex; align-items: baseline; gap: 8px; flex: 1; min-width: 0; padding-bottom: 6px; overflow: hidden;">
+<sc-if value="{{f.prototype}}" hint-placeholder-val="{{false}}">
+<span role="img" aria-label="Prototype" style="flex-shrink: 0; align-self: center; width: 8px; height: 8px; border-radius: 50%; background: var(--play);"></span>
+</sc-if>
+<span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">{{f.title}}</span>
+<span style="flex-shrink: 0; color: var(--muted-foreground);">{{f.name}}</span>
+</div>
+<sc-if value="{{f.showPlay}}" hint-placeholder-val="{{false}}">
+<span style="display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; height: 24px; box-sizing: border-box; margin-bottom: 4px; padding: 0 8px 0 6px; border: 1px solid transparent; border-radius: 8px; color: var(--play); font-weight: 500;"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"/></svg>Play</span>
+</sc-if>
+<sc-if value="{{f.showStop}}" hint-placeholder-val="{{false}}">
+<span style="display: inline-flex; align-items: center; flex-shrink: 0; height: 24px; box-sizing: border-box; margin-bottom: 4px; padding: 0 8px; border: 1px solid #2563eb; border-radius: 8px; background: #2563eb; color: #ffffff; font-weight: 500;">Stop</span>
+</sc-if>
+</div>
+<div style="position: absolute; left: {{f.clipX}}px; top: {{f.clipY}}px; width: {{f.clipW}}px; height: {{f.clipH}}px; overflow: hidden;">
+<div style="position: absolute; left: -15px; top: -43px; width: {{f.rootW}}px; --cv-h: {{f.rootH}}px; --cv-bg: transparent;">
+<dc-import name="CanvasFrame" theme="{{theme}}" state="{{f.state}}" prototype="{{f.protoProp}}" approval="none" width="{{f.w}}" height="{{f.h}}" hint-size="400px,308px"></dc-import>
+</div>
+</div>
+<sc-if value="{{f.pending}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; left: {{f.x}}px; top: {{f.y}}px; width: {{f.w}}px; height: {{f.h}}px; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 12px; background: var(--mock-card); font-size: 8px; color: var(--muted-foreground);">
+<div class="cf-pulse" style="position: absolute; inset: 0; background: var(--secondary);"></div>
+<span style="position: relative;">{{f.name}}</span>
+</div>
+</sc-if>
+<sc-if value="{{f.table}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; left: {{f.x}}px; top: {{f.y}}px; width: {{f.w}}px; height: {{f.h}}px; box-sizing: border-box; overflow: hidden; border-radius: 12px; background: var(--mock-card); color: var(--mock-ink); font-size: 13px;">
+<div style="display: flex; align-items: center; height: 44px; box-sizing: border-box; padding: 0 20px; background: var(--mock-bg); border-bottom: 1px solid var(--mock-line); font-size: 12px; font-weight: 600;">
+<span style="flex: 4;">Name</span><span style="flex: 2;">Status</span><span style="flex: 2;">Owner</span><span style="flex: 2;">Updated</span>
+</div>
+<sc-for list="{{tableRows}}" as="row">
+<div style="display: flex; align-items: center; height: 51px; box-sizing: border-box; padding: 0 20px; border-bottom: {{row.line}};">
+<span style="flex: 4; font-weight: 500;">{{row.name}}</span><span style="flex: 2;">{{row.status}}</span><span style="flex: 2;">{{row.owner}}</span><span style="flex: 2;">{{row.updated}}</span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</sc-for>
+<div style="position: absolute; left: 50%; top: 16px; width: 200px; margin-left: -100px; --cv-h: 46px; --cv-bg: transparent;">
+<dc-import name="CanvasToolbar" theme="{{theme}}" tool="{{tool}}" hint-size="220px,48px"></dc-import>
+</div>
+<sc-if value="{{playing}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; left: 50%; top: 80px; width: 460px; margin-left: -230px; --cv-h: 36px; --cv-bg: transparent;">
+<dc-import name="CanvasFocusBar" theme="{{theme}}" title="Confirmation dialog" hint-size="380px,40px"></dc-import>
+</div>
+</sc-if>
+<sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; left: 50%; bottom: 16px; width: 460px; margin-left: -230px; --cv-h: 38px; --cv-bg: transparent;">
+<dc-import name="CanvasToast" theme="{{theme}}" message="No board named Checkout." hint-size="420px,44px"></dc-import>
+</div>
+</sc-if>
+<div style="position: absolute; right: 16px; bottom: 16px; width: 200px; --cv-h: {{zoomH}}px; --cv-bg: transparent;">
+<dc-import name="CanvasZoomBar" theme="{{theme}}" zoom="{{zoom}}" minimap="{{minimap}}" menu="closed" hint-size="260px,200px"></dc-import>
+</div>
+</div>
+<sc-if value="{{showInspector}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-shrink: 0; align-self: stretch; box-sizing: border-box; width: 288px; overflow: hidden; border-left: 1px solid var(--border);">
+<dc-import name="CanvasInspector" theme="{{theme}}" approval="none" imports="3" hint-size="288px,820px"></dc-import>
+</div>
+</sc-if>
+<sc-if value="{{showThread}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-shrink: 0; align-self: stretch; width: 320px; overflow: hidden;">
+<dc-import name="CanvasThread" theme="{{theme}}" state="open" hint-size="320px,820px"></dc-import>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"overview","options":["overview","selected","zoomedOut","thumbnailsLoading","playing","commenting","toast","emptyPage"]},"update":{"editor":"enum","default":"none","options":["none","available"]},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const { theme, state, update } = this.props
+    const zoomedOut = state === 'zoomedOut' || state === 'thumbnailsLoading'
+    const frame = (x, y, w, h, title, name, mode, prototype, table) => ({
+      x, y, w, h, title, name,
+      state: mode,
+      prototype,
+      protoProp: prototype ? 'yes' : 'no',
+      table: Boolean(table),
+      pending: mode === 'pending',
+      showPlay: prototype && mode !== 'playing',
+      showStop: mode === 'playing',
+      titleX: x,
+      titleY: y - 28,
+      clipX: x - 5,
+      clipY: y - 5,
+      clipW: w + 10,
+      clipH: h + 10,
+      rootW: w + 40,
+      rootH: h + 68,
+    })
+    let frames = []
+    const ox = state === 'selected' || state === 'commenting' ? 40 : 96
+    let label = { x: ox, y: 34, size: 40 }
+    let grid = { size: 24, pos: '-12px -12px' }
+    if (zoomedOut) {
+      const names = [
+        ['Button', 'Button'],
+        ['Confirmation dialog', 'Dialog'],
+        ['Data table', 'Table'],
+        ['Profile card', 'Card'],
+        ['Status badge', 'Badge'],
+        ['Tab bar', 'Tabs'],
+        ['Text input', 'Input'],
+        ['Select menu', 'Select'],
+        ['Tooltip', 'Tooltip'],
+        ['Dropdown menu', 'Menu'],
+        ['Avatar group', 'Avatar'],
+        ['Toast message', 'Toast'],
+      ]
+      const pending = [3, 4, 7, 8, 10]
+      frames = names.map(([title, name], index) => {
+        const col = index % 6
+        const row = Math.floor(index / 6)
+        const mode = state === 'thumbnailsLoading' && pending.includes(index) ? 'pending' : 'thumbnail'
+        return frame(210 + col * 124, 360 + row * 126, 96, 64, title, name, mode, false, false)
+      })
+      label = { x: 210, y: 314, size: 16 }
+      grid = { size: 19.2, pos: '-9.6px -9.6px' }
+    } else if (state !== 'emptyPage') {
+      const dialogMode = { selected: 'selected', playing: 'playing', commenting: 'commenting' }[state] || 'live'
+      frames = [
+        frame(ox, 170, 280, 160, 'Button', 'Button', 'live', false, false),
+        frame(ox + 344, 170, 360, 240, 'Confirmation dialog', 'Dialog', dialogMode, true, false),
+        frame(ox, 490, 480, 300, 'Data table', 'Table', 'live', false, true),
+      ]
+    }
+    const tableRowsRaw = [
+      { name: 'Reservations', status: 'Active', owner: 'Dana', updated: 'Today' },
+      { name: 'Invoices', status: 'Draft', owner: 'Omar', updated: 'Yesterday' },
+      { name: 'Customers', status: 'Active', owner: 'Lina', updated: 'Mon' },
+      { name: 'Reports', status: 'Paused', owner: 'Sam', updated: 'Last week' },
+      { name: 'Settings', status: 'Active', owner: 'Noor', updated: 'Last week' },
+    ]
+    const tableRows = tableRowsRaw.map((row, index) => ({ ...row, line: index === tableRowsRaw.length - 1 ? '0' : '1px solid var(--mock-line)' }))
+    const minimap = state === 'overview' || state === 'selected'
+    return {
+      themeClass: theme === 'dark' ? 'dark' : '',
+      theme,
+      update,
+      sidebarSelected: state === 'selected' ? 'Dialog' : 'none',
+      gridSize: grid.size,
+      gridPos: grid.pos,
+      label,
+      frames,
+      tableRows,
+      tool: state === 'commenting' ? 'comment' : 'move',
+      zoom: zoomedOut ? '20' : '100',
+      minimap: minimap ? 'on' : 'off',
+      zoomH: minimap ? 174 : 46,
+      playing: state === 'playing',
+      toast: state === 'toast',
+      showInspector: state === 'selected',
+      showThread: state === 'commenting',
+    }
+  }
+}
+</script>
+</body>
+</html>

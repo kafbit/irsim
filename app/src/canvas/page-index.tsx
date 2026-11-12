@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import { Shell, Status } from './canvas'
 import { CHROME_FORMAT } from './chrome-format'
 import type { PageSummary } from './types'
+import { UpdateNotice } from './update-notice'
 import { useApi } from './use-api'
 import { useLegacyRedirect } from './use-legacy-redirect'
 
@@ -26,6 +27,7 @@ function Index() {
   return (
     <main className="mx-auto max-w-6xl p-8">
       <h1 className="mb-6 text-2xl font-semibold">Pages</h1>
+      <UpdateNotice className="mb-6 max-w-sm" />
       <ul className="grid grid-cols-[repeat(auto-fill,minmax(18rem,1fr))] gap-4">
         {pages.data.map((page) => (
           <li key={page.id}>

@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<title>Canvas comments panel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.cv-root{--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted:#efefeb;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a}
+.cv-root.dark{--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8}
+.cv-root textarea::placeholder{color:var(--muted-foreground);opacity:1}
+</style>
+</helmet>
+<div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="display: flex; width: 100%; min-height: 100vh; background: var(--shell); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
+<aside aria-label="Comments" style="display: flex; flex-direction: column; flex-shrink: 0; width: 320px; height: 100vh; box-sizing: border-box; border-left: 1px solid var(--border); background: var(--card);">
+<header style="display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid var(--border);">
+<h2 style="margin: 0; font-size: 16px; font-weight: 600;">Comments ({{count}})</h2>
+<button type="button" aria-label="Close" style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--muted-foreground); cursor: pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+</header>
+<div style="display: flex; flex: 1; flex-direction: column; gap: 16px; justify-content: {{bodyJustify}}; min-height: 0; overflow-y: auto; padding: 16px;">
+<sc-if value="{{isEmpty}}" hint-placeholder-val="{{false}}">
+<p style="margin: 0; font-size: 14px; color: var(--muted-foreground);">Press C, then click an element in a board to comment on it.</p>
+</sc-if>
+<sc-if value="{{hasComments}}" hint-placeholder-val="{{true}}">
+<section style="display: flex; flex-direction: column; gap: 8px;">
+<h3 style="margin: 0; font-size: 12px; font-weight: 600; color: var(--muted-foreground);">Draft (1)</h3>
+<ul style="display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none;">
+<li style="display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card);">
+<div style="display: flex; align-items: center; gap: 8px;"><span style="display: flex; flex: 1; min-width: 0; align-items: center; gap: 8px;"><span style="display: grid; place-items: center; flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; background: var(--muted); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;">2</span><code style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted-foreground);">Dialog.dc.html:18</code></span><span style="display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; height: 20px; box-sizing: border-box; padding: 0 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; white-space: nowrap; background: var(--muted); color: var(--foreground);">Draft</span></div>
+<p style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted-foreground);">button.primary <span>"OK"</span></p>
+<p style="margin: 0; font-size: 14px; line-height: 20px; white-space: pre-wrap;">The primary button should say Delete, not OK.</p>
+<div style="display: flex; justify-content: flex-end; gap: 4px;"><button type="button" aria-label="Edit" style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--muted-foreground); cursor: pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></button><button type="button" aria-label="Delete" style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--muted-foreground); cursor: pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button></div>
+</li>
+</ul>
+</section>
+<section style="display: flex; flex-direction: column; gap: 8px;">
+<h3 style="margin: 0; font-size: 12px; font-weight: 600; color: var(--muted-foreground);">Sent (1)</h3>
+<ul style="display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none;">
+<li style="display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card);">
+<div style="display: flex; align-items: center; gap: 8px;"><span style="display: flex; flex: 1; min-width: 0; align-items: center; gap: 8px;"><span style="display: grid; place-items: center; flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; background: var(--muted); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;">1</span><code style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted-foreground);">Dialog.dc.html:31</code></span><span style="display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; height: 20px; box-sizing: border-box; padding: 0 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; white-space: nowrap; background: var(--success); color: var(--success-foreground);">Delivered</span></div>
+<p style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted-foreground);">div.dialog &gt; p.message <span>"Delete this item?"</span></p>
+<p style="margin: 0; font-size: 14px; line-height: 20px; white-space: pre-wrap;">Name the reservation that will be removed.</p>
+<ul style="display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0 0 0 8px; border-left: 2px solid var(--border); list-style: none;">
+<li style="display: flex; flex-direction: column; gap: 2px; font-size: 14px;"><span style="font-weight: 600;">Claude</span><p style="margin: 0; font-size: 14px; line-height: 20px; white-space: pre-wrap;">The dialog text now includes the guest name and the dates.</p></li>
+</ul>
+<div style="display: flex; flex-direction: column; gap: 8px;">
+<textarea aria-label="Reply" placeholder="Reply to Claude" rows="2" style="display: block; width: 100%; min-height: 48px; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--input); border-radius: 10px; background: transparent; color: var(--foreground); font: inherit; font-size: 14px; resize: none;"></textarea>
+<div style="display: flex; justify-content: flex-end;"><button type="button" disabled style="display: inline-flex; align-items: center; justify-content: center; height: 34px; padding: 0 12px; border: 1px solid var(--primary); border-radius: 10px; background: var(--primary); color: var(--primary-foreground); font: inherit; font-size: 13px; font-weight: 600; opacity: 0.5;">Reply</button></div>
+</div>
+<button type="button" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--card); color: var(--foreground); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Resolve</button>
+</li>
+</ul>
+</section>
+<div style="display: flex; flex-direction: column; gap: 8px;">
+<div style="display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: var(--muted-foreground);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; transform: rotate({{chevronAngle}}deg);"><path d="m6 9 6 6 6-6"/></svg>Resolved (1)</div>
+<sc-if value="{{resolvedOpen}}" hint-placeholder-val="{{false}}">
+<ul style="display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none;">
+<li style="display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); opacity: 0.7;">
+<div style="display: flex; align-items: center; gap: 8px;"><span style="display: flex; flex: 1; min-width: 0; align-items: center; gap: 8px;"><span style="display: grid; place-items: center; flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; background: var(--muted); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;">3</span><code style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted-foreground);">Dialog.dc.html:12</code></span><span style="display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; height: 20px; box-sizing: border-box; padding: 0 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; white-space: nowrap; background: var(--muted); color: var(--foreground);">Resolved</span></div>
+<p style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted-foreground);">h2.title <span>"Delete item"</span></p>
+<p style="margin: 0; font-size: 14px; line-height: 20px; white-space: pre-wrap;">Use sentence case in the title.</p>
+<div style="display: flex; flex-direction: column; gap: 8px;">
+<p style="margin: 0; font-size: 12px; color: var(--muted-foreground);">Replying reopens this comment.</p>
+<textarea aria-label="Reply" placeholder="Reply to Claude" rows="2" style="display: block; width: 100%; min-height: 48px; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--input); border-radius: 10px; background: transparent; color: var(--foreground); font: inherit; font-size: 14px; resize: none;"></textarea>
+<div style="display: flex; justify-content: flex-end;"><button type="button" disabled style="display: inline-flex; align-items: center; justify-content: center; height: 34px; padding: 0 12px; border: 1px solid var(--primary); border-radius: 10px; background: var(--primary); color: var(--primary-foreground); font: inherit; font-size: 13px; font-weight: 600; opacity: 0.5;">Reply</button></div>
+</div>
+</li>
+</ul>
+</sc-if>
+</div>
+</sc-if>
+</div>
+<footer style="display: flex; flex-direction: column; gap: 8px; padding: 16px; border-top: 1px solid var(--border);">
+<p style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted-foreground);">Session: irsim canvas</p>
+<button type="button" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 42px; padding: 0 16px; border: 1px solid var(--primary); border-radius: 10px; background: var(--primary); color: var(--primary-foreground); font: inherit; font-size: 14px; font-weight: 600; opacity: {{sendOpacity}};"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>{{sendLabel}}</button>
+</footer>
+</aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"open","options":["open","resolved","empty"]},"$preview":{"width":320,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const state = this.props.state
+    const isEmpty = state === 'empty'
+    const resolvedOpen = state === 'resolved'
+    return {
+      themeClass: this.props.theme === 'dark' ? 'dark' : '',
+      isEmpty,
+      hasComments: !isEmpty,
+      resolvedOpen,
+      chevronAngle: resolvedOpen ? 0 : -90,
+      bodyJustify: resolvedOpen ? 'flex-end' : 'flex-start',
+      count: isEmpty ? 0 : 3,
+      sendLabel: isEmpty ? 'Send 0 comments' : 'Send 1 comment',
+      sendOpacity: isEmpty ? 0.5 : 1,
+    }
+  }
+}
+</script>
+</body>
+</html>

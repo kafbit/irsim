@@ -2,14 +2,294 @@
   "version": 1,
   "pages": [
     {
-      "id": "unsorted",
-      "title": "Unsorted",
+      "id": "canvas-app",
+      "title": "Canvas app",
       "boards": [
+        {
+          "name": "CanvasApp",
+          "title": "Canvas app",
+          "x": 0,
+          "y": 0,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "name": "CanvasAppSelected",
+          "title": "Canvas app: board selected",
+          "x": 1520,
+          "y": 0,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "name": "CanvasAppZoomedOut",
+          "title": "Canvas app: zoomed out",
+          "x": 3040,
+          "y": 0,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "name": "CanvasAppThumbnailsLoading",
+          "title": "Canvas app: thumbnails loading",
+          "x": 4560,
+          "y": 0,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "name": "CanvasAppPlaying",
+          "title": "Canvas app: board playing on the canvas",
+          "x": 0,
+          "y": 980,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "name": "CanvasAppCommenting",
+          "title": "Canvas app: comment mode",
+          "x": 1520,
+          "y": 980,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "name": "CanvasAppToast",
+          "title": "Canvas app: toast",
+          "x": 3040,
+          "y": 980,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "name": "CanvasAppEmptyPage",
+          "title": "Canvas app: empty page",
+          "x": 4560,
+          "y": 980,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "name": "CanvasFrame",
+          "title": "Canvas frame",
+          "x": 0,
+          "y": 1960,
+          "width": 400,
+          "height": 308
+        },
+        {
+          "name": "CanvasFrameSelected",
+          "title": "Frame: selected",
+          "x": 480,
+          "y": 1960,
+          "width": 400,
+          "height": 308
+        },
+        {
+          "name": "CanvasFrameThumbnail",
+          "title": "Frame: thumbnail",
+          "x": 960,
+          "y": 1960,
+          "width": 400,
+          "height": 308
+        },
+        {
+          "name": "CanvasFramePending",
+          "title": "Frame: thumbnail pending",
+          "x": 1440,
+          "y": 1960,
+          "width": 400,
+          "height": 308
+        },
+        {
+          "name": "CanvasFrameFailed",
+          "title": "Frame: thumbnail failed",
+          "x": 1920,
+          "y": 1960,
+          "width": 400,
+          "height": 308
+        },
+        {
+          "name": "CanvasFramePlaying",
+          "title": "Frame: playing on the canvas",
+          "x": 0,
+          "y": 2348,
+          "width": 400,
+          "height": 308
+        },
+        {
+          "name": "CanvasFrameCommenting",
+          "title": "Frame: comment mode",
+          "x": 480,
+          "y": 2348,
+          "width": 400,
+          "height": 308
+        },
+        {
+          "name": "CanvasFrameApproved",
+          "title": "Frame: approved prototype",
+          "x": 960,
+          "y": 2348,
+          "width": 400,
+          "height": 308
+        },
+        {
+          "name": "CanvasFrameChanged",
+          "title": "Frame: changed since approval",
+          "x": 1440,
+          "y": 2348,
+          "width": 400,
+          "height": 308
+        },
+        {
+          "name": "CanvasSidebar",
+          "title": "Canvas sidebar",
+          "x": 0,
+          "y": 2736,
+          "width": 288,
+          "height": 820
+        },
+        {
+          "name": "CanvasInspector",
+          "title": "Canvas inspector",
+          "x": 368,
+          "y": 2736,
+          "width": 288,
+          "height": 820
+        },
+        {
+          "name": "CanvasThread",
+          "title": "Canvas comments panel",
+          "x": 736,
+          "y": 2736,
+          "width": 320,
+          "height": 820
+        },
+        {
+          "name": "CanvasThreadResolved",
+          "title": "Comments panel: resolved",
+          "x": 1136,
+          "y": 2736,
+          "width": 320,
+          "height": 820
+        },
+        {
+          "name": "CanvasThreadEmpty",
+          "title": "Comments panel: empty",
+          "x": 1536,
+          "y": 2736,
+          "width": 320,
+          "height": 820
+        },
+        {
+          "name": "CanvasPages",
+          "title": "Canvas pages",
+          "x": 0,
+          "y": 3636,
+          "width": 960,
+          "height": 560
+        },
+        {
+          "name": "CanvasToolbar",
+          "title": "Canvas toolbar",
+          "x": 1040,
+          "y": 3636,
+          "width": 220,
+          "height": 48
+        },
+        {
+          "name": "CanvasToolbarComment",
+          "title": "Toolbar: comment tool",
+          "x": 1340,
+          "y": 3636,
+          "width": 220,
+          "height": 48
+        },
+        {
+          "name": "CanvasFocusBar",
+          "title": "Canvas focus bar",
+          "x": 1640,
+          "y": 3636,
+          "width": 380,
+          "height": 40
+        },
+        {
+          "name": "CanvasToast",
+          "title": "Canvas toast",
+          "x": 2100,
+          "y": 3636,
+          "width": 420,
+          "height": 44
+        },
+        {
+          "name": "CanvasZoomBar",
+          "title": "Canvas zoom bar",
+          "x": 0,
+          "y": 4276,
+          "width": 260,
+          "height": 200
+        },
+        {
+          "name": "CanvasZoomBarMenu",
+          "title": "Zoom bar: menu open",
+          "x": 340,
+          "y": 4276,
+          "width": 260,
+          "height": 420
+        },
+        {
+          "name": "UpdateNotice",
+          "title": "Update notice",
+          "x": 0,
+          "y": 4776,
+          "width": 720,
+          "height": 560
+        },
+        {
+          "name": "UpdateNoticeRestart",
+          "title": "Update notice: restart",
+          "x": 800,
+          "y": 4776,
+          "width": 720,
+          "height": 560
+        },
+        {
+          "name": "UpdateNoticeUpdating",
+          "title": "Update notice: updating",
+          "x": 1600,
+          "y": 4776,
+          "width": 720,
+          "height": 560
+        },
+        {
+          "name": "UpdateNoticeRestarting",
+          "title": "Update notice: restarting",
+          "x": 2400,
+          "y": 4776,
+          "width": 720,
+          "height": 560
+        },
+        {
+          "name": "UpdateNoticeFailed",
+          "title": "Update notice: failed",
+          "x": 3200,
+          "y": 4776,
+          "width": 720,
+          "height": 560
+        },
+        {
+          "name": "UpdateNoticeNotBack",
+          "title": "Update notice: canvas did not come back",
+          "x": 4000,
+          "y": 4776,
+          "width": 720,
+          "height": 560
+        },
         {
           "name": "Home",
           "title": "irsim canvas",
           "x": 0,
-          "y": 0,
+          "y": 5416,
           "width": 960,
           "height": 600
         }

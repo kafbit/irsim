@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<title>Canvas inspector</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.cv-root{--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted:#efefeb;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a}
+.cv-root.dark{--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8}
+</style>
+</helmet>
+<div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="display: flex; width: 100%; min-height: 100vh; background: var(--card); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
+<aside aria-label="Inspector" style="display: flex; flex-direction: column; gap: 16px; width: 288px; flex-shrink: 0; box-sizing: border-box; min-height: 100vh; padding: 16px; background: var(--card); border-right: 1px solid var(--border);">
+<header style="display: flex; flex-direction: column; gap: 4px;">
+<h2 style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; line-height: 24px; font-weight: 600;">Dialog</h2>
+<p style="margin: 0; font-size: 14px; color: var(--muted-foreground);">Confirmation dialog</p>
+</header>
+<dl style="display: flex; flex-direction: column; gap: 12px; margin: 0;">
+<div style="display: flex; flex-direction: column; gap: 4px;">
+<dt style="font-size: 12px; color: var(--muted-foreground);">Size</dt>
+<dd style="margin: 0; font-size: 14px; font-variant-numeric: tabular-nums;">480 × 320</dd>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px;">
+<dt style="font-size: 12px; color: var(--muted-foreground);">File</dt>
+<dd style="margin: 0; font-size: 14px;"><span style="display: flex; align-items: center; gap: 4px;"><code style="min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px;">design/Dialog.dc.html</code><button type="button" aria-label="Copy path" style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--muted-foreground); cursor: pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg></button></span></dd>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px;">
+<dt style="font-size: 12px; color: var(--muted-foreground);">{{importsLabel}}</dt>
+<dd style="margin: 0; font-size: 14px;">
+<sc-if value="{{hasImports}}" hint-placeholder-val="{{true}}">
+<ul style="display: flex; flex-direction: column; margin: 0 -8px; padding: 0; list-style: none;">
+<sc-for list="{{imports}}" as="name"><li><button type="button" style="display: block; width: 100%; box-sizing: border-box; padding: 4px 8px; overflow: hidden; border: 0; border-radius: 8px; background: transparent; text-align: left; text-overflow: ellipsis; white-space: nowrap; font: inherit; font-size: 14px; color: var(--foreground); cursor: pointer;">{{name}}</button></li></sc-for>
+</ul>
+</sc-if>
+<sc-if value="{{noImports}}" hint-placeholder-val="{{false}}">
+<span style="color: var(--muted-foreground);">None</span>
+</sc-if>
+</dd>
+</div>
+</dl>
+<section aria-label="Approve" style="display: flex; flex-direction: column; gap: 8px;">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+<h3 style="margin: 0; font-size: 12px; font-weight: 400; color: var(--muted-foreground);">Approval</h3>
+<sc-if value="{{hasBadge}}" hint-placeholder-val="{{true}}">
+<span style="display: inline-flex; align-items: center; height: 20px; box-sizing: border-box; padding: 0 8px; border-radius: 9999px; background: {{badgeBg}}; color: {{badgeFg}}; font-size: 11px; font-weight: 600; white-space: nowrap;">{{badgeText}}</span>
+</sc-if>
+</div>
+<div style="box-sizing: border-box; min-height: 64px; padding: 8px 10px; border: 1px solid var(--input); border-radius: 10px; font-size: 14px; color: var(--muted-foreground);">Note for Claude (optional)</div>
+<p style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted-foreground);">Session: Claude Code session</p>
+<button type="button" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 12px 0 10px; border: 1px solid var(--primary); border-radius: 10px; background: var(--primary); color: var(--primary-foreground); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Approve and build</button>
+<sc-if value="{{queued}}" hint-placeholder-val="{{false}}">
+<p role="status" style="margin: 0; font-size: 12px; color: var(--muted-foreground);">Waiting for Claude to receive it.</p>
+</sc-if>
+</section>
+<button type="button" style="display: inline-flex; align-items: center; justify-content: center; height: 34px; padding: 0 12px; border: 1px solid transparent; border-radius: 10px; background: var(--secondary); color: var(--foreground); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Open alone</button>
+</aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"approval":{"editor":"enum","default":"none","options":["none","approved","changed","queued"]},"imports":{"editor":"enum","default":"3","options":["3","0"]},"$preview":{"width":288,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const { approval, imports, theme } = this.props
+    const names = String(imports) === '0' ? [] : ['Button', 'Icons', 'Badge']
+    const badge = {
+      approved: { text: 'Approved', bg: 'var(--success)', fg: 'var(--success-foreground)' },
+      changed: { text: 'Changed since approval', bg: 'var(--warning)', fg: 'var(--warning-foreground)' },
+    }[approval]
+    return {
+      themeClass: theme === 'dark' ? 'dark' : '',
+      importsLabel: `Imports (${names.length})`,
+      imports: names,
+      hasImports: names.length > 0,
+      noImports: names.length === 0,
+      hasBadge: Boolean(badge),
+      badgeText: badge ? badge.text : '',
+      badgeBg: badge ? badge.bg : 'transparent',
+      badgeFg: badge ? badge.fg : 'inherit',
+      queued: approval === 'queued',
+    }
+  }
+}
+</script>
+</body>
+</html>
