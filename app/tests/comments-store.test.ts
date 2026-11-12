@@ -14,6 +14,7 @@ import {
   sendDrafts,
   updateComment,
   upsertSession,
+  whenWritesIdle,
   type NewComment,
 } from '../src/lib/comments-store'
 
@@ -370,6 +371,19 @@ describe('comments store', () => {
       const path = await imagePath(id)
       expect(claimed.comments[0]?.imagePaths).toEqual([path])
       expect(claimed.text).toContain(`   image: ${path}`)
+    })
+  })
+
+  describe('whenWritesIdle', () => {
+    it('resolves once the queued writes finish', async () => {
+      const pending = createComment(input())
+      await whenWritesIdle(5000)
+      expect((await listComments()).length).toBe(1)
+      await pending
+    })
+
+    it('resolves at once when nothing is queued', async () => {
+      await whenWritesIdle(5000)
     })
   })
 })
