@@ -356,6 +356,30 @@
           "y": 6396,
           "width": 1440,
           "height": 900
+        },
+        {
+          "name": "CanvasPlayViewZoomMenu",
+          "title": "Play view: zoom menu",
+          "x": 0,
+          "y": 7376,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "name": "CanvasPlayViewTall",
+          "title": "Play view: tall board at normal zoom",
+          "x": 1520,
+          "y": 7376,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "name": "CanvasPlayViewContain",
+          "title": "Play view: tall board contained",
+          "x": 3040,
+          "y": 7376,
+          "width": 1440,
+          "height": 900
         }
       ]
     }

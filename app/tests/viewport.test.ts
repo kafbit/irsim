@@ -10,8 +10,10 @@ import {
   scaleToFit,
   stateFromView,
   viewOf,
+  readZoom,
   withSize,
   writeViewport,
+  zoomScale,
 } from '../src/canvas/viewport'
 
 const board = { width: 960, height: 600 }
@@ -154,5 +156,42 @@ describe('viewOf and stateFromView', () => {
       height: 600,
     })
     expect(stateFromView({ ...view, preset: 'whatever' }).preset).toBe('responsive')
+  })
+})
+
+describe('readZoom', () => {
+  it('defaults to normal for nothing or garbage', () => {
+    expect(readZoom(null)).toBe('normal')
+    expect(readZoom('')).toBe('normal')
+    expect(readZoom('huge')).toBe('normal')
+  })
+
+  it('accepts the three modes', () => {
+    expect(readZoom('normal')).toBe('normal')
+    expect(readZoom('fit-width')).toBe('fit-width')
+    expect(readZoom('contain')).toBe('contain')
+  })
+})
+
+describe('zoomScale', () => {
+  const space = { width: 1440, height: 852 }
+
+  it('keeps normal at 1 even for a tall board', () => {
+    expect(zoomScale('normal', { width: 390, height: 5200 }, space)).toBe(1)
+  })
+
+  it('fits the width for fit-width', () => {
+    expect(
+      zoomScale('fit-width', { width: 1280, height: 800 }, { width: 1000, height: 600 }),
+    ).toBeCloseTo((1000 - 48) / 1280)
+  })
+
+  it('never scales fit-width above 1', () => {
+    expect(zoomScale('fit-width', { width: 390, height: 844 }, space)).toBe(1)
+  })
+
+  it('equals playScale for contain', () => {
+    const size = { width: 390, height: 5200 }
+    expect(zoomScale('contain', size, space)).toBe(playScale(size, space))
   })
 })

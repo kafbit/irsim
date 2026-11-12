@@ -23,39 +23,42 @@ import type { PlacedBoard, Size } from './geometry'
 import {
   presetState,
   readViewport,
+  readZoom,
   rotate,
-  scaleToFit,
   stateFromView,
   type PresetId,
   type ViewportState,
   viewOf,
   withSize,
   writeViewport,
+  type ZoomMode,
+  zoomScale,
 } from './viewport'
 import { ViewportBar } from './viewport-bar'
 
 export { playScale } from './viewport'
 
 const STORAGE_KEY = 'canvas:play-viewport'
+const ZOOM_KEY = 'canvas:play-zoom'
 const SHADOW = 'shadow-[0_14px_36px_rgba(20,22,26,0.14)]'
 const GRIP = 'absolute rounded-[3px] bg-border-strong'
 
 type Axis = { x: boolean; y: boolean }
 type Drag = { x: number; y: number; width: number; height: number; k: number; axis: Axis }
 
-const readStored = (): string | null => {
+const readStored = (key: string): string | null => {
   try {
-    return localStorage.getItem(STORAGE_KEY)
+    return localStorage.getItem(key)
   } catch {
     return null
   }
 }
 
-const store = (state: ViewportState) => {
+const store = (key: string, value: string) => {
   try {
-    localStorage.setItem(STORAGE_KEY, writeViewport(state))
+    localStorage.setItem(key, value)
   } catch {
-    // Storage can be blocked: the viewport then lasts for this view only.
+    // Storage can be blocked: the choice then lasts for this view only.
   }
 }
 
@@ -115,8 +118,9 @@ export function PlayView({
 }) {
   const [space, setSpace] = useState<Size | null>(null)
   const [state, setState] = useState<ViewportState>(() =>
-    start ? stateFromView(start.view) : readViewport(readStored(), board),
+    start ? stateFromView(start.view) : readViewport(readStored(STORAGE_KEY), board),
   )
+  const [zoom, setZoom] = useState<ZoomMode>(() => readZoom(readStored(ZOOM_KEY)))
   const [commenting, setCommenting] = useState(false)
   const [pick, setPick] = useState<PickedElement | null>(null)
   const [panelOpen, setPanelOpen] = useState(start !== null)
@@ -152,7 +156,7 @@ export function PlayView({
   const shown: ViewportState = fillFit
     ? { ...state, width: Math.round(space?.width ?? 0), height: Math.round(space?.height ?? 0) }
     : state
-  const k = fillFit ? 1 : space ? scaleToFit(shown, space) : 0
+  const k = fillFit ? 1 : space ? zoomScale(zoom, shown, space) : 0
   const visible = fillFit || k > 0
   const boxWidth = shown.width * k
   const boxHeight = shown.height * k
@@ -161,7 +165,12 @@ export function PlayView({
 
   const change = (next: ViewportState) => {
     setState(next)
-    store(next)
+    store(STORAGE_KEY, writeViewport(next))
+  }
+
+  const changeZoom = (next: ZoomMode) => {
+    setZoom(next)
+    store(ZOOM_KEY, next)
   }
 
   const setComment = (on: boolean) => {
@@ -364,10 +373,13 @@ export function PlayView({
         <ViewportBar
           state={shown}
           scale={k}
+          zoom={zoom}
+          zoomDisabled={fillFit}
           boardSize={{ width: board.width, height: board.height }}
           onPreset={(id) => change(presetState(id, board, shown))}
           onSize={(width, height) => change(withSize(state, width, height))}
           onRotate={() => change(rotate(state))}
+          onZoom={changeZoom}
         />
         <div className="flex items-center justify-end gap-2">
           <Button
@@ -385,10 +397,17 @@ export function PlayView({
         </div>
       </header>
       <div className="flex min-h-0 flex-1">
-        <div ref={measure} className="relative flex min-w-0 flex-1 items-center justify-center">
+        <div
+          ref={measure}
+          className={`relative flex min-w-0 flex-1 ${fillFit ? 'overflow-hidden' : 'overflow-auto'}`}
+        >
           {visible ? (
             <div
-              className={fillFit ? 'absolute inset-0' : 'flex flex-col items-center'}
+              className={
+                fillFit
+                  ? 'absolute inset-0'
+                  : 'm-auto flex min-h-0 shrink-0 flex-col items-center p-6'
+              }
             >
               <div
                 data-board={board.name}

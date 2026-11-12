@@ -20,6 +20,21 @@ export const playScale = (board: Size, space: Size): number =>
     Math.max(0.05, (space.height - PAD * 2) / Math.max(board.height, 1)),
   )
 
+export type ZoomMode = 'normal' | 'fit-width' | 'contain'
+export const ZOOM_MODES: readonly ZoomMode[] = ['normal', 'fit-width', 'contain']
+
+export const isZoomMode = (value: unknown): value is ZoomMode =>
+  typeof value === 'string' && (ZOOM_MODES as readonly string[]).includes(value)
+
+export const readZoom = (raw: string | null): ZoomMode => (isZoomMode(raw) ? raw : 'normal')
+
+/** The scale of the board in the stage: normal is 1, fit-width fills the width, contain shows it all. */
+export const zoomScale = (mode: ZoomMode, size: Size, space: Size): number => {
+  if (mode === 'normal') return 1
+  if (mode === 'contain') return playScale(size, space)
+  return Math.min(1, Math.max(0.05, (space.width - PAD * 2) / Math.max(size.width, 1)))
+}
+
 export const clampSide = (value: number): number =>
   Number.isNaN(value) ? MIN_SIDE : Math.min(MAX_SIDE, Math.max(MIN_SIDE, Math.round(value)))
 

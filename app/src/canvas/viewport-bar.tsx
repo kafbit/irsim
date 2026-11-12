@@ -13,11 +13,17 @@ import { Check, ChevronDown, Monitor, RotateIcon } from '../ui/icons'
 import { FIELD_EDGE } from '../ui/input'
 import { cn } from '../ui/cn'
 import { DEVICE_PRESETS, presetLabel } from '../lib/view-label'
-import { clampSide, type PresetId, type ViewportState } from './viewport'
+import { clampSide, type PresetId, type ViewportState, type ZoomMode } from './viewport'
 
 type Entry = { id: PresetId; label: string; hint: string }
 
 const size = (width: number, height: number) => `${width} × ${height}`
+
+const ZOOMS: { id: ZoomMode; label: string; hint: string }[] = [
+  { id: 'normal', label: 'Normal', hint: '100%' },
+  { id: 'fit-width', label: 'Fit width', hint: 'Fills the width' },
+  { id: 'contain', label: 'Contain', hint: 'Shows it all' },
+]
 
 const DEVICES: Entry[] = DEVICE_PRESETS.map((preset) => ({
   id: preset.id,
@@ -64,17 +70,23 @@ function SideInput({
 export function ViewportBar({
   state,
   scale,
+  zoom,
+  zoomDisabled = false,
   boardSize,
   onPreset,
   onSize,
   onRotate,
+  onZoom,
 }: {
   state: ViewportState
   scale: number
+  zoom: ZoomMode
+  zoomDisabled?: boolean
   boardSize?: { width: number; height: number }
   onPreset: (id: PresetId) => void
   onSize: (width: number, height: number) => void
   onRotate: () => void
+  onZoom: (mode: ZoomMode) => void
 }) {
   const row = (entry: Entry) => (
     <DropdownMenuItem
@@ -147,9 +159,37 @@ export function ViewportBar({
         onClick={onRotate}
         className="size-8"
       />
-      <span className="min-w-9 text-end text-[13px] text-muted-foreground tabular-nums">
-        {Math.round(scale * 100)}%
-      </span>
+      <DropdownMenu dir="ltr">
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label="Zoom"
+            disabled={zoomDisabled}
+            className="text-muted-foreground tabular-nums aria-expanded:bg-secondary"
+          >
+            {`${Math.round(scale * 100)}%`}
+            <ChevronDown className="size-3.5" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent lang="en" align="end" aria-label="Zoom" className="w-62 p-1">
+          {ZOOMS.map((entry) => (
+            <DropdownMenuItem
+              key={entry.id}
+              role="menuitemradio"
+              aria-checked={zoom === entry.id}
+              className="min-h-8 gap-2 px-2 text-[13px]"
+              onSelect={() => onZoom(entry.id)}
+            >
+              <span className="inline-flex w-3.5 shrink-0">
+                {zoom === entry.id ? <Check className="size-3.5" /> : null}
+              </span>
+              <span className="flex-1">{entry.label}</span>
+              <span className="text-xs text-muted-foreground">{entry.hint}</span>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   )
 }

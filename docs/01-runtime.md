@@ -121,7 +121,7 @@ of the page, prototypes first, and plays the pick full screen. `/p/<page>?board=
 opens a board already playing.
 
 In full screen play, a web page fills the window and scrolls like a site; every other board keeps
-its size and shrinks to fit. `"expand": "fill"` on the board's entry in `canvas.json` makes it a
+its size and scrolls when it is larger than the window. `"expand": "fill"` on the board's entry in `canvas.json` makes it a
 page, and any other `expand` value does not. Without `expand`, a board at least 1024 px wide whose
 root element (the first one after `<helmet>`) has no `width: <n>px` in its inline style is a page.
 
@@ -135,7 +135,10 @@ Every board has a full screen Play view, whether or not it is a prototype. Its h
 viewport the board lays out for, so the board's media queries answer to it: Fit window, Phone
 390 x 844, Large phone 430 x 932, Tablet 768 x 1024, Laptop 1280 x 800, Desktop 1440 x 900, Board
 size, or Responsive, where the edges of the frame are dragged and the width and height boxes accept
-a size from 200 to 4000. Rotate swaps width and height. The choice is kept in the browser. The
+a size from 200 to 4000. Rotate swaps width and height. The board is shown at 100% and a board
+larger than the stage scrolls inside it; the zoom menu next to the percentage switches to Fit width
+(the width fills the stage) or Contain (the whole board shrinks to fit). The choices are kept in the
+browser. The
 Comment button (or C) picks an element in the frame. The comment stores a `view` with the viewport
 size, its preset and the scroll position of the frame. A comment card with a `view` shows the
 viewport as a chip, and shows "Viewing at ..." while Play is at that size. Clicking such a card on
