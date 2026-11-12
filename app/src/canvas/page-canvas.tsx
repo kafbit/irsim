@@ -9,7 +9,7 @@ import { ApproveBox } from './approvals/approve-box'
 import { approvalStateOf, useApprovals } from './approvals/use-approvals'
 import { CommentLayer } from './comments/comment-layer'
 import { Composer } from './comments/composer'
-import { numberComments } from './comments/model'
+import { boardPick, numberComments } from './comments/model'
 import { ThreadPanel } from './comments/thread-panel'
 import type { Comment, PickedElement } from './comments/types'
 import { useBoardReloads } from './comments/use-board-reloads'
@@ -276,6 +276,15 @@ export function PageCanvas({
     [boards, playFlags.flags],
   )
   const byName = useMemo(() => new Map(shown.map((board) => [board.name, board])), [shown])
+  // Read through a ref so `commentOnBoard` stays stable while a drag changes `byName`, and the memoized frames do not re-render.
+  const latestByName = useRef(byName)
+  useEffect(() => {
+    latestByName.current = byName
+  })
+  const commentOnBoard = useCallback((name: string) => {
+    const board = latestByName.current.get(name)
+    if (board) setPick(boardPick(board))
+  }, [])
   const ordered = useMemo(
     () => order.map((name) => byName.get(name)).filter((board) => board !== undefined),
     [byName, order],
@@ -331,6 +340,7 @@ export function PageCanvas({
                 approval={approvalStateOf(approvals.approvals.get(board.name))}
                 thumb={thumbs[board.name]}
                 onSelect={select}
+                onComment={commentOnBoard}
                 onPlay={playBoard}
                 onStop={stopPlay}
               />

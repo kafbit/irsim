@@ -1,5 +1,7 @@
 import { memo } from 'react'
 import type { PlacedBoard } from '../geometry'
+import { isWholeBoard } from '../../lib/place-text'
+import { placedRect } from './model'
 import type { Comment } from './types'
 
 /** Draft pins are muted, sent ones primary. A reply adds a saffron dot. */
@@ -32,6 +34,8 @@ export const CommentLayer = memo(function CommentLayer({
         const frame = boards.find((board) => board.name === comment.board)
         if (!frame || comment.status === 'resolved') return null
         const number = numbers.get(comment.id) ?? 0
+        const whole = isWholeBoard(comment)
+        const rect = placedRect(frame, comment)
         return (
           <button
             key={comment.id}
@@ -43,9 +47,11 @@ export const CommentLayer = memo(function CommentLayer({
               activeId === comment.id ? 'outline-2 outline-offset-2 outline-ring' : ''
             }`}
             style={{
-              left: frame.x + comment.rect.x + comment.rect.width,
-              top: frame.y + comment.rect.y,
-              transform: 'translate(-50%, -50%) scale(var(--inv, 1))',
+              left: frame.x + rect.x + rect.width,
+              top: frame.y + rect.y,
+              transform: `${
+                whole ? 'translate(calc(-20px * var(--inv, 1)), calc(20px * var(--inv, 1))) ' : ''
+              }translate(-50%, -50%) scale(var(--inv, 1))`,
             }}
           >
             {number}

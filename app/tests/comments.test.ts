@@ -121,6 +121,14 @@ describe('parsePick', () => {
     expect(parsePick({ ...message, details: { ...message.details, rect: { x: 1 } } })).toBeNull()
     expect(parsePick(null)).toBeNull()
   })
+
+  it('accepts line 0 for a whole board and rejects a negative, fractional or NaN line', () => {
+    const withLine = (line: number) => ({ ...message, details: { ...message.details, line } })
+    expect(parsePick(withLine(0))).not.toBeNull()
+    for (const line of [-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(parsePick(withLine(line))).toBeNull()
+    }
+  })
 })
 
 describe('comment lists', () => {

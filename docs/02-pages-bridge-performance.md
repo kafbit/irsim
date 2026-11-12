@@ -172,7 +172,7 @@ type Session = { id: string; label: string; cwd: string; lastSeen: string }  // 
 `text` from `claim`, the turn the session receives, written once on the server so the plugin and the CLI agree:
 
 ```
-Design canvas: 2 comments on page sales (batch b_…). Read only the lines named; boards live in design/.
+Design canvas: 2 comments on page sales (batch b_…). Read only the lines named. Boards live in design/.
 1. design/Table.dc.html:142 · td.bt-row > span "خالد الشهري" · on board Leads
    Make the name column wider.
 2. design/Leads.dc.html:57 · button "عميل جديد"

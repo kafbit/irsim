@@ -108,7 +108,14 @@ export const createPicker = (post) => {
       return
     }
     const box = element.getBoundingClientRect()
-    outline.style.cssText = `${BASE};outline:${lineWidth()}px solid ${ringColor()};left:${box.left}px;top:${box.top}px;width:${box.width}px;height:${box.height}px`
+    const css = (/** @type {number} */ left, /** @type {number} */ top) =>
+      `${BASE};outline:${lineWidth()}px solid ${ringColor()};left:${left}px;top:${top}px;width:${box.width}px;height:${box.height}px`
+    // A fixed box is placed inside the viewport's scrollbars, getBoundingClientRect outside them: an
+    // RTL page has its scrollbar on the left, so read the real origin back and subtract it. A
+    // scrollbar can appear without a resize, so the origin is measured on every show.
+    outline.style.cssText = css(0, 0)
+    const origin = outline.getBoundingClientRect()
+    outline.style.cssText = css(box.left - origin.left, box.top - origin.top)
   }
 
   /** @param {Event} event */
@@ -140,6 +147,7 @@ export const createPicker = (post) => {
     document[action]('click', onClick, true)
     for (const type of SWALLOWED) document[action](type, swallow, true)
     window[action]('scroll', refresh, true)
+    window[action]('resize', refresh)
     if (on && !outline) {
       outline = document.createElement('div')
       outline.style.cssText = `${BASE};display:none`

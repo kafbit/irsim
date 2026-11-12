@@ -16,12 +16,10 @@ A change to one updates the other in the same pull request.
 | `canvas/focus-bar.tsx` | `CanvasFocusBar` |
 | `canvas/toast.tsx` | `CanvasToast` |
 | `canvas/comments/thread-panel.tsx`, `canvas/comments/comment-card.tsx` | `CanvasThread`, `CanvasThreadResolved`, `CanvasThreadEmpty` |
-| `canvas/frame.tsx`, `canvas/overlay.tsx` | `CanvasFrame` and the `CanvasFrame*` state boards |
+| `canvas/frame.tsx`, `canvas/overlay.tsx` | `CanvasFrame` and the `CanvasFrame*` state boards, among them `CanvasFrameCommentingTitle` for the frame title in comment mode |
 | `canvas/update-notice.tsx`, `canvas/use-update.ts` | `UpdateNotice` and the `UpdateNotice*` state boards |
 | `canvas/canvas.tsx`, `canvas/page-canvas.tsx` and any layout of the parts above | `CanvasApp` and the `CanvasApp*` state boards |
 | `app/ui-tokens.css`, `app/globals.css` | the token block in every `Canvas*` and `UpdateNotice*` board |
-
-`Home` is the sample board that `irsim init` creates. It draws no part of the app and has no row above.
 
 ## When you change the canvas app
 

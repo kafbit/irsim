@@ -1,5 +1,6 @@
 'use client'
 
+import { placeText } from '../../lib/place-text'
 import { Button, Textarea } from '../../ui'
 import { useState } from 'react'
 import { ImageStrip } from './image-strip'
@@ -40,7 +41,7 @@ export function CommentForm({
   return (
     <>
       <code dir="ltr" className="truncate text-xs text-muted-foreground">
-        {pick.file}:{pick.line}
+        {placeText(pick)}
       </code>
       <Textarea
         ref={focusOnMount}

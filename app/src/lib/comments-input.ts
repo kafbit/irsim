@@ -10,6 +10,8 @@ export const isText = (value: unknown): value is string =>
 const isNumber = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value)
 
+const isLine = (value: unknown): value is number => Number.isInteger(value) && (value as number) >= 0
+
 export const bad = (message: string): Response => Response.json({ error: message }, { status: 400 })
 
 export const readBody = async (request: Request): Promise<Record<string, unknown> | Response> => {
@@ -42,7 +44,7 @@ export const hasUnknownImage = async (ids: string[]): Promise<boolean> =>
 export const parseNewComment = (body: Record<string, unknown>): NewComment | string => {
   const { page, board, file, line, element, rect } = body
   if (!isText(page) || !isText(board) || !isText(file)) return 'page, board and file must be text'
-  if (!isNumber(line)) return 'line must be a number'
+  if (!isLine(line)) return 'line must be an integer of 0 or more'
   if (!isText(body.body)) return 'body must be text'
   if (
     !isRecord(element) ||

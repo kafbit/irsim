@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useRef } from 'react'
 import type { Camera } from '../camera'
 import type { PlacedBoard } from '../geometry'
+import { isWholeBoard } from '../../lib/place-text'
 import { CommentForm } from './comment-form'
-import { placePanel, toScreen } from './model'
+import { placedRect, placePanel, toScreen } from './model'
 import type { PickedElement } from './types'
 
 export const PANEL = { width: 320, height: 200 }
@@ -37,7 +38,7 @@ export function Composer({
     () =>
       camera.subscribe((view, size) => {
         if (!frame || !box.current || !panel.current) return
-        const rect = toScreen(frame, pick.rect, view)
+        const rect = toScreen(frame, placedRect(frame, pick), view)
         box.current.style.width = `${rect.width}px`
         box.current.style.height = `${rect.height}px`
         box.current.style.transform = `translate(${rect.x}px, ${rect.y}px)`
@@ -52,7 +53,9 @@ export function Composer({
       <div
         ref={box}
         aria-hidden="true"
-        className="outline-pick pointer-events-none absolute start-0 top-0 outline-2"
+        className={`outline-pick pointer-events-none absolute start-0 top-0 outline-2 ${
+          isWholeBoard(pick) ? '-outline-offset-2' : ''
+        }`}
       />
       <div
         ref={panel}

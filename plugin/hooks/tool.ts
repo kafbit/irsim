@@ -26,11 +26,15 @@ export const TOOL_SCHEMA = {
   required: ['action'],
 }
 
-function commentLine(comment: Comment): string {
+const isWholeBoard = (comment: Comment): boolean => comment.line === 0
+
+export function commentLine(comment: Comment): string {
   const replies = comment.replies.length
+  const place = isWholeBoard(comment) ? comment.file : `${comment.file}:${comment.line}`
+  const target = `${isWholeBoard(comment) ? 'board' : comment.element.path} "${comment.element.text}"`
   const tail = replies > 0 ? ` (${replies} ${replies === 1 ? 'reply' : 'replies'})` : ''
   return oneLine(
-    `${comment.id} ${comment.status} ${comment.file}:${comment.line} "${comment.element.text}" ${comment.body}${tail}`,
+    `${comment.id} ${comment.status} ${place} ${target} ${comment.body}${tail}`,
   )
 }
 

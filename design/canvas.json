@@ -142,6 +142,30 @@
           "height": 308
         },
         {
+          "name": "CanvasFrameCommentingTitle",
+          "title": "Frame: comment mode, title hovered",
+          "x": 1920,
+          "y": 2348,
+          "width": 400,
+          "height": 308
+        },
+        {
+          "name": "CanvasFrameCommentingBoard",
+          "title": "Frame: comment mode, whole-board comment",
+          "x": 2400,
+          "y": 2348,
+          "width": 400,
+          "height": 308
+        },
+        {
+          "name": "CanvasFrameCommentingBoardDraft",
+          "title": "Frame: comment mode, whole-board draft",
+          "x": 2880,
+          "y": 2348,
+          "width": 400,
+          "height": 308
+        },
+        {
           "name": "CanvasSidebar",
           "title": "Canvas sidebar",
           "x": 0,
@@ -284,14 +308,6 @@
           "y": 4776,
           "width": 720,
           "height": 560
-        },
-        {
-          "name": "Home",
-          "title": "irsim canvas",
-          "x": 0,
-          "y": 5416,
-          "width": 960,
-          "height": 600
         }
       ]
     }

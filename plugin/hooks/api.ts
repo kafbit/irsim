@@ -18,7 +18,7 @@ export type Comment = {
   board: string
   file: string
   line: number
-  element: { text: string }
+  element: { path: string; text: string }
   body: string
   status: 'draft' | 'queued' | 'delivered' | 'resolved'
   replies: { author: string; body: string }[]

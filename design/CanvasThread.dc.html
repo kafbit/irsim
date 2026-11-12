@@ -10,8 +10,8 @@
 <helmet>
 <style>
 body{margin:0}
-.cv-root{--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted:#efefeb;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a}
-.cv-root.dark{--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8}
+.cv-root{--pick:#14161a;--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted:#efefeb;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a}
+.cv-root.dark{--pick:#14161a;--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8}
 .cv-root textarea::placeholder{color:var(--muted-foreground);opacity:1}
 </style>
 </helmet>
@@ -27,12 +27,18 @@ body{margin:0}
 </sc-if>
 <sc-if value="{{hasComments}}" hint-placeholder-val="{{true}}">
 <section style="display: flex; flex-direction: column; gap: 8px;">
-<h3 style="margin: 0; font-size: 12px; font-weight: 600; color: var(--muted-foreground);">Draft (1)</h3>
+<h3 style="margin: 0; font-size: 12px; font-weight: 600; color: var(--muted-foreground);">Draft (2)</h3>
 <ul style="display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none;">
 <li style="display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card);">
 <div style="display: flex; align-items: center; gap: 8px;"><span style="display: flex; flex: 1; min-width: 0; align-items: center; gap: 8px;"><span style="display: grid; place-items: center; flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; background: var(--muted); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;">2</span><code style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted-foreground);">Dialog.dc.html:18</code></span><span style="display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; height: 20px; box-sizing: border-box; padding: 0 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; white-space: nowrap; background: var(--muted); color: var(--foreground);">Draft</span></div>
 <p style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted-foreground);">button.primary <span>"OK"</span></p>
 <p style="margin: 0; font-size: 14px; line-height: 20px; white-space: pre-wrap;">The primary button should say Delete, not OK.</p>
+<div style="display: flex; justify-content: flex-end; gap: 4px;"><button type="button" aria-label="Edit" style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--muted-foreground); cursor: pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></button><button type="button" aria-label="Delete" style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--muted-foreground); cursor: pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button></div>
+</li>
+<li style="display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card);">
+<div style="display: flex; align-items: center; gap: 8px;"><span style="display: flex; flex: 1; min-width: 0; align-items: center; gap: 8px;"><span style="display: grid; place-items: center; flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%; background: var(--muted); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;">4</span><code style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted-foreground);">Leads.dc.html</code></span><span style="display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; height: 20px; box-sizing: border-box; padding: 0 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; white-space: nowrap; background: var(--muted); color: var(--foreground);">Draft</span></div>
+<p style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted-foreground);">board <span>"Leads table"</span></p>
+<p style="margin: 0; font-size: 14px; line-height: 20px; white-space: pre-wrap;">Add a column for the lead source.</p>
 <div style="display: flex; justify-content: flex-end; gap: 4px;"><button type="button" aria-label="Edit" style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--muted-foreground); cursor: pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></button><button type="button" aria-label="Delete" style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--muted-foreground); cursor: pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button></div>
 </li>
 </ul>
@@ -94,8 +100,8 @@ class Component extends DCLogic {
       resolvedOpen,
       chevronAngle: resolvedOpen ? 0 : -90,
       bodyJustify: resolvedOpen ? 'flex-end' : 'flex-start',
-      count: isEmpty ? 0 : 3,
-      sendLabel: isEmpty ? 'Send 0 comments' : 'Send 1 comment',
+      count: isEmpty ? 0 : 4,
+      sendLabel: isEmpty ? 'Send 0 comments' : 'Send 2 comments',
       sendOpacity: isEmpty ? 0.5 : 1,
     }
   }
