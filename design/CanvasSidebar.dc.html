@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<title>Canvas sidebar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.cv-root{--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted:#efefeb;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a}
+.cv-root.dark{--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8}
+</style>
+</helmet>
+<div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="display: flex; width: 100%; min-height: 100vh; background: var(--card); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
+<aside aria-label="Sidebar" style="display: flex; flex-direction: column; gap: 12px; width: 288px; flex-shrink: 0; box-sizing: border-box; min-height: 100vh; padding: 12px; background: var(--card); border-right: 1px solid var(--border);">
+<nav aria-label="Pages" style="display: flex; flex-direction: column; flex-shrink: 0;">
+<div style="padding: 6px 8px; border-radius: 10px; color: var(--muted-foreground);">All pages</div>
+<sc-for list="{{pages}}" as="item"><div style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; background: {{item.bg}}; font-weight: {{item.weight}};"><span style="min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{item.title}}</span><span style="font-size: 12px; color: var(--muted-foreground);">{{item.count}}</span></div></sc-for>
+</nav>
+<div style="display: flex; align-items: center; height: 36px; box-sizing: border-box; padding: 0 10px; border: 1px solid var(--input); border-radius: 10px; font-size: 14px; color: {{searchColor}};">{{searchText}}</div>
+<p style="margin: 0; font-size: 12px; color: var(--muted-foreground);">{{countLabel}}</p>
+<ul style="display: flex; flex-direction: column; flex: 1; min-height: 0; margin: 0 -4px; padding: 0; list-style: none;">
+<sc-for list="{{rows}}" as="row"><li style="display: flex; align-items: center; gap: 4px; border-radius: 10px; background: {{row.bg}};"><div style="min-width: 0; flex: 1; padding: 6px 8px;"><span style="display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; color: var(--foreground);">{{row.title}}</span><span style="display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted-foreground);">{{row.name}}</span></div><span style="flex-shrink: 0; padding: 4px 8px; border-radius: 8px; font-size: 12px; color: var(--muted-foreground);">Open alone</span></li></sc-for>
+<sc-if value="{{empty}}" hint-placeholder-val="{{false}}">
+<li style="padding: 24px 8px; text-align: center; font-size: 14px; color: var(--muted-foreground);">No boards match</li>
+</sc-if>
+</ul>
+<sc-if value="{{showUpdate}}" hint-placeholder-val="{{true}}">
+<section aria-label="irsim update" style="display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card);">
+<div style="display: flex; align-items: flex-start; gap: 8px;">
+<div style="flex: 1; min-width: 0;">
+<div style="font-weight: 600; font-size: 13px;">irsim 0.1.4 is available</div>
+<div style="margin-top: 2px; font-size: 12px; color: var(--muted-foreground);">You have 0.1.3.</div>
+</div>
+<button type="button" aria-label="Dismiss" style="width: 24px; height: 24px; border: 0; border-radius: 6px; background: transparent; color: var(--muted-foreground); font-size: 16px; line-height: 1; cursor: pointer;">×</button>
+</div>
+<div style="display: flex; align-items: center; gap: 8px;">
+<button type="button" style="height: 34px; padding: 0 12px; border: 1px solid var(--primary); border-radius: 8px; background: var(--primary); color: var(--primary-foreground); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Update and restart</button>
+<a href="#" style="font-size: 12px; color: var(--muted-foreground);">Release notes</a>
+</div>
+</section>
+</sc-if>
+</aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"page":{"editor":"enum","default":"Components","options":["Components","Home"]},"selected":{"editor":"enum","default":"Button","options":["Button","none"]},"search":{"editor":"text","default":""},"update":{"editor":"enum","default":"none","options":["none","available"]},"$preview":{"width":288,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const { page, selected, search, update, theme } = this.props
+    const pages = [
+      { title: 'Home', boards: [{ name: 'Home', title: 'Home' }] },
+      {
+        title: 'Components',
+        boards: [
+          { name: 'Button', title: 'Button' },
+          { name: 'Dialog', title: 'Confirmation dialog' },
+          { name: 'Table', title: 'Data table' },
+        ],
+      },
+    ]
+    const current = pages.find((item) => item.title === page) || pages[1]
+    const needle = String(search || '').trim().toLowerCase()
+    const shown = current.boards.filter(
+      (board) =>
+        needle === '' ||
+        board.name.toLowerCase().includes(needle) ||
+        board.title.toLowerCase().includes(needle),
+    )
+    return {
+      themeClass: theme === 'dark' ? 'dark' : '',
+      pages: pages.map((item) => ({
+        title: item.title,
+        count: item.boards.length,
+        bg: item.title === current.title ? 'var(--secondary)' : 'transparent',
+        weight: item.title === current.title ? 500 : 400,
+      })),
+      searchText: search ? search : 'Search boards',
+      searchColor: search ? 'var(--foreground)' : 'var(--muted-foreground)',
+      countLabel: `${shown.length} ${shown.length === 1 ? 'board' : 'boards'}`,
+      rows: shown.map((board) => ({
+        name: board.name,
+        title: board.title,
+        bg: board.name === selected ? 'var(--secondary)' : 'transparent',
+      })),
+      empty: shown.length === 0,
+      showUpdate: update === 'available',
+    }
+  }
+}
+</script>
+</body>
+</html>

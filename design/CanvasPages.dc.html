@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<title>Canvas pages</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.cv-root{--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted:#efefeb;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a}
+.cv-root.dark{--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8}
+</style>
+</helmet>
+<div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="width: 100%; min-height: 100vh; background: var(--surface); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
+<sc-if value="{{hasPages}}" hint-placeholder-val="{{true}}">
+<main style="box-sizing: border-box; max-width: 1152px; margin: 0 auto; padding: 32px;">
+<h1 style="margin: 0 0 24px; font-size: 24px; line-height: 32px; font-weight: 600;">Pages</h1>
+<ul style="display: grid; grid-template-columns: repeat(auto-fill, minmax(288px, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none;">
+<sc-for list="{{pages}}" as="item"><li><div style="display: flex; flex-direction: column; gap: 12px; box-sizing: border-box; height: 100%; padding: 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--card);"><span style="font-size: 18px; line-height: 28px; font-weight: 500; color: var(--foreground);">{{item.title}}</span><span style="font-size: 12px; color: var(--muted-foreground);">{{item.countLabel}}</span><span style="display: flex; flex-wrap: wrap; gap: 6px;"><sc-for list="{{item.boards}}" as="name"><span style="padding: 2px 8px; border-radius: 9999px; background: var(--muted); font-size: 12px; color: var(--muted-foreground);">{{name}}</span></sc-for></span></div></li></sc-for>
+</ul>
+</main>
+</sc-if>
+<sc-if value="{{empty}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; min-height: 100vh; flex-direction: column; align-items: center; justify-content: center; gap: 12px; font-size: 14px; color: var(--muted-foreground);">
+<p style="margin: 0;">No canvas pages yet.</p>
+<span style="text-decoration: underline;">All pages</span>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"count":{"editor":"enum","default":"3","options":["3","0"]},"$preview":{"width":960,"height":560}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const { count, theme } = this.props
+    const all = [
+      { title: 'Home', boards: ['Home'] },
+      { title: 'Components', boards: ['Button', 'Dialog', 'Table'] },
+    ]
+    const shown = String(count) === '0' ? [] : all
+    return {
+      themeClass: theme === 'dark' ? 'dark' : '',
+      hasPages: shown.length > 0,
+      empty: shown.length === 0,
+      pages: shown.map((item) => ({
+        title: item.title,
+        boards: item.boards,
+        countLabel: `${item.boards.length} ${item.boards.length === 1 ? 'board' : 'boards'}`,
+      })),
+    }
+  }
+}
+</script>
+</body>
+</html>

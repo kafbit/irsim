@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<title>Canvas zoom bar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.cv-root{--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted:#efefeb;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a}
+.cv-root.dark{--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8}
+</style>
+</helmet>
+<div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="display: flex; flex-direction: column; align-items: flex-end; justify-content: flex-end; gap: 8px; width: 100%; min-height: var(--cv-h, 100vh); box-sizing: border-box; background: var(--cv-bg, var(--shell)); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
+<sc-if value="{{minimapOn}}" hint-placeholder-val="{{true}}">
+<div role="presentation" style="position: relative; width: 200px; height: 120px; box-sizing: border-box; overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: var(--card); box-shadow: 0 14px 36px rgba(20,22,26,0.14);">
+<sc-for list="{{frames}}" as="frame"><div style="position: absolute; left: {{frame.x}}px; top: {{frame.y}}px; width: {{frame.w}}px; height: {{frame.h}}px; border-radius: 2px; background: color-mix(in srgb, var(--muted-foreground) 35%, transparent);"></div></sc-for>
+<div style="position: absolute; left: {{view.x}}px; top: {{view.y}}px; width: {{view.w}}px; height: {{view.h}}px; box-sizing: border-box; border: 1px solid var(--foreground); background: color-mix(in srgb, var(--foreground) 5%, transparent); pointer-events: none;"></div>
+</div>
+</sc-if>
+<sc-if value="{{menuOpen}}" hint-placeholder-val="{{true}}">
+<div role="menu" aria-label="Zoom menu" style="box-sizing: border-box; min-width: 192px; padding: 6px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); color: var(--foreground); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);">
+<div role="menuitem" style="display: flex; align-items: center; gap: 10px; min-height: 38px; box-sizing: border-box; padding: 6px 10px; border-radius: 8px; font-size: 14px; color: var(--foreground);"><span>Zoom in</span><span style="margin-inline-start: auto; padding-inline-start: 24px; font-size: 12px; color: var(--muted-foreground);">+</span></div>
+<div role="menuitem" style="display: flex; align-items: center; gap: 10px; min-height: 38px; box-sizing: border-box; padding: 6px 10px; border-radius: 8px; font-size: 14px; color: var(--foreground);"><span>Zoom out</span><span style="margin-inline-start: auto; padding-inline-start: 24px; font-size: 12px; color: var(--muted-foreground);">-</span></div>
+<div role="separator" style="height: 1px; margin: 6px 4px; background: var(--muted);"></div>
+<div role="menuitem" style="display: flex; align-items: center; gap: 10px; min-height: 38px; box-sizing: border-box; padding: 6px 10px; border-radius: 8px; font-size: 14px; color: var(--foreground);"><span>Zoom to 50%</span></div>
+<div role="menuitem" style="display: flex; align-items: center; gap: 10px; min-height: 38px; box-sizing: border-box; padding: 6px 10px; border-radius: 8px; font-size: 14px; color: var(--foreground);"><span>Zoom to 100%</span><span style="margin-inline-start: auto; padding-inline-start: 24px; font-size: 12px; color: var(--muted-foreground);">Shift+0</span></div>
+<div role="menuitem" style="display: flex; align-items: center; gap: 10px; min-height: 38px; box-sizing: border-box; padding: 6px 10px; border-radius: 8px; font-size: 14px; color: var(--foreground);"><span>Zoom to 200%</span></div>
+<div role="separator" style="height: 1px; margin: 6px 4px; background: var(--muted);"></div>
+<div role="menuitem" style="display: flex; align-items: center; gap: 10px; min-height: 38px; box-sizing: border-box; padding: 6px 10px; border-radius: 8px; font-size: 14px; color: var(--foreground);"><span>Fit page</span><span style="margin-inline-start: auto; padding-inline-start: 24px; font-size: 12px; color: var(--muted-foreground);">Shift+1</span></div>
+<div role="menuitem" aria-disabled="true" style="display: flex; align-items: center; gap: 10px; min-height: 38px; box-sizing: border-box; padding: 6px 10px; border-radius: 8px; font-size: 14px; color: var(--foreground); opacity: 0.5;"><span>Fit selection</span><span style="margin-inline-start: auto; padding-inline-start: 24px; font-size: 12px; color: var(--muted-foreground);">Shift+2</span></div>
+<div role="separator" style="height: 1px; margin: 6px 4px; background: var(--muted);"></div>
+<div role="menuitem" style="display: flex; align-items: center; gap: 10px; min-height: 38px; box-sizing: border-box; padding: 6px 10px; border-radius: 8px; font-size: 14px; color: var(--foreground);"><span>{{themeLabel}}</span></div>
+</div>
+</sc-if>
+<div style="display: flex; align-items: center; gap: 4px; box-sizing: border-box; padding: 4px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); box-shadow: 0 14px 36px rgba(20,22,26,0.14);">
+<button type="button" aria-label="{{minimapLabel}}" aria-pressed="{{minimapOn}}" style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: 1px solid transparent; border-radius: 8px; background: {{minimapBg}}; color: {{minimapColor}}; cursor: pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></svg></button>
+<button type="button" aria-label="Zoom menu" aria-expanded="{{menuOpen}}" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid transparent; border-radius: 10px; background: {{zoomBg}}; color: {{zoomColor}}; font: inherit; font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; cursor: pointer;"><span>{{zoomLabel}}</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"zoom":{"editor":"enum","default":"100","options":["100","50","25","200"]},"minimap":{"editor":"enum","default":"off","options":["off","on"]},"menu":{"editor":"enum","default":"closed","options":["closed","open"]},"$preview":{"width":260,"height":200}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const { theme, zoom, minimap, menu } = this.props
+    const percent = Number(zoom)
+    const minimapOn = minimap === 'on'
+    const menuOpen = menu === 'open'
+    const width = Math.min(180, Math.round((84 * 100) / percent))
+    const height = Math.min(100, Math.round((52 * 100) / percent))
+    const frames = [
+      { x: 14, y: 12, w: 52, h: 34 },
+      { x: 76, y: 12, w: 52, h: 34 },
+      { x: 138, y: 12, w: 48, h: 34 },
+      { x: 14, y: 56, w: 52, h: 48 },
+      { x: 76, y: 56, w: 110, h: 48 },
+    ]
+    return {
+      themeClass: theme === 'dark' ? 'dark' : '',
+      themeLabel: theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme',
+      minimapOn,
+      menuOpen,
+      frames,
+      view: { x: Math.max(4, Math.min(8, 196 - width)), y: Math.max(4, Math.min(8, 116 - height)), w: width, h: height },
+      minimapLabel: minimapOn ? 'Hide minimap' : 'Show minimap',
+      minimapBg: minimapOn ? 'var(--secondary)' : 'transparent',
+      minimapColor: minimapOn ? 'var(--foreground)' : 'var(--muted-foreground)',
+      zoomLabel: percent + '%',
+      zoomBg: menuOpen ? 'var(--muted)' : 'transparent',
+      zoomColor: menuOpen ? 'var(--foreground)' : 'inherit',
+    }
+  }
+}
+</script>
+</body>
+</html>
