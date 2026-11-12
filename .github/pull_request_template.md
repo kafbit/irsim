@@ -1,3 +1,5 @@
+Check every box. If an item does not apply, check it, strike the text through and add a note: `- [x] ~~Text of the item.~~ Not applicable: reason.`
+
 ## What changed
 
 -

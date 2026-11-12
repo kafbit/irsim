@@ -39,6 +39,13 @@ A change to one updates the other in the same pull request.
 - Tokens come from `app/src/app/ui-tokens.css` and `app/src/app/globals.css`. Use `var(--token)` only, never a close color.
 - State boards (`CanvasFramePending`, `CanvasAppPlaying`, and the others) are `dc-import` wrappers with fixed props, so they follow the base board without a second copy of the markup.
 
+## Pull request description
+
+- Use `.github/pull_request_template.md` and fill in every section.
+- Check every checkbox. An unchecked box means the work is not done.
+- A box that does not apply is also checked, with the text struck through and a note that says why: `- [x] ~~Text of the item.~~ Not applicable: reason.`
+- Never delete an item and never leave it unchecked without a reason.
+
 ## Before you finish
 
 - `design_canvas {action: "check", page: "canvas-app"}` reports no errors and no warnings.
