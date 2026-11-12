@@ -38,13 +38,13 @@ irsim serve [--design-dir <path>] [--port <n>]
 
 In the canvas, a board with working controls or links between boards gets a Play button. Play runs it on the canvas or full screen (a web page board fills the window), and `<a href="Other.dc.html">` in a played board moves to that board. Details are in [docs/01-runtime.md](docs/01-runtime.md#play).
 
-The plugin's `design_canvas` tool has a `check` action. It renders a board (or every board of a page) in headless Chromium and returns errors, an empty-render warning and a screenshot in `.irsim/checks/`. It needs Playwright's Chromium: `npx playwright install chromium`. The same check is at `POST /api/boards/<Board>/check` and `POST /api/pages/<page>/check`.
+The plugin's `design_canvas` tool has a `check` action. It renders a board (or every board of a page) in headless Chromium and returns errors, an empty-render warning and a screenshot in `.irsim/checks/`. It needs an installed Chrome, Chromium, Brave or Edge, or the executable in `IRSIM_BROWSER`. The same check is at `POST /api/boards/<Board>/check` and `POST /api/pages/<page>/check`.
 
 A selected board has an Approve button (in the inspector, and at the top of the open-alone view). It sends the chosen Claude session a turn that confirms the board, with an optional note. The board's label then shows Approved, or Changed once the content of the board or of a board it imports changes. Approve needs a running Claude session, and it is refused when the board changed while you were looking at it.
 
 `irsim serve` prints `irsim: http://localhost:<port>`. The port is stable per project, in 3200 to 3299. `irsim port` prints it without starting the server.
 
-Below 25% zoom the canvas shows a thumbnail of each board instead of a live frame. The server renders a missing thumbnail the first time it is shown, with Playwright's headless Chromium (`npx playwright install chromium-headless-shell`). `irsim thumbs [--page <id>] [--board <name>] [--force]` renders them ahead of time on the running server. Thumbnails are cached in `~/.cache/irsim/thumbs`.
+Below 25% zoom the canvas shows a thumbnail of each board instead of a live frame. The server renders a missing thumbnail the first time it is shown, with an installed Chrome, Chromium, Brave or Edge run headless, or the executable in `IRSIM_BROWSER`. `irsim thumbs [--page <id>] [--board <name>] [--force]` renders them ahead of time on the running server. Thumbnails are cached in `~/.cache/irsim/thumbs`.
 
 The plugin ships the `irsim-workflow` skill. It makes a change to what a screen shows start in the board: change the board, report its route, stop, then build the app after the user's confirmation.
 

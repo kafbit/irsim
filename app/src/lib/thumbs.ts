@@ -69,7 +69,7 @@ const run = async (state: Queue, job: Job): Promise<void> => {
     emit({ event: 'thumb', data: { board: job.board, ok: true } })
   } catch (error) {
     const message = firstLine(error)
-    if (message === NO_CHROMIUM) state.noChromium = message
+    if (message === NO_CHROMIUM || message.startsWith('IRSIM_BROWSER ')) state.noChromium = message
     state.failed.set(job.key, message)
     emit({ event: 'thumb', data: { board: job.board, ok: false } })
   }

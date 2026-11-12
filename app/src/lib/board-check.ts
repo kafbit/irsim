@@ -2,6 +2,7 @@ import { mkdir, rename, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { Browser } from 'playwright-core'
 import { BOARD_NAME } from './board-name'
+import { findBrowser } from './browser-path'
 import { dataDir } from './data-dir'
 
 export const READY_TIMEOUT_MS = 15_000
@@ -10,7 +11,7 @@ const IMAGES_TIMEOUT_MS = 2_000
 const IDLE_CLOSE_MS = 60_000
 
 export const NO_CHROMIUM =
-  'Chromium for Playwright is not installed: run npx playwright install chromium'
+  'No Chromium-based browser found: install Chrome, Chromium, Brave or Edge, or set IRSIM_BROWSER to its executable'
 
 export const EMPTY_WARNING = 'the board renders no text and no image'
 
@@ -219,8 +220,11 @@ export const inspectBoard = async (
 
 export const launchChromium = async (): Promise<Browser> => {
   const { chromium } = await import('playwright-core')
+  const executablePath = findBrowser()
+  const chosen = process.env.IRSIM_BROWSER
+  if (!executablePath && chosen) throw new Error(`IRSIM_BROWSER is not an executable file: ${chosen}`)
   try {
-    return await chromium.launch()
+    return await chromium.launch(executablePath ? { executablePath } : {})
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     if (/Executable doesn't exist/.test(message)) throw new Error(NO_CHROMIUM)

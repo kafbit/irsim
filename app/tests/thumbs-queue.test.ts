@@ -7,7 +7,8 @@ import { subscribe, type CanvasEvent } from '../src/lib/events'
 import { closureOf } from '../src/lib/closure'
 import { thumbFile } from '../src/lib/thumbs-dir'
 
-const NO_CHROMIUM = 'Chromium for Playwright is not installed: run npx playwright install chromium'
+const NO_CHROMIUM =
+  'No Chromium-based browser found: install Chrome, Chromium, Brave or Edge, or set IRSIM_BROWSER to its executable'
 
 type Outcome = { fatal?: string; hold?: Promise<void>; unavailable?: boolean }
 const outcomes = new Map<string, Outcome>()
