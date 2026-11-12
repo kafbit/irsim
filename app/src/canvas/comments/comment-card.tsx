@@ -4,11 +4,12 @@
 
 import { Badge, Button, IconButton, Textarea } from '../../ui'
 import { placeText, targetName } from '../../lib/place-text'
-import { Check, DeleteIcon, EditIcon } from '../../ui/icons'
+import { viewLabel } from '../../lib/view-label'
+import { Check, DeleteIcon, EditIcon, Monitor, Smartphone, Tablet } from '../../ui/icons'
 import { useState } from 'react'
 import { ClampedText } from './clamped-text'
 import { ImageStrip, imageUrl } from './image-strip'
-import type { Comment } from './types'
+import type { Comment, CommentView } from './types'
 import { usePastedImages } from './use-pasted-images'
 
 const STATUS = {
@@ -17,6 +18,27 @@ const STATUS = {
   delivered: 'Delivered',
   resolved: 'Resolved',
 } as const
+
+const ViewIcon = ({ preset }: { preset: string }) => {
+  if (preset === 'phone' || preset === 'large-phone') return <Smartphone className="size-3" />
+  if (preset === 'tablet') return <Tablet className="size-3" />
+  return <Monitor className="size-3" />
+}
+
+function ViewChip({ view, viewing }: { view: CommentView; viewing: boolean }) {
+  return (
+    <p className="m-0">
+      <span
+        className={`inline-flex h-5 items-center gap-1 rounded-full px-2 text-[11px] font-semibold whitespace-nowrap ${
+          viewing ? 'bg-blue-600 text-white' : 'bg-info text-info-foreground'
+        }`}
+      >
+        <ViewIcon preset={view.preset} />
+        {viewing ? `Viewing at ${viewLabel(view)}` : viewLabel(view)}
+      </span>
+    </p>
+  )
+}
 
 const focusOnMount = (element: HTMLTextAreaElement | null) => element?.focus()
 
@@ -30,6 +52,7 @@ type Props = {
   onResolve: (id: string) => Promise<void>
   onReply: (id: string, body: string) => Promise<void>
   sessionEnded?: boolean
+  viewing?: boolean
 }
 
 /** One comment: where it points, what was said, the replies, and the actions its status allows. */
@@ -43,6 +66,7 @@ export function CommentCard({
   onResolve,
   onReply,
   sessionEnded = false,
+  viewing = false,
 }: Props) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(comment.body)
@@ -82,6 +106,12 @@ export function CommentCard({
   return (
     <li
       id={`comment-${comment.id}`}
+      onClick={(event) => {
+        if (window.getSelection()?.toString()) return
+        if (!(event.target as Element).closest('button, a, input, textarea, select, [data-reply]')) {
+          onLocate(comment)
+        }
+      }}
       className={`flex flex-col gap-2 rounded-lg border bg-card p-3 ${
         active ? 'border-ring' : 'border-border'
       } ${comment.status === 'resolved' ? 'opacity-70' : ''}`}
@@ -107,6 +137,7 @@ export function CommentCard({
         {targetName(comment)}
         {comment.element.text ? <span dir="auto"> "{comment.element.text}"</span> : null}
       </p>
+      {comment.view ? <ViewChip view={comment.view} viewing={viewing} /> : null}
       {editing ? (
         <div className="flex flex-col gap-2">
           <Textarea
@@ -162,7 +193,7 @@ export function CommentCard({
         </ul>
       ) : null}
       {comment.replies.length > 0 ? (
-        <ul className="m-0 flex list-none flex-col gap-1.5 border-s-2 border-border p-0 ps-2">
+        <ul data-reply className="m-0 flex list-none flex-col gap-1.5 border-s-2 border-border p-0 ps-2">
           {comment.replies.map((reply) => (
             <li key={reply.at + reply.author} className="flex flex-col gap-0.5 text-sm">
               <span>

@@ -21,7 +21,7 @@
 - [x] `apps/design/scripts/build-canvas.ts`: generate `design/canvas.json` (pages, grid, sizes)
 - [x] `src/canvas/`: viewport with pan/zoom/fit and page jump
 - [x] `src/canvas/`: lazy frames, loading and error state per frame
-- [x] `src/canvas/`: sidebar with search, page filter, single-board view
+- [x] `src/canvas/`: sidebar with search, page filter, full screen Play
 
 ## M2b · Pages and performance (02 §A, §C)
 

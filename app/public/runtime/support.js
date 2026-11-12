@@ -108,7 +108,57 @@ window.addEventListener('message', (event) => {
   if (event.source !== parent || event.data?.type !== 'comment-mode') return
   picker.setOn(event.data.on === true)
 })
+/**
+ * @param {unknown} value
+ * @returns {value is number}
+ */
+const isNumber = (value) => typeof value === 'number' && Number.isFinite(value)
+
+window.addEventListener('message', (event) => {
+  if (event.source !== parent || event.data?.type !== 'scroll-to') return
+  const { rect, scroll } = event.data
+  if (rect && [rect.x, rect.y, rect.width, rect.height].every(isNumber)) {
+    const centerX = rect.x + rect.width / 2
+    const centerY = rect.y + rect.height / 2
+    const visible =
+      centerX >= window.scrollX &&
+      centerX <= window.scrollX + window.innerWidth &&
+      centerY >= window.scrollY &&
+      centerY <= window.scrollY + window.innerHeight
+    if (visible) return
+    window.scrollTo({
+      left: Math.max(0, centerX - window.innerWidth / 2),
+      top: Math.max(0, centerY - window.innerHeight / 2),
+      behavior: 'smooth',
+    })
+    return
+  }
+  if (scroll && isNumber(scroll.x) && isNumber(scroll.y)) {
+    window.scrollTo({ left: scroll.x, top: scroll.y, behavior: 'smooth' })
+  }
+})
 window.addEventListener('keydown', (event) => event.key === 'Escape' && post('escape'))
+if (!onCanvas) {
+  let scrollQueued = false
+  window.addEventListener(
+    'scroll',
+    () => {
+      if (scrollQueued) return
+      scrollQueued = true
+      requestAnimationFrame(() => {
+        scrollQueued = false
+        post('scroll', { x: window.scrollX, y: window.scrollY })
+      })
+    },
+    { passive: true },
+  )
+}
+window.addEventListener('keydown', (event) => {
+  if (event.key.toLowerCase() !== 'c' || event.ctrlKey || event.metaKey || event.altKey) return
+  const target = event.target instanceof Element ? event.target : null
+  if (target?.closest('input, textarea, select, [contenteditable]')) return
+  post('comment-key')
+})
 window.addEventListener('keydown', (event) => {
   if (!(event.ctrlKey || event.metaKey) || event.altKey) return
   const command = '+='.includes(event.key)

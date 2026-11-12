@@ -125,6 +125,23 @@ describe('buildTurnText', () => {
     expect(text.split('\n')[0]).toContain('on pages sales, inventory (batches b_1, b_2)')
   })
 
+  it('adds the viewport line right after the body and before the images', () => {
+    const text = buildTurnText(
+      [
+        comment({
+          images: ['i_a'],
+          view: { width: 390, height: 844, preset: 'phone', scrollX: 0, scrollY: 1200 },
+        }),
+        comment({ id: 'c_2' }),
+      ],
+      { i_a: '/data/images/i_a.png' },
+    )
+    expect(text).toContain(
+      '\n   Use the primary button.\n   viewport 390 x 844 (Phone), scrolled to y 1200\n   image: /data/images/i_a.png\n2. ',
+    )
+    expect(text.match(/viewport/g)).toHaveLength(1)
+  })
+
   it('adds one image line per image that has a path', () => {
     const text = buildTurnText([comment({ images: ['i_a', 'i_b', 'i_gone'] })], {
       i_a: '/data/images/i_a.png',

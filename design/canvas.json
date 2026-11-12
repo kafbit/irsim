@@ -308,6 +308,78 @@
           "y": 4776,
           "width": 720,
           "height": 560
+        },
+        {
+          "name": "CanvasThreadViewing",
+          "title": "Comments panel: viewing a comment at its viewport",
+          "x": 1936,
+          "y": 2736,
+          "width": 320,
+          "height": 820
+        },
+        {
+          "name": "CanvasPlayView",
+          "title": "Play view",
+          "x": 0,
+          "y": 5416,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "name": "CanvasPlayViewFit",
+          "title": "Play view: fit window",
+          "x": 1520,
+          "y": 5416,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "name": "CanvasPlayViewMenu",
+          "title": "Play view: preset menu",
+          "x": 3040,
+          "y": 5416,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "name": "CanvasPlayViewResponsive",
+          "title": "Play view: responsive",
+          "x": 0,
+          "y": 6396,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "name": "CanvasPlayViewCommenting",
+          "title": "Play view: commenting at a phone viewport",
+          "x": 1520,
+          "y": 6396,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "name": "CanvasPlayViewZoomMenu",
+          "title": "Play view: zoom menu",
+          "x": 0,
+          "y": 7376,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "name": "CanvasPlayViewTall",
+          "title": "Play view: tall board at normal zoom",
+          "x": 1520,
+          "y": 7376,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "name": "CanvasPlayViewContain",
+          "title": "Play view: tall board contained",
+          "x": 3040,
+          "y": 7376,
+          "width": 1440,
+          "height": 900
         }
       ]
     }

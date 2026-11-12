@@ -115,6 +115,21 @@ describe('parsePick', () => {
     expect(parsePick(message)).toEqual({ board: 'Table', ...message.details })
   })
 
+  it('carries the scroll of a frame and omits a bad one', () => {
+    const scroll = { x: 0, y: 1200 }
+    expect(parsePick({ ...message, details: { ...message.details, scroll } })).toEqual({
+      board: 'Table',
+      ...message.details,
+      scroll,
+    })
+    expect(parsePick(message)).not.toHaveProperty('scroll')
+    for (const bad of [{ x: 1 }, { x: 'a', y: 2 }, null, 5]) {
+      expect(parsePick({ ...message, details: { ...message.details, scroll: bad } })).not.toHaveProperty(
+        'scroll',
+      )
+    }
+  })
+
   it('rejects another type, a missing line or a bad rect', () => {
     expect(parsePick({ ...message, type: 'ready' })).toBeNull()
     expect(parsePick({ ...message, details: { ...message.details, line: 'x' } })).toBeNull()

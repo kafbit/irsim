@@ -146,7 +146,7 @@ export const Frame = memo(function Frame({
         />
       ) : null}
       <div
-        className={`relative size-full overflow-hidden rounded-xl bg-white outline ${
+        className={`relative size-full overflow-clip rounded-xl bg-white outline ${
           playing ? 'outline-2 outline-blue-600' : 'outline-1 outline-border'
         }`}
       >

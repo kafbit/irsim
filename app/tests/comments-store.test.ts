@@ -50,6 +50,18 @@ describe('comments store', () => {
     expect(saved).toHaveLength(1)
   })
 
+  it('stores the view on the comment and leaves the key out when there is none', async () => {
+    const view = { width: 390, height: 844, preset: 'phone', scrollX: 0, scrollY: 1200 }
+    const withView = await createComment(input({ view }))
+    const without = await createComment(input({ view: undefined }))
+    expect(withView.view).toEqual(view)
+    expect(without).not.toHaveProperty('view')
+    const saved = JSON.parse(readFileSync(join(dir, 'comments.json'), 'utf8'))
+    expect(saved[0].view).toEqual(view)
+    expect('view' in saved[1]).toBe(false)
+    expect((await listComments({ status: 'draft' })).map((c) => c.view)).toEqual([undefined, view])
+  })
+
   it('draft, send, claim moves a comment to delivered once', async () => {
     const first = await createComment(input())
     const second = await createComment(input({ page: 'other', body: 'Second' }))

@@ -15,6 +15,12 @@ const isRect = (value: unknown): value is Rect => {
   return [x, y, width, height].every(isNumber)
 }
 
+const isScroll = (value: unknown): value is { x: number; y: number } => {
+  if (typeof value !== 'object' || value === null) return false
+  const { x, y } = value as Record<string, unknown>
+  return isNumber(x) && isNumber(y)
+}
+
 /** Reads a frame's `pick` message. Returns null for anything that lacks a board, a file, a line, an element or a rect. */
 export function parsePick(data: unknown): PickedElement | null {
   if (typeof data !== 'object' || data === null) return null
@@ -22,7 +28,7 @@ export function parsePick(data: unknown): PickedElement | null {
   if (type !== 'pick' || typeof board !== 'string' || typeof details !== 'object' || !details) {
     return null
   }
-  const { file, line, element, rect } = details as Record<string, unknown>
+  const { file, line, element, rect, scroll } = details as Record<string, unknown>
   if (typeof file !== 'string' || !isLine(line) || !isRect(rect)) return null
   if (typeof element !== 'object' || element === null) return null
   const { tag, path, text } = element as Record<string, unknown>
@@ -33,6 +39,7 @@ export function parsePick(data: unknown): PickedElement | null {
     line,
     rect,
     element: { tag, path, text: typeof text === 'string' ? text : '' },
+    ...(isScroll(scroll) ? { scroll: { x: scroll.x, y: scroll.y } } : {}),
   }
 }
 

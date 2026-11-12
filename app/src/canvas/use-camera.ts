@@ -2,7 +2,16 @@
 
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { Camera } from './camera'
-import { boardRegion, fitRect, type Layout, type Size, type View, zoomAtCenter } from './geometry'
+import {
+  boardRegion,
+  fitRect,
+  focusRect,
+  type Layout,
+  type Rect,
+  type Size,
+  type View,
+  zoomAtCenter,
+} from './geometry'
 import { stepZoom } from './navigation'
 import { readStoredView, writeStoredView } from './view-storage'
 
@@ -76,6 +85,7 @@ export function useCamera({ layout, pageId, focus, onCommit }: Options) {
       actualSize: () => zoomTo(1),
       fit: () => camera.go(fitRect(layout.all, camera.size)),
       focusBoard,
+      focusRect: (rect: Rect) => camera.go(focusRect(rect, camera.size, camera.target.k)),
     }
   }, [camera, layout])
 

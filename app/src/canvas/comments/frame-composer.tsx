@@ -6,9 +6,9 @@ import { placePanel } from './model'
 import type { PickedElement } from './types'
 
 /**
- * The comment box for one board shown alone. The board sits at scale 1, so the picked rect is
- * already in page pixels: the highlight and the box are placed from it inside the board's wrapper
- * and scroll with it.
+ * The comment box for the board in full screen Play. `size` is the shown size of the board and
+ * `pick.rect` is already scaled to it, so the highlight and the box are placed from it inside the
+ * board's wrapper.
  */
 export function FrameComposer({
   size,

@@ -3,8 +3,9 @@
 import { useRouter } from 'next/navigation'
 import type { PageManifest, PageSummary } from './types'
 import { useMountEffect } from './use-mount-effect'
+import { playHref } from './use-play-links'
 
-/** `/?board=X` was the old single-board view: finds the page that holds X and moves to its `alone` route. */
+/** `/?board=X` was the old single-board view: finds the page that holds X and moves to playing it full screen. */
 export function useLegacyRedirect(board: string | null) {
   const router = useRouter()
   useMountEffect(() => {
@@ -21,9 +22,7 @@ export function useLegacyRedirect(board: string | null) {
       )
       const owner = manifests.find((page) => page?.boards.some((item) => item.name === board))
       if (owner) {
-        router.replace(
-          `/p/${encodeURIComponent(owner.id)}?board=${encodeURIComponent(board)}&alone=1`,
-        )
+        router.replace(playHref(owner.id, board, 'full'))
       }
     })().catch(() => {})
     return () => controller.abort()
