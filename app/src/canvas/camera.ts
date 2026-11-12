@@ -24,6 +24,7 @@ export class Camera {
   private readonly onSettle: (view: View, size: Size) => void
   private frame = 0
   private flight = 0
+  private destination: View | null = null
   private settleTimer = 0
   private coolTimer = 0
   private labels = true
@@ -86,11 +87,17 @@ export class Camera {
     this.settle()
   }
 
+  /** Where a running animation ends, or the current view when none runs. */
+  get target(): View {
+    return this.destination ?? this.view
+  }
+
   /** Moves to `next` over 300 ms with ease-in-out cubic. Any `move`, `jump` or `stop` ends it. */
   go(next: View) {
     if (sameView(next, this.view)) return
     if (reducedMotion()) return this.jump(next)
     this.cancelFlight()
+    this.destination = next
     window.clearTimeout(this.settleTimer)
     const from = this.view
     const start = performance.now()
@@ -102,6 +109,7 @@ export class Camera {
       if (t < 1) this.flight = requestAnimationFrame(step)
       else {
         this.flight = 0
+        this.destination = null
         this.settle()
       }
     }
@@ -138,6 +146,7 @@ export class Camera {
   private cancelFlight() {
     cancelAnimationFrame(this.flight)
     this.flight = 0
+    this.destination = null
   }
 
   private heat() {

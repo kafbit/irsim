@@ -26,6 +26,7 @@ import { PageLabel } from './page-label'
 import { PlayView } from './play-view'
 import { NO_SELECTION, reduceSelection, type Selection } from './selection'
 import { Sidebar } from './sidebar'
+import { FocusBar } from './focus-bar'
 import { Toast, useNotice } from './toast'
 import { type Tool, Toolbar } from './toolbar'
 import type { PageManifest, PageSummary } from './types'
@@ -131,10 +132,15 @@ export function PageCanvas({
     },
     [reloadBoard, refreshFlags, refetchApprovals],
   )
+  const [thumbs, setThumbs] = useState<Record<string, { rev: number; ok: boolean }>>({})
+  const onThumb = useCallback((name: string, ok: boolean) => {
+    setThumbs((prev) => ({ ...prev, [name]: { rev: (prev[name]?.rev ?? 0) + 1, ok } }))
+  }, [])
   useEvents({
     onBoard: onBoardChange,
     onComments: comments.refetch,
     onApprovals: refetchApprovals,
+    onThumb,
   })
   useCommentMode(commenting, camera, setPick)
   useFrameEscape(() => {
@@ -227,6 +233,7 @@ export function PageCanvas({
     actions.focusBoard(comment.board)
   }
   const selectedBoard = manifest.boards.find((board) => board.name === selection.name)
+  const playingOnCanvas = selection.interacting ? selection.name : null
   const toggleMinimap = () => {
     writeMinimap(!minimap)
     setMinimap(!minimap)
@@ -322,6 +329,7 @@ export function PageCanvas({
                 commenting={commenting}
                 reload={reloads.counters[board.name] ?? 0}
                 approval={approvalStateOf(approvals.approvals.get(board.name))}
+                thumb={thumbs[board.name]}
                 onSelect={select}
                 onPlay={playBoard}
                 onStop={stopPlay}
@@ -358,6 +366,12 @@ export function PageCanvas({
           />
         ) : null}
         <Toolbar tool={tool} onTool={changeTool} boards={ordered} onPlay={playFull} />
+        {playingOnCanvas ? (
+          <FocusBar
+            title={selectedBoard?.title || playingOnCanvas}
+            onExit={() => stopPlay(playingOnCanvas)}
+          />
+        ) : null}
         <Toast message={edit.error ?? notice} />
         <ViewControls
           camera={camera}

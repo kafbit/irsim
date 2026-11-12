@@ -10,6 +10,7 @@ import { installLinks } from './links.js'
 import { parseBoard, prepareSource } from './parse.js'
 import { createPicker } from './pick.js'
 import { createContext, mountBoard } from './render.js'
+import { wheelScrolls } from './scroll.js'
 
 /** @typedef {import('./env.js').Env} Env */
 /** @typedef {import('./parse.js').Board} Board */
@@ -26,6 +27,7 @@ const readEnv = () => {
 }
 
 const env = readEnv()
+const onCanvas = new URLSearchParams(location.search).get('canvas') === '1'
 
 /** @type {{ message: string, where: string }[]} */
 const problems = []
@@ -121,7 +123,14 @@ window.addEventListener('keydown', (event) => {
 window.addEventListener(
   'wheel',
   (event) => {
-    if (!(event.ctrlKey || event.metaKey)) return
+    if (event.defaultPrevented) return
+    if (!(event.ctrlKey || event.metaKey)) {
+      if (!onCanvas) return
+      const root = document.scrollingElement
+      const target = event.target instanceof Element ? event.target : null
+      const styleOf = (/** @type {any} */ node) => getComputedStyle(node)
+      if (!root || wheelScrolls(target, root, event.deltaX, event.deltaY, styleOf)) return
+    }
     event.preventDefault()
     const { deltaX, deltaY, deltaMode, ctrlKey, metaKey, clientX, clientY } = event
     post('wheel', { deltaX, deltaY, deltaMode, ctrlKey, metaKey, clientX, clientY })
