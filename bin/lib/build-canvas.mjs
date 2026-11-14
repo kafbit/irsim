@@ -15,7 +15,7 @@ const decode = (text) =>
     .replace(/&gt;/g, '>')
     .replace(/&amp;/g, '&')
 
-const readBoard = (source) => {
+export const readBoard = (source) => {
   const title = decode(/<title>([^<]*)<\/title>/.exec(source)?.[1] ?? '').trim()
   const attribute = /<script[^>]*type="text\/x-dc"[^>]*data-props=(?:'([^']*)'|"([^"]*)")/.exec(source)
   const raw = attribute?.[1] ?? attribute?.[2]
@@ -27,7 +27,7 @@ const readBoard = (source) => {
   }
 }
 
-const boardsOnDisk = (designDir) =>
+export const boardsOnDisk = (designDir) =>
   readdirSync(designDir)
     .filter((file) => file.endsWith(SUFFIX))
     .map((file) => file.slice(0, -SUFFIX.length))
