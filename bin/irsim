@@ -38,6 +38,8 @@ usage: irsim <command> [options]
 commands:
   serve [--design-dir <path>] [--port <n>]   start the canvas (registers new boards in canvas.json first)
   build [--design-dir <path>]                create or update canvas.json from the boards on disk
+  export [--design-dir <path>] [--out <dir>] [--title <text>]
+                                             build a standalone static preview of the boards
   port                                       print the port serve would use here
   thumbs [--page <id>] [--board <name>] [--force]
                                              queue the board thumbnails on the running canvas
@@ -237,6 +239,39 @@ const build = async (args) => {
   try {
     const result = buildCanvas(design)
     console.log(`wrote ${result.file}: ${result.pages} pages, ${result.boards} boards`)
+  } catch (error) {
+    fail(error.message)
+  }
+}
+
+const loadExportSite = () =>
+  import(pathToFileURL(join(ROOT, 'bin', 'lib', 'export-site.mjs')).href)
+
+const runtimeDir = () => {
+  for (const candidate of [
+    join(ROOT, 'app', 'public', 'runtime'),
+    join(ROOT, 'server', 'public', 'runtime'),
+  ]) {
+    if (existsSync(join(candidate, 'support.js'))) return candidate
+  }
+  fail('no board runtime found in this install')
+}
+
+const exportSite = async (args) => {
+  const opts = parse(args, { '--design-dir': 'value', '--out': 'value', '--title': 'value' })
+  const design = resolveDesignDir(process.cwd(), opts['design-dir'])
+  const out = resolve(process.cwd(), opts.out ?? join('dist', 'preview'))
+  const { exportSite: run } = await loadExportSite()
+  try {
+    const result = run({
+      designDir: design,
+      outDir: out,
+      runtimeDir: runtimeDir(),
+      title: opts.title ?? 'irsim preview',
+    })
+    console.log(`wrote ${result.outDir}: ${result.pages} pages, ${result.boards} boards`)
+    console.log(`open ${join(result.outDir, 'index.html')} through a static server, not file://`)
+    for (const problem of result.missing) console.warn(`irsim: ${problem}`)
   } catch (error) {
     fail(error.message)
   }
@@ -619,6 +654,9 @@ switch (command) {
     break
   case 'build':
     await build(rest)
+    break
+  case 'export':
+    await exportSite(rest)
     break
   case 'port': {
     const { port } = await canvasPort(projectRoot(process.cwd()))

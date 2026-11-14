@@ -1,0 +1,41 @@
+name: preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build the design preview
+        run: |
+          node bin/irsim export \
+            --out dist/preview \
+            --title "PR #${{ github.event.pull_request.number }} design preview"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: design-preview-pr-${{ github.event.pull_request.number }}
+          path: dist/preview
+          retention-days: 14
+      - name: Summarize
+        run: |
+          {
+            echo '### Design preview'
+            echo
+            echo "Download the **design-preview-pr-${{ github.event.pull_request.number }}** artifact and serve the folder:"
+            echo
+            echo '```bash'
+            echo 'unzip design-preview-pr-*.zip -d preview'
+            echo 'python3 -m http.server 8000 --directory preview'
+            echo '```'
+            echo
+            echo 'Then open http://localhost:8000. The frames boot as ES modules, so open it through a server, not `file://`.'
+          } >> "$GITHUB_STEP_SUMMARY"

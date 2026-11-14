@@ -32,9 +32,12 @@ In the project root:
 ```bash
 irsim init [--design-dir <path>]
 irsim serve [--design-dir <path>] [--port <n>]
+irsim export [--design-dir <path>] [--out <dir>] [--title <text>]
 ```
 
 `irsim init` writes `.irsim.json` (`{ "designDir": "design" }`), adds `.irsim/` to `.gitignore`, and adds the managed block (`<!-- IRSIM_START -->` to `<!-- IRSIM_END -->`) to `AGENTS.md` and `CLAUDE.md` when they exist. A second run changes nothing.
+
+`irsim export` builds a standalone static preview (`dist/preview` by default) with an `index.html`, a frame per board under `b/`, the runtime and the viewer assets, all with relative URLs. Serve that folder (`npx serve dist/preview`, not `file://`, because the frames are modules) to review every board without an irsim server. `.github/workflows/preview.yml` builds it on each pull request and uploads it as an artifact. The layout and limits are in [docs/03-preview-site.md](docs/03-preview-site.md).
 
 In the canvas, a board with working controls or links between boards gets a Play button. Play runs it on the canvas or full screen (a web page board fills the window), and `<a href="Other.dc.html">` in a played board moves to that board. Details are in [docs/01-runtime.md](docs/01-runtime.md#play).
 
@@ -70,6 +73,6 @@ bun run typecheck
 bun test --isolate
 ```
 
-`make serve` runs this checkout's canvas without installing it or updating the plugin. It installs `app/node_modules` on first use, then runs `bin/irsim serve` from `PROJECT` (default: this repo), for example `make serve PROJECT=~/Projects/CRM`. `PORT` and `DESIGN_DIR` are optional. `make reload` first stops the canvas that serves `PROJECT` (an installed release, for example) and this checkout's own `next dev`, because Next allows one per checkout, then runs `make serve`. It refuses to touch a port held by another project's canvas. `make port`, `make build` and `make thumbs` run the matching `irsim` commands the same way, and `make help` lists them.
+`make serve` runs this checkout's canvas without installing it or updating the plugin. It installs `app/node_modules` on first use, then runs `bin/irsim serve` from `PROJECT` (default: this repo), for example `make serve PROJECT=~/Projects/CRM`. `PORT` and `DESIGN_DIR` are optional. `make reload` first stops the canvas that serves `PROJECT` (an installed release, for example) and this checkout's own `next dev`, because Next allows one per checkout, then runs `make serve`. It refuses to touch a port held by another project's canvas. `make port`, `make build`, `make preview` and `make thumbs` run the matching `irsim` commands the same way (`preview` takes `OUT`), and `make help` lists them.
 
 `bin/irsim serve` in a source checkout runs `next dev` in `app/`. `scripts/build-release.sh` builds `dist/irsim-<version>-<os>-<arch>.tar.gz` for the host platform. Pushing a tag `v<version>` builds all four platforms and attaches them to the release.
