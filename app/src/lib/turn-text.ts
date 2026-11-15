@@ -100,7 +100,26 @@ export const buildApprovalText = (
   current: Record<string, boolean>,
   designFolder = 'design',
 ): string => {
-  const lines = approvals.flatMap((approval) => {
+  const batches = new Map<string, Approval[]>()
+  for (const approval of approvals) {
+    if (approval.batch) batches.set(approval.batch, [...(batches.get(approval.batch) ?? []), approval])
+  }
+  const batchLines = [...batches.values()].flatMap((group) => {
+    const files = group.map((approval) => `${designFolder}/${approval.board}.dc.html`)
+    const stale = group.filter((approval) => current[approval.id] === false)
+    const note = group.find((approval) => approval.note)?.note
+    return [
+      `Design canvas: the user accepted every new and changed design on page ${group[0]?.page}: ${group.map((approval) => approval.board).join(', ')}. Start work on each design change and implement it.`,
+      ...(note ? [indent(note)] : []),
+      `   Read each file again first, because the user may have edited it: ${files.join(', ')}. Build the app from it and compare the board and the screen with screenshots.`,
+      ...(stale.length > 0
+        ? [
+            `   ${stale.map((approval) => approval.board).join(', ')} changed after the approval. Ask the user to approve ${stale.length === 1 ? 'it' : 'them'} again before you build.`,
+          ]
+        : []),
+    ]
+  })
+  const lines = approvals.filter((approval) => !approval.batch).flatMap((approval) => {
     const file = `${designFolder}/${approval.board}.dc.html`
     return [
       `Design canvas: the user approved board ${approval.board} (page ${approval.page}). This is the confirmation to build it.`,
@@ -110,7 +129,7 @@ export const buildApprovalText = (
         : `   Read ${file} again first, because the user may have edited it, then build the app from it and compare the board and the screen with screenshots.`,
     ]
   })
-  return lines.join('\n')
+  return [...batchLines, ...lines].join('\n')
 }
 
 /** The turn for variant requests: each variant file is a copy of the base that the agent edits in one direction. */
