@@ -5,7 +5,13 @@ export type CanvasBoard = {
   y: number
   width: number
   height: number
+  section?: string | undefined
+  variantOf?: string
+  variantLabel?: string
+  baseHash?: string
 }
+
+export type CanvasSection = { id: string; title: string; variantOf?: string }
 
 /**
  * `interactive`: the board works when played, so it gets a Play button. `fill`: the board is a web
@@ -16,8 +22,15 @@ export type ManifestBoard = CanvasBoard & {
   closure: string[]
   interactive: boolean
   fill: boolean
+  /** True for a variant whose render hash still equals `baseHash`. */
+  unchanged?: boolean | undefined
 }
 
-export type PageManifest = { id: string; title: string; boards: ManifestBoard[] }
+export type PageManifest = {
+  id: string
+  title: string
+  sections: CanvasSection[]
+  boards: ManifestBoard[]
+}
 
 export type PageSummary = { id: string; title: string; boardCount: number; boards: string[] }

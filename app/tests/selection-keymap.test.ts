@@ -1,46 +1,104 @@
 import { describe, expect, it } from 'vitest'
-import { commandFor, zoomChord } from '../src/canvas/keymap'
+import { commandFor, modChord, zoomChord } from '../src/canvas/keymap'
 import { NO_SELECTION, reduceSelection } from '../src/canvas/selection'
 
 const key = (key: string, extra: { code?: string; shiftKey?: boolean } = {}) =>
   commandFor({ key, code: extra.code ?? '', shiftKey: extra.shiftKey ?? false })
 
+const state = (names: string[], interacting = false) => ({ names, interacting })
+
 describe('reduceSelection', () => {
-  it('select sets the board and leaves interaction', () => {
-    const interacting = { name: 'A', interacting: true }
-    expect(reduceSelection(NO_SELECTION, { type: 'select', name: 'A' })).toEqual({
-      name: 'A',
-      interacting: false,
-    })
-    expect(reduceSelection(interacting, { type: 'select', name: 'B' })).toEqual({
-      name: 'B',
-      interacting: false,
-    })
+  it('select sets one board and leaves interaction', () => {
+    expect(reduceSelection(NO_SELECTION, { type: 'select', name: 'A' })).toEqual(state(['A']))
+    expect(reduceSelection(state(['A'], true), { type: 'select', name: 'B' })).toEqual(state(['B']))
+    expect(reduceSelection(state(['A', 'B']), { type: 'select', name: 'A' })).toEqual(state(['A']))
   })
 
-  it('selecting the same board again returns the same state', () => {
-    const state = { name: 'A', interacting: false }
-    expect(reduceSelection(state, { type: 'select', name: 'A' })).toBe(state)
+  it('select null clears, and the same object comes back when nothing changes', () => {
+    expect(reduceSelection(state(['A']), { type: 'select', name: null })).toBe(NO_SELECTION)
+    expect(reduceSelection(NO_SELECTION, { type: 'select', name: null })).toBe(NO_SELECTION)
+    const current = state(['A'])
+    expect(reduceSelection(current, { type: 'select', name: 'A' })).toBe(current)
   })
 
-  it('interact needs a board, from the action or the selection', () => {
+  it('toggle adds a missing board and removes a selected one', () => {
+    expect(reduceSelection(state(['A']), { type: 'toggle', name: 'B' })).toEqual(state(['A', 'B']))
+    expect(reduceSelection(state(['A', 'B']), { type: 'toggle', name: 'A' })).toEqual(state(['B']))
+    expect(reduceSelection(state(['A']), { type: 'toggle', name: 'A' })).toBe(NO_SELECTION)
+  })
+
+  it('add keeps the selection and skips duplicates', () => {
+    expect(reduceSelection(state(['A']), { type: 'add', names: ['B', 'A', 'C'] })).toEqual(
+      state(['A', 'B', 'C']),
+    )
+    const current = state(['A', 'B'])
+    expect(reduceSelection(current, { type: 'add', names: ['B'] })).toBe(current)
+  })
+
+  it('set and selectAll replace the selection', () => {
+    expect(reduceSelection(state(['A']), { type: 'set', names: ['B', 'C'] })).toEqual(
+      state(['B', 'C']),
+    )
+    expect(reduceSelection(state(['A']), { type: 'selectAll', names: ['A', 'B', 'B'] })).toEqual(
+      state(['A', 'B']),
+    )
+    const current = state(['A', 'B'])
+    expect(reduceSelection(current, { type: 'set', names: ['A', 'B'] })).toBe(current)
+    expect(reduceSelection(current, { type: 'set', names: [] })).toBe(NO_SELECTION)
+  })
+
+  it('any change of the selection leaves interaction', () => {
+    expect(reduceSelection(state(['A'], true), { type: 'toggle', name: 'B' })).toEqual(
+      state(['A', 'B']),
+    )
+    expect(reduceSelection(state(['A'], true), { type: 'set', names: ['A'] })).toEqual(state(['A']))
+  })
+
+  it('interact needs exactly one board, from the action or the selection', () => {
     expect(reduceSelection(NO_SELECTION, { type: 'interact' })).toBe(NO_SELECTION)
-    expect(reduceSelection({ name: 'A', interacting: false }, { type: 'interact' })).toEqual({
-      name: 'A',
-      interacting: true,
-    })
-    expect(reduceSelection(NO_SELECTION, { type: 'interact', name: 'B' })).toEqual({
-      name: 'B',
-      interacting: true,
-    })
+    const many = state(['A', 'B'])
+    expect(reduceSelection(many, { type: 'interact' })).toBe(many)
+    expect(reduceSelection(state(['A']), { type: 'interact' })).toEqual(state(['A'], true))
+    expect(reduceSelection(many, { type: 'interact', name: 'B' })).toEqual(state(['B'], true))
+    const live = state(['A'], true)
+    expect(reduceSelection(live, { type: 'interact' })).toBe(live)
   })
 
-  it('Esc leaves interaction first, then deselects, then does nothing', () => {
-    const first = reduceSelection({ name: 'A', interacting: true }, { type: 'escape' })
-    expect(first).toEqual({ name: 'A', interacting: false })
+  it('Esc leaves interaction first, then clears, then does nothing', () => {
+    const first = reduceSelection(state(['A'], true), { type: 'escape' })
+    expect(first).toEqual(state(['A']))
     const second = reduceSelection(first, { type: 'escape' })
     expect(second).toEqual(NO_SELECTION)
     expect(reduceSelection(second, { type: 'escape' })).toBe(second)
+    expect(reduceSelection(state(['A', 'B']), { type: 'escape' })).toBe(NO_SELECTION)
+  })
+})
+
+describe('modChord', () => {
+  const chord = (
+    key: string,
+    mods: Partial<Record<'ctrlKey' | 'metaKey' | 'altKey' | 'shiftKey', boolean>>,
+  ) => modChord({ key, ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, ...mods })
+
+  it('maps undo and redo', () => {
+    expect(chord('z', { ctrlKey: true })).toBe('undo')
+    expect(chord('z', { metaKey: true })).toBe('undo')
+    expect(chord('Z', { ctrlKey: true, shiftKey: true })).toBe('redo')
+    expect(chord('Z', { metaKey: true, shiftKey: true })).toBe('redo')
+    expect(chord('y', { ctrlKey: true })).toBe('redo')
+    expect(chord('y', { metaKey: true })).toBeNull()
+  })
+
+  it('maps select all and global search', () => {
+    expect(chord('a', { ctrlKey: true })).toBe('select-all')
+    expect(chord('k', { metaKey: true })).toBe('global-search')
+    expect(chord('K', { ctrlKey: true })).toBe('global-search')
+  })
+
+  it('ignores the keys without Ctrl or Cmd, and with Alt', () => {
+    expect(chord('z', {})).toBeNull()
+    expect(chord('z', { ctrlKey: true, altKey: true })).toBeNull()
+    expect(chord('q', { ctrlKey: true })).toBeNull()
   })
 })
 
@@ -59,6 +117,7 @@ describe('commandFor', () => {
     expect(key('/')).toBe('search')
     expect(key('v')).toBe('tool-move')
     expect(key('h')).toBe('tool-hand')
+    expect(key('S', { shiftKey: true })).toBe('create-section')
   })
 
   it('keeps plain 0 and 1 as fit and 100%', () => {

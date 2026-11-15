@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<title>Canvas inspector: variant board</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>body{margin:0}</style>
+</helmet>
+<dc-import name="CanvasInspector" mode="variant" imports="0" theme="{{theme}}" hint-size="288px,960px"></dc-import>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"$preview":{"width":288,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { theme: this.props.theme }
+  }
+}
+</script>
+</body>
+</html>

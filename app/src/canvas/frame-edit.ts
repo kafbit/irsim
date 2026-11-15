@@ -1,3 +1,4 @@
+import type { CanvasEdit } from '../lib/canvas-layout'
 import type { Rect, Size } from './geometry'
 
 export const MIN_W = 240
@@ -35,4 +36,26 @@ export function resizeRect(
   if (handle.includes('n')) top = Math.min(Math.round(top + dy), bottom - min.height)
   if (handle.includes('s')) bottom = Math.max(Math.round(bottom + dy), top + min.height)
   return { x: left, y: top, width: right - left, height: bottom - top }
+}
+
+export type Move = { name: string; rect: Rect; before: Rect }
+
+const KEYS = ['x', 'y', 'width', 'height'] as const
+
+/** The fields of `to` that differ from `from`. */
+function changed(from: Rect, to: Rect): Partial<Rect> {
+  const diff: Partial<Rect> = {}
+  for (const key of KEYS) if (from[key] !== to[key]) diff[key] = to[key]
+  return diff
+}
+
+/**
+ * The edit that applies `moves` and the edit that reverts them. Each holds only the fields that
+ * changed, so undoing a move does not rewrite the size of the board.
+ */
+export function editsOf(moves: Move[]): { before: CanvasEdit; after: CanvasEdit } {
+  return {
+    before: { boards: moves.map(({ name, rect, before }) => ({ name, ...changed(rect, before) })) },
+    after: { boards: moves.map(({ name, rect, before }) => ({ name, ...changed(before, rect) })) },
+  }
 }

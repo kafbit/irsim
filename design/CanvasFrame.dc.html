@@ -22,6 +22,12 @@ body{margin:0}
 <sc-if value="{{isPrototype}}" hint-placeholder-val="{{false}}">
 <span role="img" aria-label="Prototype" style="flex-shrink: 0; align-self: center; width: 8px; height: 8px; border-radius: 50%; background: #2563eb;"></span>
 </sc-if>
+<sc-if value="{{stale}}" hint-placeholder-val="{{false}}">
+<span style="flex-shrink: 0; font-weight: 500; color: var(--warning-foreground);">Outdated</span>
+</sc-if>
+<sc-if value="{{generating}}" hint-placeholder-val="{{false}}">
+<span style="flex-shrink: 0; font-weight: 500; color: var(--muted-foreground);">Not changed yet</span>
+</sc-if>
 <sc-if value="{{approved}}" hint-placeholder-val="{{false}}">
 <span style="flex-shrink: 0; font-weight: 500; color: var(--success-foreground);">Approved</span>
 </sc-if>
@@ -29,7 +35,7 @@ body{margin:0}
 <span style="flex-shrink: 0; font-weight: 500; color: var(--warning-foreground);">Changed</span>
 </sc-if>
 <span dir="auto" style="min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">Confirmation dialog</span>
-<span style="flex-shrink: 0; color: var(--muted-foreground);">Dialog</span>
+<span style="min-width: 0; flex-shrink: 10000; overflow: hidden; text-overflow: ellipsis; color: var(--muted-foreground);">Dialog</span>
 </button>
 <sc-if value="{{showPlay}}" hint-placeholder-val="{{false}}">
 <div style="position: absolute; right: 0; bottom: 100%; display: flex; align-items: center; padding-bottom: 4px;">
@@ -76,7 +82,7 @@ body{margin:0}
 </div>
 <sc-if value="{{selected}}" hint-placeholder-val="{{false}}">
 <div aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; outline: 2px solid var(--ring); pointer-events: none;">
-<sc-for list="{{handles}}" as="handle"><span style="position: absolute; left: {{handle.left}}; top: {{handle.top}}; width: 8px; height: 8px; box-sizing: border-box; border: 1px solid var(--ring); background: #ffffff; transform: translate(-50%, -50%);"></span></sc-for>
+<sc-if value="{{handlesShown}}" hint-placeholder-val="{{true}}"><sc-for list="{{handles}}" as="handle"><span style="position: absolute; left: {{handle.left}}; top: {{handle.top}}; width: 8px; height: 8px; box-sizing: border-box; border: 1px solid var(--ring); background: #ffffff; transform: translate(-50%, -50%);"></span></sc-for></sc-if>
 </div>
 </sc-if>
 <sc-if value="{{titleHover}}" hint-placeholder-val="{{false}}">
@@ -97,7 +103,7 @@ body{margin:0}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"live","options":["live","selected","thumbnail","pending","failed","playing","commenting"]},"prototype":{"editor":"enum","default":"no","options":["no","yes"]},"hover":{"editor":"enum","default":"none","options":["none","title"]},"whole":{"editor":"enum","default":"none","options":["none","pin","composing"]},"approval":{"editor":"enum","default":"none","options":["none","approved","changed"]},"width":{"editor":"number","default":360},"height":{"editor":"number","default":240},"$preview":{"width":400,"height":308}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"live","options":["live","selected","thumbnail","selectedMany","stale","generating","pending","failed","playing","commenting"]},"prototype":{"editor":"enum","default":"no","options":["no","yes"]},"hover":{"editor":"enum","default":"none","options":["none","title"]},"whole":{"editor":"enum","default":"none","options":["none","pin","composing"]},"approval":{"editor":"enum","default":"none","options":["none","approved","changed"]},"width":{"editor":"number","default":360},"height":{"editor":"number","default":240},"$preview":{"width":400,"height":308}}'>
 class Component extends DCLogic {
   renderVals() {
     const { state, prototype, approval, theme, hover, whole } = this.props
@@ -117,9 +123,12 @@ class Component extends DCLogic {
       outline: playing ? '2px solid #2563eb' : '1px solid var(--border)',
       showMock: !placeholder,
       showPlaceholder: placeholder,
-      mockFilter: state === 'thumbnail' ? 'saturate(0.9)' : 'none',
+      mockFilter: state === 'thumbnail' || state === 'stale' ? 'saturate(0.9)' : 'none',
+      stale: state === 'stale',
+      generating: state === 'generating',
       fillClass: state === 'pending' ? 'cf-pulse' : '',
-      selected: state === 'selected',
+      selected: state === 'selected' || state === 'selectedMany',
+      handlesShown: state === 'selected',
       commenting: state === 'commenting',
       titleCursor: state === 'commenting' ? 'crosshair' : 'pointer',
       titleHover: state === 'commenting' && hover === 'title',

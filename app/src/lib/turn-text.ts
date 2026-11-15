@@ -1,4 +1,5 @@
-import type { Approval, Comment, Reply } from './comments-types'
+import type { Approval, Comment, Reply, VariantRequest } from './comments-types'
+import { agentName } from './agents'
 import { isWholeBoard, placeText, targetText } from './place-text'
 import { viewportLine } from './view-label'
 
@@ -21,7 +22,12 @@ export const unseenUserReplies = (comment: Comment): Reply[] =>
 const WAS_RESOLVED = ' (was resolved, resolve it again if the new reply is handled)'
 
 const replyLines = (reply: Reply, fresh: boolean): string => {
-  const who = reply.author === 'claude' ? 'Claude' : 'You'
+  const who =
+    reply.author !== 'claude'
+      ? 'You'
+      : reply.agent && reply.agent !== 'claude-code'
+        ? agentName(reply.agent)
+        : 'Claude'
   const [first = '', ...rest] = reply.body.split('\n')
   const label = `   ${fresh ? 'NEW ' : ''}${who}: `
   return [`${label}${first}`, ...rest.map((line) => `      ${line}`)].join('\n')
@@ -105,4 +111,28 @@ export const buildApprovalText = (
     ]
   })
   return lines.join('\n')
+}
+
+/** The turn for variant requests: each variant file is a copy of the base that the agent edits in one direction. */
+export const buildVariantText = (
+  requests: VariantRequest[],
+  designFolder = 'design',
+  imagePaths: Record<string, string> = {},
+): string => {
+  const lines = requests.flatMap((request) => [
+    request.pick
+      ? `Design canvas: the user asked for ${request.variants.length} variants of board ${request.base} (page ${request.page}) from a comment on ${placeText(request.pick)} · ${targetText(request.pick)}. Each file below is a copy of ${designFolder}/${request.base}.dc.html; edit only that file.`
+      : `Design canvas: the user asked for ${request.variants.length} variants of board ${request.base} (page ${request.page}). Each file below is a copy of ${designFolder}/${request.base}.dc.html; edit only that file.`,
+    ...(request.pick && request.note ? [indent(request.note)] : []),
+    ...request.variants.map(
+      (variant) => `   ${designFolder}/${variant.name}.dc.html: ${variant.label}. ${variant.direction}`,
+    ),
+    ...(!request.pick && request.note ? [indent(request.note)] : []),
+    ...(request.images ?? []).flatMap((id) => {
+      const path = imagePaths[id]
+      return path ? [`   image: ${path}`] : []
+    }),
+    `   Keep each board's size and the board conventions. Run design_canvas {action: "check", board} on each and look at the screenshot. Do not edit ${request.base}.dc.html; the user compares the variants and chooses one in irsim.`,
+  ])
+  return [...lines, REPLY_RULE].join('\n')
 }

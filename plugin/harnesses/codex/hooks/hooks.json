@@ -1,0 +1,60 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "irsim bridge hook codex SessionStart",
+            "timeout": 15,
+            "statusMessage": "irsim: connecting the design canvas"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "irsim bridge hook codex UserPromptSubmit",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PreModelRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "irsim bridge hook codex PreModelRequest",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "irsim bridge hook codex Stop",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "irsim bridge hook codex SessionEnd",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

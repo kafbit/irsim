@@ -3,11 +3,11 @@ import { join } from 'node:path'
 import type { Browser } from 'playwright-core'
 import { launchChromium } from '../src/lib/board-check'
 import { readCanvasPages } from '../src/lib/canvas-pages'
-import { closureOf } from '../src/lib/closure'
 import { projectRoot } from '../src/lib/design-dir'
 import { canvasPort } from '../src/lib/port'
-import { renderThumb } from '../src/lib/thumbs'
+import { renderThumb, thumbKeyOf } from '../src/lib/thumbs'
 import { THUMB_MAX_AGE_MS, thumbFile, thumbsDir } from '../src/lib/thumbs-dir'
+import { pruneThumbIndex, recordThumb, recordThumbIfMissing } from '../src/lib/thumbs-index'
 
 const CONCURRENCY = 3
 
@@ -29,7 +29,7 @@ const exists = (path: string): Promise<boolean> =>
     () => false,
   )
 
-/** The directory is shared by every worktree, so an older hash may still be another one's current. Age decides. */
+/** The directory is shared by every worktree, so an older thumbnail key may still be another one's current. Age decides. */
 const pruneStale = async (dir: string): Promise<void> => {
   const cutoff = Date.now() - THUMB_MAX_AGE_MS
   for (const file of await readdir(dir)) {
@@ -37,6 +37,7 @@ const pruneStale = async (dir: string): Promise<void> => {
     const path = join(dir, file)
     if ((await stat(path)).mtimeMs < cutoff) await rm(path, { force: true })
   }
+  await pruneThumbIndex()
 }
 
 const main = async (): Promise<void> => {
@@ -71,17 +72,19 @@ const main = async (): Promise<void> => {
           ...(error ? { error } : {}),
         })
       try {
-        const { hash } = await closureOf(target.name)
-        const file = thumbFile(target.name, hash)
+        const { key } = await thumbKeyOf(target.name)
+        const file = thumbFile(key)
         const out = join(dir, file)
         if (!force && (await exists(out))) {
           const now = new Date()
           await utimes(out, now, now)
+          await recordThumbIfMissing(target.name, key)
           done('skip')
           continue
         }
         launching ??= launchChromium()
         await renderThumb(await launching, base, target, out)
+        await recordThumb(target.name, key)
         done('new')
       } catch (error) {
         done('fail', error instanceof Error ? error.message.split('\n')[0] : String(error))

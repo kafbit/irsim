@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { type CanvasFile, placeBoard } from '../src/lib/canvas-layout'
+import { applyEdit, type CanvasFile, placeBoard } from '../src/lib/canvas-layout'
 
 const canvas = (): CanvasFile => ({
   version: 1,
@@ -107,5 +107,114 @@ describe('placeBoard', () => {
     const before = canvas()
     placeBoard(before, 'sales', 'Leads', { x: 1, y: 2, width: 300, height: 300 })
     expect(before).toEqual(canvas())
+  })
+})
+
+const sectioned = (): CanvasFile => {
+  const base = canvas()
+  const page = base.pages[0]
+  if (!page) throw new Error('no page')
+  return {
+    ...base,
+    pages: [
+      {
+        ...page,
+        sections: [{ id: 'a', title: 'A' }],
+        boards: [
+          { ...page.boards[0], section: 'a' } as (typeof page.boards)[number],
+          { ...page.boards[1], section: 'a' } as (typeof page.boards)[number],
+        ],
+      },
+      ...base.pages.slice(1),
+    ],
+  }
+}
+
+const edited = (result: ReturnType<typeof applyEdit>): CanvasFile => {
+  if ('error' in result) throw new Error(result.error)
+  return result.canvas
+}
+
+describe('applyEdit', () => {
+  it('moves several boards in one edit', () => {
+    const result = edited(
+      applyEdit(canvas(), 'sales', {
+        boards: [
+          { name: 'Leads', x: 10.4, y: 20 },
+          { name: 'Pipeline', x: 1700, width: 500 },
+        ],
+      }),
+    )
+    expect(result.pages[0]?.boards[0]).toMatchObject({ x: 10, y: 20, width: 1440 })
+    expect(result.pages[0]?.boards[1]).toMatchObject({ x: 1700, y: 0, width: 500, height: 900 })
+  })
+
+  it('upserts sections, keeps their order and assigns a board to a new section', () => {
+    const result = edited(
+      applyEdit(sectioned(), 'sales', {
+        sections: {
+          set: [
+            { id: 'a', title: 'Renamed' },
+            { id: 'b', title: 'B' },
+          ],
+        },
+        boards: [{ name: 'Leads', section: 'b' }],
+      }),
+    )
+    expect(result.pages[0]?.sections).toEqual([
+      { id: 'a', title: 'Renamed' },
+      { id: 'b', title: 'B' },
+    ])
+    expect(result.pages[0]?.boards[0]).toMatchObject({ section: 'b' })
+    expect(result.pages[0]?.boards[1]).toMatchObject({ section: 'a' })
+  })
+
+  it('removes a section and clears the section field of its boards', () => {
+    const result = edited(applyEdit(sectioned(), 'sales', { sections: { remove: ['a'] } }))
+    expect(result.pages[0]?.sections).toEqual([])
+    for (const board of result.pages[0]?.boards ?? []) expect('section' in board).toBe(false)
+  })
+
+  it('deletes the section field with null', () => {
+    const result = edited(
+      applyEdit(sectioned(), 'sales', { boards: [{ name: 'Leads', section: null }] }),
+    )
+    expect('section' in (result.pages[0]?.boards[0] ?? {})).toBe(false)
+    expect(result.pages[0]?.boards[1]).toMatchObject({ section: 'a' })
+  })
+
+  it('answers 400 for an unknown section', () => {
+    expect(
+      applyEdit(sectioned(), 'sales', { boards: [{ name: 'Leads', section: 'zzz' }] }),
+    ).toMatchObject({ status: 400 })
+    expect(
+      applyEdit(sectioned(), 'sales', {
+        sections: { remove: ['a'] },
+        boards: [{ name: 'Leads', section: 'a' }],
+      }),
+    ).toMatchObject({ status: 400 })
+  })
+
+  it('answers 404 for an unknown page and names an unknown board', () => {
+    expect(applyEdit(canvas(), 'nope', { boards: [] })).toMatchObject({ status: 404 })
+    const result = applyEdit(canvas(), 'sales', { boards: [{ name: 'Ghost', x: 1 }] })
+    expect(result).toMatchObject({ status: 404 })
+    expect('error' in result && result.error).toContain('Ghost')
+  })
+
+  it('rejects a size under the minimum and a non-finite number', () => {
+    expect(applyEdit(canvas(), 'sales', { boards: [{ name: 'Leads', width: 239 }] })).toMatchObject(
+      { status: 400 },
+    )
+    expect(
+      applyEdit(canvas(), 'sales', { boards: [{ name: 'Leads', y: Number.NaN }] }),
+    ).toMatchObject({ status: 400 })
+  })
+
+  it('does not mutate its input and keeps untouched pages', () => {
+    const before = sectioned()
+    const result = edited(applyEdit(before, 'sales', { boards: [{ name: 'Leads', x: 5 }] }))
+    expect(before).toEqual(sectioned())
+    expect(result.pages[1]).toBe(before.pages[1])
   })
 })

@@ -46,6 +46,8 @@ commands:
   init [--design-dir <path>] [--refresh-block]
                                              write ${CONFIG_FILE}, ignore .irsim/, add the managed block to AGENTS.md and CLAUDE.md
   update [--check]                           install the latest release (needs gh)
+  doctor [--json]                            check the project rules, git setup and config
+  bridge <command>                           connect an agent harness to the canvas (bridge --help)
   uninstall [--purge] [--yes] [--dry-run]    remove this install (--purge also removes the cache)
   version                                    print the installed version
   --help                                     print this text
@@ -612,6 +614,20 @@ const update = (args) => {
   }
 }
 
+const doctor = async (args) => {
+  const opts = parse(args, { '--json': 'bool' })
+  const { formatDoctor, runDoctor } = await import(
+    pathToFileURL(join(ROOT, 'bin', 'lib', 'doctor.mjs')).href
+  )
+  const report = await runDoctor({
+    cwd: projectRoot(process.cwd()),
+    env: { ...process.env, IRSIM_ROOT: projectRoot(process.cwd()) },
+  })
+  if (opts.json) console.log(JSON.stringify(report, null, 2))
+  else console.log(formatDoctor(report))
+  if (!report.ok) process.exit(1)
+}
+
 const confirm = (question) =>
   new Promise((done) => {
     const rl = createInterface({ input: process.stdin, output: process.stdout })
@@ -672,6 +688,20 @@ switch (command) {
   case 'update':
     update(rest)
     break
+  case 'doctor':
+    await doctor(rest)
+    break
+  case 'bridge': {
+    const { runBridge } = await import(
+      pathToFileURL(join(ROOT, 'bin', 'lib', 'bridge.mjs')).href
+    )
+    try {
+      await runBridge(rest)
+    } catch (error) {
+      fail(error instanceof Error ? error.message : String(error), error?.exitCode ?? 1)
+    }
+    break
+  }
   case 'uninstall':
     await uninstall(rest)
     break

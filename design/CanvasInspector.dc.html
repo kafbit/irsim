@@ -17,17 +17,18 @@ body{margin:0}
 <div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="display: flex; width: 100%; min-height: 100vh; background: var(--card); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
 <aside aria-label="Inspector" style="display: flex; flex-direction: column; gap: 16px; width: 288px; flex-shrink: 0; box-sizing: border-box; min-height: 100vh; padding: 16px; background: var(--card); border-right: 1px solid var(--border);">
 <header style="display: flex; flex-direction: column; gap: 4px;">
-<h2 style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; line-height: 24px; font-weight: 600;">Dialog</h2>
-<p style="margin: 0; font-size: 14px; color: var(--muted-foreground);">Confirmation dialog</p>
+<h2 style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; line-height: 24px; font-weight: 600;">{{title}}</h2>
+<p style="margin: 0; font-size: 14px; color: var(--muted-foreground);">{{subtitle}}</p>
 </header>
 <dl style="display: flex; flex-direction: column; gap: 12px; margin: 0;">
+<sc-if value="{{notMulti}}" hint-placeholder-val="{{true}}">
 <div style="display: flex; flex-direction: column; gap: 4px;">
 <dt style="font-size: 12px; color: var(--muted-foreground);">Size</dt>
 <dd style="margin: 0; font-size: 14px; font-variant-numeric: tabular-nums;">480 × 320</dd>
 </div>
 <div style="display: flex; flex-direction: column; gap: 4px;">
 <dt style="font-size: 12px; color: var(--muted-foreground);">File</dt>
-<dd style="margin: 0; font-size: 14px;"><span style="display: flex; align-items: center; gap: 4px;"><code style="min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px;">design/Dialog.dc.html</code><button type="button" aria-label="Copy path" style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--muted-foreground); cursor: pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg></button></span></dd>
+<dd style="margin: 0; font-size: 14px;"><span style="display: flex; align-items: center; gap: 4px;"><code style="min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px;">{{filePath}}</code><button type="button" aria-label="Copy path" style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--muted-foreground); cursor: pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg></button></span></dd>
 </div>
 <div style="display: flex; flex-direction: column; gap: 4px;">
 <dt style="font-size: 12px; color: var(--muted-foreground);">{{importsLabel}}</dt>
@@ -36,13 +37,63 @@ body{margin:0}
 <ul style="display: flex; flex-direction: column; margin: 0 -8px; padding: 0; list-style: none;">
 <sc-for list="{{imports}}" as="name"><li><button type="button" style="display: block; width: 100%; box-sizing: border-box; padding: 4px 8px; overflow: hidden; border: 0; border-radius: 8px; background: transparent; text-align: left; text-overflow: ellipsis; white-space: nowrap; font: inherit; font-size: 14px; color: var(--foreground); cursor: pointer;">{{name}}</button></li></sc-for>
 </ul>
+<sc-if value="{{hasMore}}" hint-placeholder-val="{{false}}">
+<button type="button" aria-expanded="{{moreExpanded}}" style="display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; margin: 2px -8px 0; padding: 4px 8px; border: 0; border-radius: 8px; background: transparent; font: inherit; font-size: 12px; font-weight: 500; color: var(--muted-foreground); cursor: pointer;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="transform: rotate({{moreRotate}});"><path d="m6 9 6 6 6-6"></path></svg>{{moreLabel}}</button>
+</sc-if>
 </sc-if>
 <sc-if value="{{noImports}}" hint-placeholder-val="{{false}}">
 <span style="color: var(--muted-foreground);">None</span>
 </sc-if>
 </dd>
 </div>
+</sc-if>
+<div style="display: flex; flex-direction: column; gap: 4px;">
+<dt style="font-size: 12px; color: var(--muted-foreground);">Section</dt>
+<dd style="margin: 0; font-size: 14px;"><span style="display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 36px; box-sizing: border-box; padding: 0 10px; border: 1px solid var(--input); border-radius: 10px; color: {{sectionColor}};"><span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{sectionValue}}</span><span style="display: inline-flex; flex-shrink: 0; color: var(--muted-foreground);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></span></dd>
+</div>
 </dl>
+<sc-if value="{{showVariantForm}}" hint-placeholder-val="{{false}}">
+<section aria-label="Variants" style="display: flex; flex-direction: column; gap: 8px;">
+<h3 style="margin: 0; font-size: 12px; font-weight: 400; color: var(--muted-foreground);">Variants</h3>
+<div style="display: flex; flex-wrap: wrap; gap: 6px;">
+<sc-for list="{{presets}}" as="chip"><span style="display: inline-flex; align-items: center; height: 26px; box-sizing: border-box; padding: 0 10px; border: 1px solid {{chip.border}}; border-radius: 9999px; background: {{chip.bg}}; color: {{chip.fg}}; font-size: 12px; font-weight: 500; white-space: nowrap;">{{chip.label}}</span></sc-for>
+</div>
+<div style="box-sizing: border-box; min-height: 56px; padding: 8px 10px; border: 1px solid var(--input); border-radius: 10px; font-size: 14px; color: var(--muted-foreground);">Note for Claude (optional)</div>
+<p style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted-foreground);">Session: Claude Code session</p>
+<button type="button" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 12px 0 10px; border: 1px solid var(--primary); border-radius: 10px; background: var(--primary); color: var(--primary-foreground); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3"></path><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"></path><path d="M12 2v20"></path></svg>Generate 2 variants</button>
+<sc-if value="{{showExisting}}" hint-placeholder-val="{{false}}">
+<span style="display: inline-flex; align-items: center; justify-content: center; align-self: flex-start; gap: 8px; height: 34px; box-sizing: border-box; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--background); color: var(--foreground); font-size: 13px; font-weight: 500; white-space: nowrap;">Compare 2 variants</span>
+</sc-if>
+</section>
+</sc-if>
+<sc-if value="{{showVariantBoard}}" hint-placeholder-val="{{false}}">
+<section aria-label="Variants" style="display: flex; flex-direction: column; gap: 8px;">
+<h3 style="margin: 0; font-size: 12px; font-weight: 400; color: var(--muted-foreground);">Variants</h3>
+<p style="margin: 0; font-size: 14px; color: var(--foreground);">Variant of Dialog: Simpler</p>
+<sc-if value="{{showUnchanged}}" hint-placeholder-val="{{true}}">
+<p role="status" style="margin: 0; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--secondary); font-size: 13px; line-height: 20px; color: var(--foreground);">Not changed yet</p>
+</sc-if>
+<span style="display: inline-flex; align-items: center; justify-content: center; align-self: flex-start; gap: 8px; height: 34px; box-sizing: border-box; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--background); color: var(--foreground); font-size: 13px; font-weight: 500; white-space: nowrap;">Compare</span>
+</section>
+</sc-if>
+<sc-if value="{{showVariantSent}}" hint-placeholder-val="{{false}}">
+<section aria-label="Variants" style="display: flex; flex-direction: column; gap: 8px;">
+<h3 style="margin: 0; font-size: 12px; font-weight: 400; color: var(--muted-foreground);">Variants</h3>
+<p role="status" style="margin: 0; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--secondary); font-size: 13px; line-height: 20px; color: var(--foreground);">Sent to Claude Code session. 2 variants are on the canvas.</p>
+<span style="display: inline-flex; align-items: center; justify-content: center; align-self: flex-start; gap: 8px; height: 34px; box-sizing: border-box; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--background); color: var(--foreground); font-size: 13px; font-weight: 500; white-space: nowrap;">Compare variants</span>
+<button type="button" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid transparent; border-radius: 10px; background: transparent; color: var(--foreground); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Generate more</button>
+</section>
+</sc-if>
+<sc-if value="{{isMulti}}" hint-placeholder-val="{{false}}">
+<section aria-label="Section actions" style="display: flex; flex-direction: column; gap: 8px;">
+<button type="button" style="display: flex; align-items: center; justify-content: space-between; gap: 6px; height: 34px; padding: 0 10px 0 12px; border: 1px solid var(--primary); border-radius: 10px; background: var(--primary); color: var(--primary-foreground); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;"><span>Create section</span><span style="padding: 1px 6px; border: 1px solid color-mix(in srgb, var(--primary-foreground) 40%, transparent); border-radius: 6px; font-size: 11px; font-weight: 500;">Shift+S</span></button>
+<button type="button" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--background); color: var(--foreground); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Remove from section</button>
+<sc-if value="{{showDelete}}" hint-placeholder-val="{{false}}">
+<button type="button" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--background); color: var(--foreground); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Delete section</button>
+</sc-if>
+</section>
+</sc-if>
+<sc-if value="{{notMulti}}" hint-placeholder-val="{{true}}">
 <section aria-label="Approve" style="display: flex; flex-direction: column; gap: 8px;">
 <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
 <h3 style="margin: 0; font-size: 12px; font-weight: 400; color: var(--muted-foreground);">Approval</h3>
@@ -57,25 +108,59 @@ body{margin:0}
 <p role="status" style="margin: 0; font-size: 12px; color: var(--muted-foreground);">Waiting for Claude to receive it.</p>
 </sc-if>
 </section>
-<button type="button" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid transparent; border-radius: 10px; background: var(--secondary); color: var(--foreground); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"/></svg>Play</button>
+<button type="button" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--background); color: var(--foreground); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"/></svg>Play</button>
+</sc-if>
 </aside>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"approval":{"editor":"enum","default":"none","options":["none","approved","changed","queued"]},"imports":{"editor":"enum","default":"3","options":["3","0"]},"$preview":{"width":288,"height":820}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"approval":{"editor":"enum","default":"none","options":["none","approved","changed","queued"]},"imports":{"editor":"enum","default":"3","options":["3","0","10","10-expanded"]},"existing":{"editor":"enum","default":"no","options":["no","yes"]},"unchanged":{"editor":"enum","default":"yes","options":["yes","no"]},"shared":{"editor":"enum","default":"no","options":["no","yes"]},"mode":{"editor":"enum","default":"single","options":["single","multi","variants","variant-sent","variant"]},"$preview":{"width":288,"height":820}}'>
 class Component extends DCLogic {
   renderVals() {
-    const { approval, imports, theme } = this.props
-    const names = String(imports) === '0' ? [] : ['Button', 'Icons', 'Badge']
+    const { approval, imports, theme, mode } = this.props
+    const multi = mode === 'multi'
+    const sharedSection = multi && this.props.shared === 'yes'
+    const chosen = ['Simpler', 'Clearer']
+    const presets = ['Better', 'Clearer', 'Simpler', 'Responsive', 'UI/UX pass', 'Research'].map((label) => {
+      const on = chosen.includes(label)
+      return {
+        label,
+        bg: on ? 'var(--primary)' : 'transparent',
+        fg: on ? 'var(--primary-foreground)' : 'var(--foreground)',
+        border: on ? 'var(--primary)' : 'var(--border-strong)',
+      }
+    })
+    const allNames = String(imports) === '0' ? [] : String(imports).startsWith('10') ? ['CanvasSidebar', 'CanvasFrame', 'CanvasToolbar', 'CanvasFocusBar', 'CanvasToast', 'CanvasZoomBar', 'CanvasInspector', 'CanvasThread', 'CanvasSearch', 'CanvasSettings'] : ['Button', 'Icons', 'Badge']
+    const expanded = String(imports) === '10-expanded'
+    const names = expanded ? allNames : allNames.slice(0, 3)
+    const hidden = allNames.length - 3
     const badge = {
       approved: { text: 'Approved', bg: 'var(--success)', fg: 'var(--success-foreground)' },
       changed: { text: 'Changed since approval', bg: 'var(--warning)', fg: 'var(--warning-foreground)' },
     }[approval]
     return {
       themeClass: theme === 'dark' ? 'dark' : '',
-      importsLabel: `Imports (${names.length})`,
+      title: multi ? '3 boards selected' : mode === 'variant' ? 'DialogVariantSimpler' : 'Dialog',
+      subtitle: multi ? 'Button, Dialog, Table' : 'Confirmation dialog',
+      isMulti: multi,
+      showDelete: sharedSection,
+      notMulti: !multi,
+      sectionValue: mode === 'variant-sent' || mode === 'variant' ? 'Dialog variants' : multi ? (sharedSection ? 'Checkout flow' : 'Mixed') : 'None',
+      sectionColor: mode === 'variant-sent' || mode === 'variant' || multi ? 'var(--foreground)' : 'var(--muted-foreground)',
+      showVariantForm: mode === 'variants',
+      showVariantSent: mode === 'variant-sent',
+      showVariantBoard: mode === 'variant',
+      showExisting: this.props.existing === 'yes',
+      showUnchanged: this.props.unchanged !== 'no',
+      filePath: mode === 'variant' ? 'design/DialogVariantSimpler.dc.html' : 'design/Dialog.dc.html',
+      presets,
+      importsLabel: `Imports (${allNames.length})`,
       imports: names,
       hasImports: names.length > 0,
       noImports: names.length === 0,
+      hasMore: hidden > 0,
+      moreExpanded: expanded ? 'true' : 'false',
+      moreRotate: expanded ? '180deg' : '0deg',
+      moreLabel: expanded ? 'Show fewer' : `Show ${hidden} more imports`,
       hasBadge: Boolean(badge),
       badgeText: badge ? badge.text : '',
       badgeBg: badge ? badge.bg : 'transparent',

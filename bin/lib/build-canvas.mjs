@@ -41,6 +41,18 @@ const readPrevious = (file) => {
   }
 }
 
+const keptSections = (sections) =>
+  Array.isArray(sections)
+    ? sections
+        .filter((entry) => typeof entry?.id === 'string' && typeof entry?.title === 'string')
+        .map((entry) => ({
+          id: entry.id,
+          title: entry.title,
+          ...(typeof entry.variantOf === 'string' ? { variantOf: entry.variantOf } : {}),
+          ...(typeof entry.baseSection === 'string' ? { baseSection: entry.baseSection } : {}),
+        }))
+    : undefined
+
 /** True when `canvas.json` is missing or a board file in `designDir` is not listed on any page. */
 export const needsRegistration = (designDir) => {
   const file = join(designDir, 'canvas.json')
@@ -67,6 +79,7 @@ export const buildCanvas = (designDir) => {
   const layout = (previous.pages ?? []).map((page) => ({
     id: page.id,
     title: page.title,
+    sections: keptSections(page.sections),
     boards: page.boards.map((b) => b.name),
   }))
   if (loose.length > 0) {
@@ -79,6 +92,7 @@ export const buildCanvas = (designDir) => {
     const sized = page.boards
       .filter((name) => known.has(name))
       .map((name) => ({ name, ...readBoard(readFileSync(join(designDir, `${name}${SUFFIX}`), 'utf8')) }))
+    const sectionIds = new Set((page.sections ?? []).map((entry) => entry.id))
     const boards = []
     let cursorX = 0
     let rowY = 0
@@ -99,11 +113,22 @@ export const buildCanvas = (designDir) => {
         height: board.height,
         ...(typeof kept?.interactive === 'boolean' ? { interactive: kept.interactive } : {}),
         ...(typeof kept?.expand === 'string' ? { expand: kept.expand } : {}),
+        ...(typeof kept?.section === 'string' && sectionIds.has(kept.section)
+          ? { section: kept.section }
+          : {}),
+        ...(typeof kept?.variantOf === 'string' ? { variantOf: kept.variantOf } : {}),
+        ...(typeof kept?.variantLabel === 'string' ? { variantLabel: kept.variantLabel } : {}),
+        ...(typeof kept?.baseHash === 'string' ? { baseHash: kept.baseHash } : {}),
       })
       cursorX += board.width + GAP
       rowHeight = Math.max(rowHeight, board.height)
     }
-    return { id: page.id, title: page.title, boards }
+    return {
+      id: page.id,
+      title: page.title,
+      ...(page.sections ? { sections: page.sections } : {}),
+      boards,
+    }
   })
 
   const canvas = {

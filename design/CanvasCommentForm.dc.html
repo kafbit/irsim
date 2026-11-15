@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<title>Canvas comment form</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.cv-root{--pick:#14161a;--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted:#efefeb;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a;--play:#2563eb;--mock-bg:#f6f6f3;--mock-ink:#14161a;--mock-card:#ffffff;--mock-line:#e4e4e0;--mock-bar:#d6d7d2}
+.cv-root.dark{--pick:#14161a;--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8;--play:#60a5fa}
+</style>
+</helmet>
+<div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="display: flex; align-items: flex-start; justify-content: center; box-sizing: border-box; width: 100%; min-height: var(--cv-h, 100vh); padding: 24px; background: var(--cv-bg, var(--shell)); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
+<div role="dialog" aria-label="New comment" style="display: flex; flex-direction: column; gap: 8px; width: 320px; box-sizing: border-box; padding: 12px; border: 1px solid var(--border); border-radius: 14px; background: var(--card); box-shadow: 0 14px 36px rgba(20,22,26,0.14);">
+<code dir="ltr" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted-foreground);">design/CanvasSidebar.dc.html:25</code>
+<div style="box-sizing: border-box; min-height: 80px; padding: 8px 10px; border: 1px solid var(--input); border-radius: 10px; font-size: 14px; color: {{bodyColor}};">{{body}}</div>
+<sc-if value="{{isVariants}}" hint-placeholder-val="{{false}}">
+<section aria-label="Variants" style="display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 10px; background: var(--secondary);">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+<span style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>Generate variants</span>
+<div role="radiogroup" aria-label="How many variants" style="display: inline-flex; gap: 2px; padding: 2px; border-radius: 8px; background: var(--muted);">
+<span role="radio" aria-checked="{{twoChecked}}" style="display: inline-grid; place-items: center; width: 32px; height: 24px; border-radius: 6px; background: {{twoBg}}; color: {{twoFg}}; font-size: 12px; font-weight: 500;">2</span>
+<span role="radio" aria-checked="{{threeChecked}}" style="display: inline-grid; place-items: center; width: 32px; height: 24px; border-radius: 6px; background: {{threeBg}}; color: {{threeFg}}; font-size: 12px; font-weight: 500;">3</span>
+</div>
+</div>
+<p style="margin: 0; font-size: 12px; line-height: 16px; color: var(--muted-foreground);">Claude makes {{count}} different takes on your note as copies next to the board. Compare them and keep one. Ctrl+Enter generates.</p>
+</section>
+</sc-if>
+<div style="display: flex; align-items: center; gap: 8px;">
+<button type="button" aria-pressed="{{variantsPressed}}" aria-label="{{toggleAria}}" title="{{toggleAria}}" style="display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 32px; height: 32px; padding: 0; border: 1px solid {{toggleBorder}}; border-radius: 10px; background: {{toggleBg}}; color: {{toggleFg}}; font: inherit; font-size: 13px; font-weight: 500;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg></button>
+<span style="flex: 1;"></span>
+<button type="button" style="display: inline-flex; align-items: center; justify-content: center; height: 32px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--background); color: var(--foreground); font: inherit; font-size: 13px; font-weight: 500; white-space: nowrap;">Cancel (Esc)</button>
+<button type="button" style="display: inline-flex; align-items: center; justify-content: center; height: 32px; padding: 0 12px; border: 1px solid var(--primary); border-radius: 10px; background: var(--primary); color: var(--primary-foreground); font: inherit; font-size: 13px; font-weight: 600; white-space: nowrap;">{{saveLabel}}</button>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"mode":{"editor":"enum","default":"comment","options":["comment","variants"]},"count":{"editor":"enum","default":"3","options":["2","3"]},"$preview":{"width":368,"height":360}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const { theme, mode, count } = this.props
+    const variants = mode === 'variants'
+    const n = String(count) === '2' ? 2 : 3
+    return {
+      themeClass: theme === 'dark' ? 'dark' : '',
+      body: 'Make the board list easier to scan',
+      bodyColor: 'var(--foreground)',
+      isVariants: variants,
+      variantsPressed: variants ? 'true' : 'false',
+      toggleAria: variants ? 'Back to a plain comment' : 'Generate variants from this note',
+      toggleBorder: variants ? 'var(--foreground)' : 'transparent',
+      toggleBg: variants ? 'var(--accent)' : 'transparent',
+      toggleFg: variants ? 'var(--foreground)' : 'var(--muted-foreground)',
+      count: n,
+      twoChecked: n === 2 ? 'true' : 'false',
+      threeChecked: n === 3 ? 'true' : 'false',
+      twoBg: n === 2 ? 'var(--card)' : 'transparent', twoFg: n === 2 ? 'var(--foreground)' : 'var(--muted-foreground)',
+      threeBg: n === 3 ? 'var(--card)' : 'transparent', threeFg: n === 3 ? 'var(--foreground)' : 'var(--muted-foreground)',
+      saveLabel: variants ? 'Generate ' + n : 'Save (Ctrl+Enter)',
+    }
+  }
+}
+</script>
+</body>
+</html>

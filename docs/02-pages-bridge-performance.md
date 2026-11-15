@@ -188,7 +188,7 @@ Plugin `plugins/design-canvas/`, marketplace `plugins/.claude-plugin/marketplace
 | `/canvas [page or board]` | Health check; if down, `sh -c 'nohup bun run canvas > apps/design/.data/canvas.log 2>&1 &'` from the repo root and wait up to 30 s; register the session; turn listening on; open `…/p/<page>?board=<b>&session=<id>` with `xdg-open` or `open`; answer one line |
 | `/canvas-stop` | Listening off, session removed |
 | `/canvas-comments` | Counts of open comments per page, no turn |
-| Poll | Every 2 s while listening: `claim`; `count > 0` → `$.prompt.submit({ text })`. A down server is skipped quietly; status line `canvas · listening` |
+| Poll | Every 2 s while listening: `claim`; `count > 0` → `$.prompt.submit({ text })`. A down server is skipped quietly; status line `canvas http://localhost:<port> · listening` |
 | Tool `design_canvas` | `open {page?, board?}`, `page {page}` (the compact manifest), `comments {status?, page?}`, `reply {id, body}`, `resolve {id, body?}` (reply, then resolve) |
 
 CLI `bun run --cwd apps/design canvas:comments`: `--wait` registers session `cli`, claims every 2 s and prints the first non-empty claim as JSON, then exits; `--list [--status s]`; `--reply <id> <body>`; `--resolve <id>`.

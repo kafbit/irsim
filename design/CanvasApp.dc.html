@@ -14,12 +14,17 @@ body{margin:0}
 .cv-root.dark{--pick:#14161a;--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8;--play:#60a5fa}
 </style>
 </helmet>
-<div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="display: flex; width: 100%; min-height: 100vh; overflow: hidden; background: var(--surface); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
+<div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="position: relative; display: flex; width: 100%; min-height: 100vh; overflow: hidden; background: var(--surface); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
 <div style="display: flex; flex-shrink: 0; align-self: stretch; width: 288px; overflow: hidden;">
-<dc-import name="CanvasSidebar" theme="{{theme}}" page="Components" selected="{{sidebarSelected}}" update="{{update}}" hint-size="288px,820px"></dc-import>
+<dc-import name="CanvasSidebar" theme="{{theme}}" page="Components" selected="{{sidebarSelected}}" update="{{update}}" sections="{{sidebarSections}}" hint-size="288px,820px"></dc-import>
 </div>
 <div role="application" aria-label="Design canvas" style="position: relative; flex: 1; min-width: 0; align-self: stretch; overflow: hidden; background-color: var(--surface); background-image: radial-gradient(circle, color-mix(in srgb, var(--border-strong) 100%, transparent) 1px, transparent 1.5px); background-size: {{gridSize}}px {{gridSize}}px; background-position: {{gridPos}};">
 <h2 dir="auto" style="position: absolute; left: {{label.x}}px; top: {{label.y}}px; margin: 0; font-size: {{label.size}}px; line-height: 1; font-weight: 600; white-space: nowrap; color: var(--foreground);">Components</h2>
+<sc-for list="{{sections}}" as="sec">
+<div style="position: absolute; left: {{sec.x}}px; top: {{sec.y}}px; width: {{sec.w}}px; height: {{sec.h}}px; box-sizing: border-box; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--secondary);">
+<div style="display: flex; align-items: center; gap: 8px; height: 36px; box-sizing: border-box; padding: 0 16px; font-size: 13px;"><span style="font-weight: 600;">{{sec.title}}</span><span style="font-size: 12px; color: var(--muted-foreground);">{{sec.count}}</span></div>
+</div>
+</sc-for>
 <sc-for list="{{frames}}" as="f">
 <div style="position: absolute; left: {{f.titleX}}px; top: {{f.titleY}}px; display: flex; align-items: flex-end; width: {{f.w}}px; height: 28px; box-sizing: border-box; overflow: hidden; font-size: 12px; line-height: 16px; white-space: nowrap; color: var(--foreground);">
 <div style="display: flex; align-items: baseline; gap: 8px; flex: 1; min-width: 0; padding-bottom: 6px; overflow: hidden;">
@@ -60,6 +65,12 @@ body{margin:0}
 </div>
 </sc-if>
 </sc-for>
+<sc-if value="{{multi}}" hint-placeholder-val="{{false}}">
+<div aria-hidden="true" style="position: absolute; left: 32px; top: 162px; width: 720px; height: 636px; box-sizing: border-box; border: 1px dashed var(--ring); pointer-events: none;"></div>
+</sc-if>
+<sc-if value="{{marquee}}" hint-placeholder-val="{{false}}">
+<div aria-hidden="true" style="position: absolute; left: 250px; top: 140px; width: 270px; height: 160px; box-sizing: border-box; border: 1px solid var(--ring); background: color-mix(in srgb, var(--ring) 8%, transparent); pointer-events: none;"></div>
+</sc-if>
 <div style="position: absolute; left: 50%; top: 16px; width: 200px; margin-left: -100px; --cv-h: 46px; --cv-bg: transparent;">
 <dc-import name="CanvasToolbar" theme="{{theme}}" tool="{{tool}}" hint-size="220px,48px"></dc-import>
 </div>
@@ -70,7 +81,7 @@ body{margin:0}
 </sc-if>
 <sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
 <div style="position: absolute; left: 50%; bottom: 16px; width: 460px; margin-left: -230px; --cv-h: 38px; --cv-bg: transparent;">
-<dc-import name="CanvasToast" theme="{{theme}}" message="No board named Checkout." hint-size="420px,44px"></dc-import>
+<dc-import name="CanvasToast" theme="{{theme}}" message="{{toastMessage}}" tone="{{toastTone}}" hint-size="420px,44px"></dc-import>
 </div>
 </sc-if>
 <div style="position: absolute; right: 16px; bottom: 16px; width: 200px; --cv-h: {{zoomH}}px; --cv-bg: transparent;">
@@ -79,7 +90,7 @@ body{margin:0}
 </div>
 <sc-if value="{{showInspector}}" hint-placeholder-val="{{false}}">
 <div style="display: flex; flex-shrink: 0; align-self: stretch; box-sizing: border-box; width: 288px; overflow: hidden; border-left: 1px solid var(--border);">
-<dc-import name="CanvasInspector" theme="{{theme}}" approval="none" imports="3" hint-size="288px,820px"></dc-import>
+<dc-import name="CanvasInspector" theme="{{theme}}" approval="none" imports="3" mode="{{inspectorMode}}" hint-size="288px,820px"></dc-import>
 </div>
 </sc-if>
 <sc-if value="{{showThread}}" hint-placeholder-val="{{false}}">
@@ -87,9 +98,21 @@ body{margin:0}
 <dc-import name="CanvasThread" theme="{{theme}}" state="open" hint-size="320px,820px"></dc-import>
 </div>
 </sc-if>
+<sc-if value="{{showSearch}}" hint-placeholder-val="{{false}}">
+<div aria-hidden="true" style="position: absolute; inset: 0; background: color-mix(in srgb, var(--foreground) 32%, transparent);"></div>
+<div style="position: absolute; left: 50%; top: 96px; width: 640px; margin-left: -320px; --cv-h: 520px; --cv-bg: transparent;">
+<dc-import name="CanvasSearch" theme="{{theme}}" state="results" hint-size="640px,520px"></dc-import>
+</div>
+</sc-if>
+<sc-if value="{{showSettings}}" hint-placeholder-val="{{false}}">
+<div aria-hidden="true" style="position: absolute; inset: 0; background: color-mix(in srgb, var(--foreground) 32%, transparent);"></div>
+<div style="position: absolute; left: 50%; top: 80px; width: 600px; margin-left: -300px; --cv-h: 740px; --cv-bg: transparent;">
+<dc-import name="CanvasSettings" theme="{{theme}}" state="health" update="none" hint-size="600px,740px"></dc-import>
+</div>
+</sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"overview","options":["overview","selected","zoomedOut","thumbnailsLoading","playing","commenting","toast","emptyPage"]},"update":{"editor":"enum","default":"none","options":["none","available"]},"$preview":{"width":1440,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"overview","options":["overview","selected","zoomedOut","thumbnailsLoading","playing","commenting","toast","emptyPage","marquee","multi","undoToast","search","sections","settings"]},"update":{"editor":"enum","default":"none","options":["none","available"]},"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
     const { theme, state, update } = this.props
@@ -113,7 +136,8 @@ class Component extends DCLogic {
       rootH: h + 68,
     })
     let frames = []
-    const ox = state === 'selected' || state === 'commenting' ? 40 : 96
+    let sections = []
+    const ox = ['selected', 'commenting', 'marquee', 'multi'].includes(state) ? 40 : 96
     let label = { x: ox, y: 34, size: 40 }
     let grid = { size: 24, pos: '-12px -12px' }
     if (zoomedOut) {
@@ -140,12 +164,28 @@ class Component extends DCLogic {
       })
       label = { x: 210, y: 314, size: 16 }
       grid = { size: 19.2, pos: '-9.6px -9.6px' }
-    } else if (state !== 'emptyPage') {
-      const dialogMode = { selected: 'selected', playing: 'playing', commenting: 'commenting' }[state] || 'live'
+    } else if (state === 'sections') {
+      label = { x: 40, y: 34, size: 40 }
+      sections = [
+        { x: 400, y: 110, w: 576, h: 272, title: 'Checkout flow', count: 2 },
+        { x: 400, y: 440, w: 576, h: 252, title: 'Reports', count: 2 },
+      ]
       frames = [
-        frame(ox, 170, 280, 160, 'Button', 'Button', 'live', false, false),
+        frame(40, 190, 240, 140, 'Button', 'Button', 'live', false, false),
+        frame(40, 390, 320, 300, 'Data table', 'Table', 'live', false, true),
+        frame(432, 190, 240, 140, 'Confirmation dialog', 'Dialog', 'live', true, false),
+        frame(704, 190, 240, 140, 'Profile card', 'Card', 'live', false, false),
+        frame(432, 520, 240, 140, 'Status badge', 'Badge', 'live', false, false),
+        frame(704, 520, 240, 140, 'Tab bar', 'Tabs', 'live', false, false),
+      ]
+    } else if (state !== 'emptyPage') {
+      const dialogMode = { selected: 'selected', playing: 'playing', commenting: 'commenting', marquee: 'selectedMany', multi: 'selectedMany' }[state] || 'live'
+      const buttonMode = state === 'marquee' || state === 'multi' ? 'selectedMany' : 'live'
+      const tableMode = state === 'multi' ? 'selectedMany' : 'live'
+      frames = [
+        frame(ox, 170, 280, 160, 'Button', 'Button', buttonMode, false, false),
         frame(ox + 344, 170, 360, 240, 'Confirmation dialog', 'Dialog', dialogMode, true, false),
-        frame(ox, 490, 480, 300, 'Data table', 'Table', 'live', false, true),
+        frame(ox, 490, 480, 300, 'Data table', 'Table', tableMode, false, true),
       ]
     }
     const tableRowsRaw = [
@@ -156,7 +196,7 @@ class Component extends DCLogic {
       { name: 'Settings', status: 'Active', owner: 'Noor', updated: 'Last week' },
     ]
     const tableRows = tableRowsRaw.map((row, index) => ({ ...row, line: index === tableRowsRaw.length - 1 ? '0' : '1px solid var(--mock-line)' }))
-    const minimap = state === 'overview' || state === 'selected'
+    const minimap = ['overview', 'selected', 'marquee', 'multi', 'sections'].includes(state)
     return {
       themeClass: theme === 'dark' ? 'dark' : '',
       theme,
@@ -166,14 +206,23 @@ class Component extends DCLogic {
       gridPos: grid.pos,
       label,
       frames,
+      sections,
+      marquee: state === 'marquee',
+      multi: state === 'multi',
+      sidebarSections: state === 'sections' ? 'yes' : 'no',
+      inspectorMode: state === 'multi' ? 'multi' : 'single',
+      showSearch: state === 'search',
+      showSettings: state === 'settings',
+      toastMessage: state === 'undoToast' ? 'Undid move of 3 boards' : 'No board named Checkout.',
+      toastTone: state === 'undoToast' ? 'info' : 'error',
       tableRows,
       tool: state === 'commenting' ? 'comment' : 'move',
       zoom: zoomedOut ? '20' : '100',
       minimap: minimap ? 'on' : 'off',
       zoomH: minimap ? 174 : 46,
       playing: state === 'playing',
-      toast: state === 'toast',
-      showInspector: state === 'selected',
+      toast: state === 'toast' || state === 'undoToast',
+      showInspector: state === 'selected' || state === 'multi',
       showThread: state === 'commenting',
     }
   }

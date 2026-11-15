@@ -57,6 +57,22 @@ describe('closureOf on a copy', () => {
     expect(after.boards.Leaf).toContain('changed')
   })
 
+  it('render ignores the root name and follows the sources', async () => {
+    writeFileSync(
+      join(dir, 'Copy.dc.html'),
+      '<x-dc><dc-import name="Leaf"><dc-import name="Gone"></x-dc>',
+    )
+    const root = await closureOf('Root')
+    const copy = await closureOf('Copy')
+    expect(root.render).toMatch(/^[0-9a-f]{12}$/)
+    expect(copy.render).toBe(root.render)
+    expect(copy.content).not.toBe(root.content)
+    writeFileSync(join(dir, 'Leaf.dc.html'), '<x-dc>leaf changed</x-dc>')
+    const later = new Date(Date.now() + 5000)
+    utimesSync(join(dir, 'Leaf.dc.html'), later, later)
+    expect((await closureOf('Root')).render).not.toBe(root.render)
+  })
+
   it('a missing import that appears joins the closure', async () => {
     await closureOf('Root')
     writeFileSync(join(dir, 'Gone.dc.html'), '<x-dc>here now</x-dc>')

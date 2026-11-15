@@ -1,5 +1,5 @@
 import type { Register } from 'claude-code'
-import { api, listenKey, messageOf, registerSession } from './api'
+import { api, doctorLines, listenKey, messageOf, registerSession, runDoctor } from './api'
 import { commentCounts, openCanvas, stopCanvas } from './canvas'
 import { stopPolling, syncPoll } from './poll'
 import { TOOL_DESCRIPTION, TOOL_MATCH, TOOL_NAME, TOOL_SCHEMA, runTool } from './tool'
@@ -23,6 +23,11 @@ export const register: Register = (on) => {
       description: 'Count the open irsim comments per page',
       immediate: true,
     })
+    await $.command.register({
+      name: 'irsim-doctor',
+      description: 'Check the project rules, git setup and config',
+      immediate: true,
+    })
     await $.tool
       .register({
         name: TOOL_NAME,
@@ -41,10 +46,11 @@ export const register: Register = (on) => {
     return started
   })
 
-  on('command.run', { command: ['irsim', 'irsim-stop', 'irsim-comments'] }, async ($, e) => {
+  on('command.run', { command: ['irsim', 'irsim-stop', 'irsim-comments', 'irsim-doctor'] }, async ($, e) => {
     try {
       if (e.command === 'irsim') return { text: await openCanvas($, e.args) }
       if (e.command === 'irsim-stop') return { text: await stopCanvas($) }
+      if (e.command === 'irsim-doctor') return { text: doctorLines(await runDoctor($)) }
       return { text: await commentCounts($) }
     } catch (error) {
       return { text: `irsim: ${messageOf(error)}` }

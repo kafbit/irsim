@@ -8,4 +8,5 @@ The boards in `design/` are the design, shown by irsim (`irsim serve`). Load the
 - After confirmation, read the board again and implement from it. Compare the board and the running screen with Playwright screenshots, not by reading code.
 - Keep the boards in step with the app: a later screen change updates its board in the same change.
 - A pull request that changes UI source must change a board, or state that nothing visible changed.
+- A review does not review board files. It checks that the boards and the app in the pull request show the same thing; the user accepts a board by looking at it in irsim.
 <!-- IRSIM_END -->

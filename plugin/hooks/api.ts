@@ -10,8 +10,12 @@ type PageBoard = {
   height: number
   closure?: string[]
   openComments?: number
+  section?: string
+  variantOf?: string
+  variantLabel?: string
 }
-export type Page = { id: string; title: string; boards: PageBoard[] }
+export type PageSection = { id: string; title: string; variantOf?: string }
+export type Page = { id: string; title: string; sections?: PageSection[]; boards: PageBoard[] }
 export type Comment = {
   id: string
   page: string
@@ -146,7 +150,75 @@ export async function ensureServer($: Engine): Promise<void> {
 export async function registerSession($: Engine, cwd: string, sessionId: string): Promise<void> {
   const parts = cwd.split('/').filter(Boolean)
   const label = `${parts[parts.length - 1] ?? cwd} ${sessionId.slice(0, 6)}`
-  await api($, '/api/sessions', { method: 'POST', body: { id: sessionId, label, cwd } })
+  await api($, '/api/sessions', {
+    method: 'POST',
+    body: { id: sessionId, label, cwd, agent: 'claude-code' },
+  })
+}
+
+export type DoctorCheck = {
+  id: string
+  group: 'config' | 'rules' | 'git' | 'runtime'
+  title: string
+  status: 'ok' | 'warn' | 'fail' | 'skip'
+  detail: string
+  fix?: string
+}
+
+export type DoctorReport = {
+  ok: boolean
+  root: string
+  summary: { ok: number; warn: number; fail: number; skip: number }
+  checks: DoctorCheck[]
+  context: {
+    root: string
+    designDir: string | null
+    boards: number
+    repo: string | null
+    branch: string | null
+    commit: string | null
+    detached: boolean
+    dirty: number
+    port: number | null
+    running: boolean
+    irsim: string
+  }
+}
+
+const MARKS: Record<DoctorCheck['status'], string> = { ok: 'ok', warn: 'warn', fail: 'FAIL', skip: 'skip' }
+const GROUPS: DoctorCheck['group'][] = ['config', 'rules', 'git', 'runtime']
+
+/** One line per check with its fix, then the summary, for the agent to read. */
+export function doctorLines(report: DoctorReport): string {
+  const lines = [`irsim doctor: ${report.root}`]
+  for (const group of GROUPS) {
+    const members = report.checks.filter((one) => one.group === group)
+    if (members.length === 0) continue
+    lines.push(`${group}:`)
+    for (const one of members) {
+      lines.push(`  ${MARKS[one.status]} ${one.title} · ${one.detail}`)
+      if (one.fix) lines.push(`    fix: ${one.fix}`)
+    }
+  }
+  const { ok, warn, fail, skip } = report.summary
+  const parts = [`${ok} ok`]
+  if (warn > 0) parts.push(`${warn} warning${warn === 1 ? '' : 's'}`)
+  if (fail > 0) parts.push(`${fail} failed`)
+  if (skip > 0) parts.push(`${skip} skipped`)
+  lines.push(parts.join(', '))
+  return lines.join('\n')
+}
+
+export async function runDoctor($: Engine): Promise<DoctorReport> {
+  const root = await worktreeOf($)
+  const result = await $.process.run(['irsim', 'doctor', '--json'], { cwd: root.root })
+  if (result.exitCode !== 0 && !result.stdout.trim())
+    throw new CanvasError(`irsim doctor failed: ${oneLine(result.stderr)}`)
+  try {
+    return JSON.parse(result.stdout) as DoctorReport
+  } catch {
+    throw new CanvasError(`irsim doctor printed no JSON: ${oneLine(result.stderr || result.stdout)}`)
+  }
 }
 
 export async function openUrl($: Engine, url: string): Promise<void> {

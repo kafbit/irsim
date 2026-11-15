@@ -259,7 +259,7 @@
           "x": 340,
           "y": 4276,
           "width": 260,
-          "height": 420
+          "height": 540
         },
         {
           "name": "UpdateNotice",
@@ -311,7 +311,7 @@
         },
         {
           "name": "CanvasThreadViewing",
-          "title": "Comments panel: viewing a comment at its viewport",
+          "title": "Thread: viewing a comment at its viewport",
           "x": 1936,
           "y": 2736,
           "width": 320,
@@ -380,6 +380,310 @@
           "y": 7376,
           "width": 1440,
           "height": 900
+        },
+        {
+          "name": "CanvasFrameThumbnailStale",
+          "title": "Frame: outdated thumbnail",
+          "x": 0,
+          "y": 8356,
+          "width": 400,
+          "height": 308
+        },
+        {
+          "name": "CanvasFrameGenerating",
+          "title": "Frame: variant not changed yet",
+          "x": 480,
+          "y": 8356,
+          "width": 400,
+          "height": 308
+        },
+        {
+          "name": "CanvasSearch",
+          "title": "Canvas search",
+          "x": 960,
+          "y": 8356,
+          "width": 640,
+          "height": 520
+        },
+        {
+          "name": "CanvasSearchRecent",
+          "title": "Canvas search: recent",
+          "x": 1680,
+          "y": 8356,
+          "width": 640,
+          "height": 520
+        },
+        {
+          "name": "CanvasSearchEmpty",
+          "title": "Canvas search: no results",
+          "x": 2400,
+          "y": 8356,
+          "width": 640,
+          "height": 520
+        },
+        {
+          "name": "CanvasSidebarSections",
+          "title": "Canvas sidebar: sections",
+          "x": 3120,
+          "y": 8356,
+          "width": 288,
+          "height": 820
+        },
+        {
+          "name": "CanvasInspectorMulti",
+          "title": "Canvas inspector: several boards",
+          "x": 3488,
+          "y": 8356,
+          "width": 288,
+          "height": 820
+        },
+        {
+          "name": "CanvasInspectorVariants",
+          "title": "Canvas inspector: variants",
+          "x": 3856,
+          "y": 8356,
+          "width": 288,
+          "height": 960
+        },
+        {
+          "name": "CanvasInspectorVariantSent",
+          "title": "Canvas inspector: variants sent",
+          "x": 4224,
+          "y": 8356,
+          "width": 288,
+          "height": 960
+        },
+        {
+          "name": "CanvasSection",
+          "title": "Canvas section",
+          "x": 4592,
+          "y": 8356,
+          "width": 900,
+          "height": 560
+        },
+        {
+          "name": "CanvasSectionHover",
+          "title": "Canvas section: hover",
+          "x": 5572,
+          "y": 8356,
+          "width": 900,
+          "height": 560
+        },
+        {
+          "name": "CanvasSectionRenaming",
+          "title": "Canvas section: renaming",
+          "x": 6552,
+          "y": 8356,
+          "width": 900,
+          "height": 560
+        },
+        {
+          "name": "CanvasSectionVariants",
+          "title": "Canvas section: variants",
+          "x": 7532,
+          "y": 8356,
+          "width": 900,
+          "height": 560
+        },
+        {
+          "name": "CanvasCompare",
+          "title": "Canvas compare",
+          "x": 8512,
+          "y": 8356,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "name": "CanvasCompareNarrow",
+          "title": "Canvas compare: 390 width",
+          "x": 10032,
+          "y": 8356,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "name": "CanvasAppMarquee",
+          "title": "Canvas app: selection rectangle",
+          "x": 0,
+          "y": 9396,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "name": "CanvasAppMultiSelected",
+          "title": "Canvas app: several boards selected",
+          "x": 1520,
+          "y": 9396,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "name": "CanvasAppUndoToast",
+          "title": "Canvas app: undo toast",
+          "x": 3040,
+          "y": 9396,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "name": "CanvasAppSearch",
+          "title": "Canvas app: search",
+          "x": 4560,
+          "y": 9396,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "name": "CanvasAppSections",
+          "title": "Canvas app: sections",
+          "x": 6080,
+          "y": 9396,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "name": "CanvasInspectorVariant",
+          "title": "Canvas inspector: variant board",
+          "x": 0,
+          "y": 10376,
+          "width": 288,
+          "height": 960
+        },
+        {
+          "name": "CanvasCompareError",
+          "title": "Canvas compare: error",
+          "x": 368,
+          "y": 10376,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "name": "CanvasInspectorMultiShared",
+          "title": "Canvas inspector: several boards in one section",
+          "x": 0,
+          "y": 11416,
+          "width": 288,
+          "height": 820
+        },
+        {
+          "name": "CanvasSettings",
+          "title": "Canvas settings",
+          "x": 368,
+          "y": 11416,
+          "width": 600,
+          "height": 740
+        },
+        {
+          "name": "CanvasSettingsIdle",
+          "title": "Canvas settings: idle",
+          "x": 1048,
+          "y": 11416,
+          "width": 600,
+          "height": 740
+        },
+        {
+          "name": "CanvasSettingsChecking",
+          "title": "Canvas settings: checking",
+          "x": 1728,
+          "y": 11416,
+          "width": 600,
+          "height": 740
+        },
+        {
+          "name": "CanvasSettingsUnavailable",
+          "title": "Canvas settings: no launcher",
+          "x": 2408,
+          "y": 11416,
+          "width": 600,
+          "height": 740
+        },
+        {
+          "name": "CanvasSettingsUpdate",
+          "title": "Canvas settings: update available",
+          "x": 3088,
+          "y": 11416,
+          "width": 600,
+          "height": 740
+        },
+        {
+          "name": "CanvasAppSettings",
+          "title": "Canvas app: settings",
+          "x": 3768,
+          "y": 11416,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "name": "CanvasSession",
+          "title": "Canvas session",
+          "x": 0,
+          "y": 12436,
+          "width": 288,
+          "height": 200
+        },
+        {
+          "name": "CanvasSessionSeveral",
+          "title": "Session: two sessions, menu open",
+          "x": 368,
+          "y": 12436,
+          "width": 288,
+          "height": 220
+        },
+        {
+          "name": "CanvasSessionNone",
+          "title": "Session: none listening",
+          "x": 736,
+          "y": 12436,
+          "width": 288,
+          "height": 90
+        },
+        {
+          "name": "CanvasSessionPick",
+          "title": "Session: pick one of several",
+          "x": 736,
+          "y": 12606,
+          "width": 288,
+          "height": 90
+        },
+        {
+          "name": "CanvasCommentForm",
+          "title": "Canvas comment form",
+          "x": 1104,
+          "y": 12436,
+          "width": 368,
+          "height": 360
+        },
+        {
+          "name": "CanvasCommentFormVariants",
+          "title": "Comment form: generating variants",
+          "x": 1552,
+          "y": 12436,
+          "width": 368,
+          "height": 420
+        },
+        {
+          "name": "CanvasInspectorImports",
+          "title": "Inspector: ten imports, first three shown",
+          "x": 2000,
+          "y": 12436,
+          "width": 288,
+          "height": 820
+        },
+        {
+          "name": "CanvasInspectorImportsExpanded",
+          "title": "Inspector: ten imports, all shown",
+          "x": 2368,
+          "y": 12436,
+          "width": 288,
+          "height": 820
+        },
+        {
+          "name": "CanvasThreadSessions",
+          "title": "Thread: two sessions, replies name their session",
+          "x": 2736,
+          "y": 12436,
+          "width": 320,
+          "height": 820
         }
       ]
     }

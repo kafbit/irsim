@@ -2,7 +2,7 @@
 
 import { type PointerEvent, useCallback, useMemo, useRef } from 'react'
 import type { Camera } from './camera'
-import type { Layout } from './geometry'
+import type { Layout, Rect } from './geometry'
 import { visibleWorld } from './geometry'
 import { centerOn, fromMinimap, minimapMap, toMinimap } from './navigation'
 import { useMountEffect } from './use-mount-effect'
@@ -18,11 +18,13 @@ const MAX_HEIGHT = 140
 export function Minimap({
   camera,
   layout,
+  sections,
   selected,
 }: {
   camera: Camera
   layout: Layout
-  selected: string | null
+  sections: Rect[]
+  selected: string[]
 }) {
   const map = useMemo(() => minimapMap(layout.all, WIDTH, MAX_HEIGHT), [layout])
   const outline = useRef<HTMLDivElement>(null)
@@ -67,13 +69,27 @@ export function Minimap({
         camera.settle()
       }}
     >
+      {sections.map((bounds) => {
+        const rect = toMinimap(map, bounds)
+        return (
+          <div
+            key={`${bounds.x}:${bounds.y}`}
+            className="absolute start-0 top-0 border border-border"
+            style={{
+              width: Math.max(1, rect.width),
+              height: Math.max(1, rect.height),
+              transform: `translate(${rect.x}px, ${rect.y}px)`,
+            }}
+          />
+        )
+      })}
       {layout.boards.map((board) => {
         const rect = toMinimap(map, board)
         return (
           <div
             key={board.name}
             className={`absolute start-0 top-0 rounded-xs ${
-              board.name === selected ? 'bg-foreground' : 'bg-muted-foreground/35'
+              selected.includes(board.name) ? 'bg-foreground' : 'bg-muted-foreground/35'
             }`}
             style={{
               width: Math.max(1, rect.width),

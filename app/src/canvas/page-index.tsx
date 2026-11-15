@@ -3,30 +3,57 @@
 import { formatNumber } from '../lib/format-number'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { Button } from '../ui'
 import { Shell, Status } from './canvas'
 import { CHROME_FORMAT } from './chrome-format'
 import type { PageSummary } from './types'
+import { GlobalSearch } from './global-search'
+import { SettingsDialog } from './settings-dialog'
 import { UpdateNotice } from './update-notice'
 import { useApi } from './use-api'
 import { useLegacyRedirect } from './use-legacy-redirect'
 
 /** `/`: one card per page of the canvas. */
 export function PageIndex() {
+  const [settings, setSettings] = useState(false)
   return (
     <Shell>
-      <Index />
+      <Index onOpenSettings={() => setSettings(true)} />
+      <IndexSearch onOpenSettings={() => setSettings(true)} />
+      <SettingsDialog open={settings} onOpenChange={setSettings} />
     </Shell>
   )
 }
 
-function Index() {
+function IndexSearch({ onOpenSettings }: { onOpenSettings: () => void }) {
+  const [open, setOpen] = useState(false)
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() !== 'k' || event.shiftKey || event.altKey) return
+      if (!(event.ctrlKey || event.metaKey)) return
+      event.preventDefault()
+      setOpen(true)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+  return <GlobalSearch open={open} onOpenChange={setOpen} onOpenSettings={onOpenSettings} />
+}
+
+function Index({ onOpenSettings }: { onOpenSettings: () => void }) {
   useLegacyRedirect(useSearchParams().get('board'))
   const pages = useApi<PageSummary[]>('/api/pages')
   if (pages.status !== 'ready') return <Status state={pages} missing="No canvas pages yet." />
 
   return (
     <main className="mx-auto max-w-6xl p-8">
-      <h1 className="mb-6 text-2xl font-semibold">Pages</h1>
+      <div className="mb-6 flex items-center gap-4">
+        <h1 className="m-0 flex-1 text-2xl font-semibold">Pages</h1>
+        <Button variant="secondary" size="sm" onClick={onOpenSettings} className="h-8.5 px-3 text-[13px]">
+          Settings
+        </Button>
+      </div>
       <UpdateNotice className="mb-6 max-w-sm" />
       <ul className="grid grid-cols-[repeat(auto-fill,minmax(18rem,1fr))] gap-4">
         {pages.data.map((page) => (

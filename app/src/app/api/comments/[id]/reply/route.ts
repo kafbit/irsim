@@ -14,7 +14,11 @@ export async function POST(
   if (!isText(body.body)) return bad('body must be text')
   if (author !== 'claude' && author !== 'user') return bad('author must be claude or user')
   const { id } = await params
-  const result = await addReply(id, { author, body: body.body })
+  const result = await addReply(id, {
+    author,
+    body: body.body,
+    ...(author === 'claude' && isText(body.session) ? { session: body.session } : {}),
+  })
   if (!result.ok) {
     const refusal = {
       not_found: ['comment not found', 404],

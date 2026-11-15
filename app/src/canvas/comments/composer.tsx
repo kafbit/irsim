@@ -5,6 +5,7 @@ import type { Camera } from '../camera'
 import type { PlacedBoard } from '../geometry'
 import { isWholeBoard } from '../../lib/place-text'
 import { CommentForm } from './comment-form'
+import { useGenerate } from './use-generate'
 import { placedRect, placePanel, toScreen } from './model'
 import type { PickedElement } from './types'
 
@@ -20,18 +21,26 @@ export function Composer({
   camera,
   boards,
   pick,
+  page,
+  canVary = true,
   onSave,
+  onSent,
   onCancel,
 }: {
   camera: Camera
   boards: PlacedBoard[]
   pick: PickedElement
+  page: string
+  /** False for a board that is itself a variant: the Variants toggle is not offered. */
+  canVary?: boolean
   onSave: (body: string, images: string[]) => Promise<void>
+  onSent: (count: number) => void
   onCancel: () => void
 }) {
   const frame = useMemo(() => boards.find((board) => board.name === pick.board), [boards, pick])
   const box = useRef<HTMLDivElement>(null)
   const panel = useRef<HTMLDivElement>(null)
+  const variants = useGenerate({ page, pick, onSent })
 
   // Syncs the two elements with the camera, an imperative external system; React never writes their geometry.
   useEffect(
@@ -64,7 +73,13 @@ export function Composer({
         className={PANEL_CLASS}
         onPointerDown={(event) => event.stopPropagation()}
       >
-        <CommentForm pick={pick} onSave={onSave} onCancel={onCancel} />
+        <CommentForm
+          pick={pick}
+          onSave={onSave}
+          onGenerate={canVary ? variants.generate : undefined}
+          canGenerate={variants.canGenerate}
+          onCancel={onCancel}
+        />
       </div>
     </>
   )

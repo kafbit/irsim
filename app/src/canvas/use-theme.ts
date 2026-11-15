@@ -24,5 +24,5 @@ export function useTheme() {
     } catch {}
     for (const listener of listeners) listener()
   }
-  return { theme, toggle: () => set(theme === 'dark' ? 'light' : 'dark') }
+  return { theme, set, toggle: () => set(theme === 'dark' ? 'light' : 'dark') }
 }

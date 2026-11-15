@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import type { Camera } from './camera'
-import { boardRegion, fitRect, layoutOf } from './geometry'
+import { boardRegion, boundsOf, fitRect, layoutOf } from './geometry'
 import type { Selection } from './selection'
 import type { useBoardLayout } from './use-board-layout'
 import { FOCUS_PADDING } from './use-camera'
@@ -23,8 +23,9 @@ type CameraActions = {
 /**
  * Wires the move, resize and arrow-key nudge of frames to the camera and the selection. The camera
  * hook keeps the layout it was built with, so `actions` replaces its fit and focus with ones that
- * read the moved boards. A nudge needs the Move tool, a selected frame that is not live, and the
- * focus on the viewport or on a frame title; any other focus returns `false` and keeps the key.
+ * read the moved boards. A nudge moves every selected frame. It needs the Move tool, selected
+ * frames that are not live, and the focus on the viewport or on a frame title; any other focus
+ * returns `false` and keeps the key.
  */
 export function useBoardEditing({
   camera,
@@ -43,11 +44,16 @@ export function useBoardEditing({
 }) {
   const { boards } = edit
   const placedLayout = useMemo(() => layoutOf(boards), [boards])
-  const selectedRect = boards.find((board) => board.name === selection.name)
+  const selectedRects = useMemo(
+    () => boards.filter((board) => selection.names.includes(board.name)),
+    [boards, selection.names],
+  )
+  const selectedRect = selectedRects.length === 1 ? selectedRects[0] : undefined
   const frameEdit = useFrameEdit({
     camera,
     boards,
     enabled: moving,
+    selected: selection.names,
     onSelect,
     onPreview: edit.preview,
     onCommit: edit.commit,
@@ -61,6 +67,12 @@ export function useBoardEditing({
         const board = boards.find((candidate) => candidate.name === name)
         if (board) camera.go(fitRect(boardRegion(board), camera.size, FOCUS_PADDING))
       },
+      focusBoards: (names: string[]) => {
+        const region = boundsOf(
+          boards.filter((board) => names.includes(board.name)).map(boardRegion),
+        )
+        if (region) camera.go(fitRect(region, camera.size, FOCUS_PADDING))
+      },
     }),
     [boards, camera, cameraActions, placedLayout],
   )
@@ -70,8 +82,9 @@ export function useBoardEditing({
       const focused = document.activeElement
       const onViewport =
         focused === camera.viewportElement() || focused?.hasAttribute('data-frame-title')
-      if (!moving || selection.interacting || !selectedRect || !onViewport) return false
-      edit.nudge(selectedRect, dx, dy)
+      if (!moving || selection.interacting || selectedRects.length === 0 || !onViewport)
+        return false
+      edit.nudge(selectedRects, dx, dy)
     }
     return {
       'nudge-left': by(-NUDGE, 0),
@@ -83,7 +96,7 @@ export function useBoardEditing({
       'nudge-far-up': by(0, -NUDGE_FAR),
       'nudge-far-down': by(0, NUDGE_FAR),
     }
-  }, [camera, edit, moving, selectedRect, selection.interacting])
+  }, [camera, edit, moving, selectedRects, selection.interacting])
 
-  return { placedLayout, selectedRect, frameEdit, actions, nudges }
+  return { placedLayout, selectedRect, selectedRects, frameEdit, actions, nudges }
 }

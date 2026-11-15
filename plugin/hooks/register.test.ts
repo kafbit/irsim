@@ -53,13 +53,33 @@ function world(
   on('process.run', (_, e) => {
     processes.push(e.argv)
     const here = worktrees[session.cwd]
+    if (e.argv.includes('doctor')) {
+      return {
+        value: {
+          exitCode: 1,
+          stdout: JSON.stringify({
+            ok: false,
+            root: here?.root ?? '/work',
+            summary: { ok: 2, warn: 1, fail: 1, skip: 0 },
+            checks: [
+              { id: 'config-file', group: 'config', title: '.irsim.json', status: 'ok', detail: 'designDir design' },
+              { id: 'agents-block', group: 'rules', title: 'AGENTS.md', status: 'warn', detail: 'no managed block', fix: 'irsim init' },
+              { id: 'git-repo', group: 'git', title: 'repository', status: 'ok', detail: '/work' },
+              { id: 'board-files', group: 'config', title: 'board files', status: 'fail', detail: '1 board has no file: Gone', fix: 'irsim build' },
+            ],
+            context: { root: here?.root ?? '/work', designDir: '/work/design', boards: 2, repo: 'o/r', branch: 'main', commit: 'abc1234', detached: false, dirty: 0, port: 3238, running: true, irsim: '0.2.2' },
+          }),
+          stderr: '',
+          isStdoutTruncated: false,
+        },
+      }
+    }
     return {
       value: {
         exitCode: 0,
         stdout: e.argv.includes('rev-parse') ? (here?.root ?? '/work') : String(here?.port ?? ''),
         stderr: '',
         isStdoutTruncated: false,
-        isStderrTruncated: false,
       },
     }
   })
@@ -79,6 +99,7 @@ function world(
       return json({
         id: 'sales',
         title: 'Sales',
+        sections: [{ id: 'leads-variants', title: 'Leads variants', variantOf: 'Leads' }],
         boards: [
           {
             name: 'Leads',
@@ -86,6 +107,17 @@ function world(
             width: 1440,
             height: 900,
             closure: ['Table', 'Sidebar'],
+            section: 'leads-variants',
+          },
+          {
+            name: 'LeadsVariantSimpler',
+            title: 'Leads: Simpler',
+            width: 1440,
+            height: 900,
+            closure: [],
+            section: 'leads-variants',
+            variantOf: 'Leads',
+            variantLabel: 'Simpler',
           },
         ],
       })
@@ -170,7 +202,7 @@ test('/irsim Leads resolves the board to its page and registers the session', as
     cwd: '/work/design-app',
   })
   expect(w.processes.some((argv) => argv.includes(url))).toBe(true)
-  expect(w.statuses).toContain('canvas · listening')
+  expect(w.statuses).toContain('canvas http://localhost:3238 · listening')
 })
 
 test('the poll submits one prompt when claim returns comments and none when it returns zero', async ($, on) => {
@@ -224,8 +256,8 @@ test('the reply and resolve tool calls hit the right routes', async ($, on) => {
     .filter((call) => call.method !== 'GET')
     .map(({ method, path, body }) => ({ method, path, body }))
   expect(writes).toEqual([
-    { method: 'POST', path: '/api/comments/c_1/reply', body: { body: 'Done.', author: 'claude' } },
-    { method: 'POST', path: '/api/comments/c_2/reply', body: { body: 'Fixed.', author: 'claude' } },
+    { method: 'POST', path: '/api/comments/c_1/reply', body: { body: 'Done.', author: 'claude', session: SESSION } },
+    { method: 'POST', path: '/api/comments/c_2/reply', body: { body: 'Fixed.', author: 'claude', session: SESSION } },
     { method: 'PATCH', path: '/api/comments/c_2', body: { status: 'resolved' } },
   ])
 })
@@ -245,13 +277,20 @@ test('the comments action names an element by file:line and a whole board by the
   )
 })
 
-test('the page action returns one line per board', async ($, on) => {
+test('the page action returns the sections and one line per board', async ($, on) => {
   world(on)
   await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
 
   const { result } = await $.tool.call({ tool: TOOL, action: 'page', page: 'sales' })
 
-  expect(result).toBe('sales: Sales\nLeads  1440x900  closure: Table, Sidebar')
+  expect(result).toBe(
+    [
+      'sales: Sales',
+      'section leads-variants: Leads variants (2 boards)',
+      'Leads  1440x900  closure: Table, Sidebar  section: leads-variants',
+      'LeadsVariantSimpler  1440x900  variant of Leads: Simpler  section: leads-variants',
+    ].join('\n'),
+  )
 })
 
 test('the port comes from `irsim port` run in the session folder', async ($, on) => {
@@ -319,4 +358,39 @@ test('the check action reports ok boards in one line and failures with their err
 
   const both = await $.tool.call({ tool: TOOL, action: 'check', board: 'Leads', page: 'sales' })
   expect(JSON.stringify(both)).toContain('check takes board or page, not both')
+})
+
+test('/irsim-doctor runs irsim doctor --json in the worktree and formats the report', async ($, on) => {
+  const w = world(on)
+  await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
+
+  const { text } = await run($, 'irsim-doctor', '')
+
+  expect(text).toBe(
+    [
+      'irsim doctor: /work',
+      'config:',
+      '  ok .irsim.json · designDir design',
+      '  FAIL board files · 1 board has no file: Gone',
+      '    fix: irsim build',
+      'rules:',
+      '  warn AGENTS.md · no managed block',
+      '    fix: irsim init',
+      'git:',
+      '  ok repository · /work',
+      '2 ok, 1 warning, 1 failed',
+    ].join('\n'),
+  )
+  expect(w.processes).toContainEqual(['irsim', 'doctor', '--json'])
+})
+
+test('the doctor tool action returns the same lines as the command', async ($, on) => {
+  world(on)
+  await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
+
+  const viaTool = await $.tool.call({ tool: TOOL, action: 'doctor' })
+  const viaCommand = await run($, 'irsim-doctor', '')
+
+  expect(viaTool.result).toBe(viaCommand.text)
+  expect(viaTool.result).toContain('1 ok, 1 warning, 1 failed'.replace('2 ok', '2 ok'))
 })
