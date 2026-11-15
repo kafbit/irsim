@@ -4,10 +4,10 @@ import { Button } from '../../ui'
 import { Send } from '../../ui/icons'
 import { useState } from 'react'
 import { sendLabel } from './model'
-import { SessionPicker } from './session-picker'
+import { SessionRow } from './session-row'
 import type { Session } from './types'
 
-/** The session picker and the Send button. With no live session there is nothing to send to. */
+/** The session row and the Send button. With no live session there is nothing to send to. */
 export function SendFooter({
   sessions,
   loaded,
@@ -33,7 +33,7 @@ export function SendFooter({
 
   return (
     <footer className="flex flex-col gap-2 border-t border-border p-4">
-      <SessionPicker sessions={sessions} loaded={loaded} sessionId={sessionId} onPick={onPick} />
+      <SessionRow sessions={sessions} loaded={loaded} sessionId={sessionId} onPick={onPick} />
       <Button
         icon={<Send className="size-4" />}
         disabled={!sessionId || draftCount === 0}

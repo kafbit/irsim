@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<title>Canvas search</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.cv-root{--pick:#14161a;--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted:#efefeb;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a;--play:#2563eb;--mock-bg:#f6f6f3;--mock-ink:#14161a;--mock-card:#ffffff;--mock-line:#e4e4e0;--mock-bar:#d6d7d2}
+.cv-root.dark{--pick:#14161a;--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8;--play:#60a5fa}
+</style>
+</helmet>
+<div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="display: flex; align-items: flex-start; justify-content: center; box-sizing: border-box; width: 100%; min-height: var(--cv-h, 100vh); padding: 20px; background: var(--cv-bg, var(--shell)); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
+<div role="dialog" aria-label="Search" style="display: flex; flex-direction: column; width: 600px; max-height: 480px; box-sizing: border-box; overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: var(--card); box-shadow: 0 14px 36px rgba(20,22,26,0.14);">
+<div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0; height: 52px; box-sizing: border-box; padding: 0 16px; border-bottom: 1px solid var(--border);">
+<span style="display: inline-flex; flex-shrink: 0; color: var(--muted-foreground);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg></span>
+<span style="min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; color: {{queryColor}};">{{queryText}}</span>
+<span style="flex-shrink: 0; padding: 2px 6px; border: 1px solid var(--border); border-radius: 6px; font-size: 11px; color: var(--muted-foreground);">Esc</span>
+</div>
+<div style="display: flex; flex-direction: column; flex: 1; min-height: 0; box-sizing: border-box; padding: 4px 8px; overflow: hidden;">
+<sc-for list="{{items}}" as="item">
+<sc-if value="{{item.isHeader}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; align-items: center; height: 28px; box-sizing: border-box; padding: 0 8px; font-size: 12px; font-weight: 600; color: var(--muted-foreground);">{{item.label}}</div>
+</sc-if>
+<sc-if value="{{item.isRow}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; align-items: center; gap: 10px; height: 40px; box-sizing: border-box; padding: 0 8px; border-radius: 10px; background: {{item.bg}};">
+<span style="display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 24px; height: 24px; box-sizing: border-box; border: 1px solid var(--border); border-radius: 6px; background: var(--card); color: var(--muted-foreground);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{item.icon}}"></path></svg></span>
+<span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; color: var(--foreground);">{{item.title}}</span>
+<span style="min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted-foreground);">{{item.sub}}</span>
+<span style="flex-shrink: 0; font-size: 12px; color: var(--muted-foreground);">{{item.meta}}</span>
+</div>
+</sc-if>
+</sc-for>
+<sc-if value="{{empty}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 48px 8px;">
+<span style="font-size: 14px; color: var(--foreground);">{{emptyTitle}}</span>
+<span style="font-size: 12px; color: var(--muted-foreground);">Try a board name, a section or an action.</span>
+</div>
+</sc-if>
+</div>
+<div style="display: flex; align-items: center; gap: 16px; flex-shrink: 0; height: 40px; box-sizing: border-box; padding: 0 16px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted-foreground);">
+<span>↑↓ move</span><span>Enter open</span><span>Shift+Enter play</span><span>Esc close</span>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"results","options":["results","recent","empty"]},"$preview":{"width":640,"height":520}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const { state, theme } = this.props
+    const icons = {
+      board: 'M4 5h16v14H4z',
+      component: 'M12 3l9 9-9 9-9-9z',
+      section: 'M4 4h16v16H4z M4 9h16',
+      page: 'M6 3h9l4 4v14H6z',
+      action: 'M13 2 4 14h7l-1 8 9-12h-7z',
+    }
+    const group = (label, rows) => [
+      { isHeader: true, isRow: false, label },
+      ...rows.map((row) => ({ isHeader: false, isRow: true, bg: 'transparent', icon: icons[row.kind], title: row.title, sub: row.sub || '', meta: row.meta || '' })),
+    ]
+    let items = []
+    if (state === 'results') {
+      items = [
+        ...group('Boards', [
+          { kind: 'board', title: 'Section hover', sub: 'CanvasSectionHover', meta: 'Canvas app' },
+          { kind: 'board', title: 'Section renaming', sub: 'CanvasSectionRenaming', meta: 'Canvas app' },
+        ]),
+        ...group('Components', [{ kind: 'component', title: 'Canvas section', sub: 'CanvasSection', meta: 'used by 3' }]),
+        ...group('Sections', [{ kind: 'section', title: 'Checkout flow', sub: '', meta: 'Canvas app' }]),
+        ...group('Pages', [{ kind: 'page', title: 'Section states', sub: '', meta: '6 boards' }]),
+        ...group('Actions', [{ kind: 'action', title: 'Create section from selection', sub: '', meta: 'Shift+S' }]),
+      ]
+      items[1].bg = 'var(--secondary)'
+    } else if (state === 'recent') {
+      items = group('Recent', [
+        { kind: 'board', title: 'Canvas app', sub: 'CanvasApp', meta: 'Board' },
+        { kind: 'section', title: 'Checkout flow', sub: '', meta: 'Section' },
+        { kind: 'page', title: 'Components', sub: '', meta: 'Page' },
+        { kind: 'board', title: 'Canvas inspector', sub: 'CanvasInspector', meta: 'Board' },
+        { kind: 'action', title: 'Fit page', sub: '', meta: 'Action' },
+      ])
+      items[1].bg = 'var(--secondary)'
+    }
+    const query = { results: 'sec', recent: '', empty: 'zzq' }[state] || ''
+    return {
+      themeClass: theme === 'dark' ? 'dark' : '',
+      items,
+      queryText: query || 'Search boards, components, sections, pages, actions',
+      queryColor: query ? 'var(--foreground)' : 'var(--muted-foreground)',
+      empty: state === 'empty',
+      emptyTitle: `No results for “${query}”`,
+    }
+  }
+}
+</script>
+</body>
+</html>

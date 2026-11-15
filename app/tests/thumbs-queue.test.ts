@@ -4,8 +4,8 @@ import { join } from 'node:path'
 import sharp from 'sharp'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { subscribe, type CanvasEvent } from '../src/lib/events'
-import { closureOf } from '../src/lib/closure'
 import { thumbFile } from '../src/lib/thumbs-dir'
+import { readThumbIndex } from '../src/lib/thumbs-index'
 
 const NO_CHROMIUM =
   'No Chromium-based browser found: install Chrome, Chromium, Brave or Edge, or set IRSIM_BROWSER to its executable'
@@ -30,7 +30,7 @@ vi.mock('../src/lib/board-check', () => ({
   },
 }))
 
-const { enqueueThumb, thumbFailure } = await import('../src/lib/thumbs')
+const { enqueueThumb, thumbFailure, thumbKeyOf } = await import('../src/lib/thumbs')
 
 describe('thumb queue', () => {
   let root: string
@@ -65,11 +65,18 @@ describe('thumb queue', () => {
           {
             id: 'p',
             title: 'P',
-            boards: [{ name: 'Racing', title: 'Racing', x: 0, y: 0, width: 100, height: 100 }],
+            boards: [
+              { name: 'Racing', title: 'Racing', x: 0, y: 0, width: 100, height: 100 },
+              { name: 'SizeA', title: 'SizeA', x: 0, y: 0, width: 100, height: 100 },
+              { name: 'SizeB', title: 'SizeB', x: 0, y: 0, width: 200, height: 100 },
+            ],
           },
         ],
       }),
     )
+    for (const name of ['SizeA', 'SizeB']) {
+      writeFileSync(join(designPath, `${name}.dc.html`), '<x-dc>Sized</x-dc>')
+    }
     process.env.IRSIM_DESIGN_DIR = designPath
     process.env.IRSIM_THUMBS_DIR = thumbsPath
   })
@@ -91,9 +98,10 @@ describe('thumb queue', () => {
     release()
     expect((await finished).data).toEqual({ board: 'Once', ok: true })
     expect(rendered.filter((name) => name === 'Once')).toHaveLength(1)
-    const { hash } = await closureOf('Once')
-    expect(existsSync(join(thumbsPath, thumbFile('Once', hash)))).toBe(true)
-    expect(readdirSync(thumbsPath).filter((file) => file.startsWith(`${thumbFile('Once', hash)}.`))).toEqual([])
+    const { key } = await thumbKeyOf('Once')
+    expect(existsSync(join(thumbsPath, thumbFile(key)))).toBe(true)
+    expect(readdirSync(thumbsPath).filter((file) => file.startsWith(`${thumbFile(key)}.`))).toEqual([])
+    expect((await readThumbIndex()).Once?.[0]?.key).toBe(key)
   })
 
   it('renders a board once when two enqueues for it start together', async () => {
@@ -108,13 +116,27 @@ describe('thumb queue', () => {
     expect(rendered.filter((name) => name === 'Racing')).toHaveLength(1)
   })
 
+  it('renders the same source at two sizes as two thumbnails', async () => {
+    const a = await thumbKeyOf('SizeA')
+    const b = await thumbKeyOf('SizeB')
+    expect(a.render).toBe(b.render)
+    expect(a.key).not.toBe(b.key)
+    const finished = Promise.all([done('SizeA'), done('SizeB')])
+    expect(await enqueueThumb('SizeA', 'http://localhost:1')).toBe('queued')
+    expect(await enqueueThumb('SizeB', 'http://localhost:1')).toBe('queued')
+    await finished
+    expect(rendered.filter((name) => name === 'SizeA' || name === 'SizeB')).toHaveLength(2)
+    expect(existsSync(join(thumbsPath, thumbFile(a.key)))).toBe(true)
+    expect(existsSync(join(thumbsPath, thumbFile(b.key)))).toBe(true)
+  })
+
   it('remembers a failed render: no retry, the message is reported, a failed event is emitted', async () => {
     outcomes.set('Broken', { fatal: 'the board was not ready after 15 s' })
     const finished = done('Broken')
     expect(await enqueueThumb('Broken', 'http://localhost:1')).toBe('queued')
     expect((await finished).data).toEqual({ board: 'Broken', ok: false })
-    const { hash } = await closureOf('Broken')
-    expect(thumbFailure('Broken', hash)).toBe('the board was not ready after 15 s')
+    const { key } = await thumbKeyOf('Broken')
+    expect(thumbFailure('Broken', key)).toBe('the board was not ready after 15 s')
     expect(await enqueueThumb('Broken', 'http://localhost:1')).toBe('failed')
     expect(rendered.filter((name) => name === 'Broken')).toHaveLength(1)
   })
@@ -124,8 +146,8 @@ describe('thumb queue', () => {
     const finished = done('Gone')
     expect(await enqueueThumb('Gone', 'http://localhost:1')).toBe('queued')
     expect((await finished).data).toEqual({ board: 'Gone', ok: false })
-    const { hash } = await closureOf('Gone')
-    expect(thumbFailure('Gone', hash)).toBe(NO_CHROMIUM)
+    const { key } = await thumbKeyOf('Gone')
+    expect(thumbFailure('Gone', key)).toBe(NO_CHROMIUM)
     expect(thumbFailure('Other', 'abc')).toBe(NO_CHROMIUM)
     expect(await enqueueThumb('Once', 'http://localhost:1')).toBe('failed')
   })

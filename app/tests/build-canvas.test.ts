@@ -110,4 +110,78 @@ describe('irsim build', () => {
     run()
     expect(readFileSync(join(dir, 'canvas.json'), 'utf8')).toBe(first)
   })
+
+  it('keeps sections and variant fields, and drops a section id that names no section', () => {
+    add('Leads', 'Leads')
+    add('LeadsVariantBetter', 'Leads')
+    writeFileSync(
+      join(dir, 'canvas.json'),
+      JSON.stringify({
+        version: 1,
+        pages: [
+          {
+            id: 'sales',
+            title: 'Sales',
+            sections: [{ id: 'v', title: 'Leads variants', variantOf: 'Leads' }],
+            boards: [
+              { name: 'Leads', title: 'Leads', x: 0, y: 0, width: 1, height: 1, section: 'v' },
+              {
+                name: 'LeadsVariantBetter',
+                title: 'Leads',
+                x: 5,
+                y: 6,
+                width: 1,
+                height: 1,
+                section: 'gone',
+                variantOf: 'Leads',
+                variantLabel: 'Better',
+                baseHash: 'abc',
+              },
+            ],
+          },
+        ],
+        overrides: { colors: {}, radius: {}, type: {} },
+        bindings: {},
+      }),
+    )
+    run()
+    const [page] = canvas().pages as unknown as {
+      sections: unknown
+      boards: Record<string, unknown>[]
+    }[]
+    expect(page?.sections).toEqual([{ id: 'v', title: 'Leads variants', variantOf: 'Leads' }])
+    expect(page?.boards[0]).toMatchObject({ name: 'Leads', section: 'v' })
+    const variant = page?.boards[1]
+    expect(variant).toMatchObject({ variantOf: 'Leads', variantLabel: 'Better', baseHash: 'abc' })
+    expect(variant).not.toHaveProperty('section')
+  })
+
+  it('keeps baseSection on a variant section', () => {
+    add('Leads', 'Leads')
+    writeFileSync(
+      join(dir, 'canvas.json'),
+      JSON.stringify({
+        version: 1,
+        pages: [
+          {
+            id: 'sales',
+            title: 'Sales',
+            sections: [
+              { id: 'main', title: 'Main' },
+              { id: 'v', title: 'Leads variants', variantOf: 'Leads', baseSection: 'main' },
+            ],
+            boards: [{ name: 'Leads', title: 'Leads', x: 0, y: 0, width: 1, height: 1, section: 'v' }],
+          },
+        ],
+        overrides: { colors: {}, radius: {}, type: {} },
+        bindings: {},
+      }),
+    )
+    run()
+    const [page] = canvas().pages as unknown as { sections: unknown }[]
+    expect(page?.sections).toEqual([
+      { id: 'main', title: 'Main' },
+      { id: 'v', title: 'Leads variants', variantOf: 'Leads', baseSection: 'main' },
+    ])
+  })
 })

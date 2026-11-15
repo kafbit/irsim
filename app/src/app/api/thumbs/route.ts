@@ -2,8 +2,7 @@ import { rm, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import { readCanvasPages } from '../../../lib/canvas-pages'
 import { selfBase } from '../../../lib/check-route'
-import { closureOf } from '../../../lib/closure'
-import { clearThumbFailure, enqueueThumb, thumbFailure } from '../../../lib/thumbs'
+import { clearThumbFailure, enqueueThumb, thumbFailure, thumbKeyOf } from '../../../lib/thumbs'
 import { thumbFile, thumbsDir } from '../../../lib/thumbs-dir'
 
 export const dynamic = 'force-dynamic'
@@ -41,15 +40,15 @@ export async function POST(request: Request): Promise<Response> {
   const base = selfBase(request)
   const counts = { queued: 0, present: 0, failed: 0 }
   for (const target of targets) {
-    const { hash } = await closureOf(target.name)
-    const file = join(thumbsDir(), thumbFile(target.name, hash))
+    const { key } = await thumbKeyOf(target.name)
+    const file = join(thumbsDir(), thumbFile(key))
     if (force) {
       await rm(file, { force: true })
-      clearThumbFailure(target.name, hash)
+      clearThumbFailure(target.name, key)
     } else if (await present(file)) {
       counts.present += 1
       continue
-    } else if (thumbFailure(target.name, hash)) {
+    } else if (thumbFailure(target.name, key)) {
       counts.failed += 1
       continue
     }

@@ -5,13 +5,15 @@ import { designDir } from './design-dir'
 
 /**
  * `hash` follows file stamps (mtime and size), cheap for caching. `content` follows the sources
- * only, so a touch, a checkout or a save with no change leaves it as it was.
+ * only, so a touch, a checkout or a save with no change leaves it as it was. `render` is `content`
+ * without the root board's name, so a byte-identical copy under another name shares a thumbnail.
  */
 export type Closure = {
   boards: Record<string, string>
   missing: string[]
   hash: string
   content: string
+  render: string
 }
 
 type Entry = { closure: Closure; stamps: Map<string, string> }
@@ -83,7 +85,19 @@ const build = async (dir: string, board: string): Promise<Entry> => {
     )
     .digest('hex')
     .slice(0, 12)
-  return { closure: { boards, missing, hash, content }, stamps }
+  const render = createHash('sha1')
+    .update(
+      [
+        boards[board] ?? '',
+        ...Object.keys(boards)
+          .filter((name) => name !== board)
+          .sort()
+          .map((name) => `${name}\n${boards[name]}`),
+      ].join('\n\0'),
+    )
+    .digest('hex')
+    .slice(0, 12)
+  return { closure: { boards, missing, hash, content, render }, stamps }
 }
 
 /**

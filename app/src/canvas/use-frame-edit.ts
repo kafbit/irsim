@@ -2,7 +2,7 @@
 
 import { type PointerEvent as ReactPointerEvent, useCallback } from 'react'
 import type { Camera } from './camera'
-import { type Handle, moveRect, resizeRect } from './frame-edit'
+import { type Handle, type Move, moveRect, resizeRect } from './frame-edit'
 import type { PlacedBoard, Rect } from './geometry'
 
 const DRAG_THRESHOLD = 3
@@ -12,23 +12,27 @@ type Options = {
   camera: Camera
   boards: PlacedBoard[]
   enabled: boolean
+  selected: string[]
   onSelect: (name: string) => void
-  onPreview: (name: string, rect: Rect | null) => void
-  onCommit: (name: string, rect: Rect, before: Rect) => void
+  onPreview: (rects: Record<string, Rect> | null) => void
+  onCommit: (moves: Move[], kind: 'move' | 'resize') => void
 }
 
 type Gesture = {
   element: HTMLElement
   event: { pointerId: number; clientX: number; clientY: number }
-  name: string
-  start: Rect
+  kind: 'move' | 'resize'
+  items: { name: string; start: Rect }[]
+  selects: string | null
   threshold: number
-  apply: (dx: number, dy: number) => Rect
+  apply: (start: Rect, dx: number, dy: number) => Rect
 }
 
 const rectOf = ({ x, y, width, height }: Rect): Rect => ({ x, y, width, height })
 const same = (a: Rect, b: Rect) =>
   a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height
+const previewOf = (moves: Move[]) =>
+  Object.fromEntries(moves.map(({ name, rect }) => [name, rect])) as Record<string, Rect>
 
 /** The click that ends a drag would select the frame again. Swallow it once, and only for a moment. */
 function swallowClick() {
@@ -41,17 +45,26 @@ function swallowClick() {
 }
 
 /**
- * Moving a frame by its title and resizing it by a handle. Both are one gesture on one element
+ * Moving frames by a title and resizing one by a handle. Both are one gesture on one element
  * with pointer capture: the screen delta divided by the zoom at press time is the world delta. A
- * press that stays under 3 px is a click, so the title still selects. Esc or a cancelled pointer
- * restores the start rect. `onPreview` runs at most once per animation frame.
+ * title that belongs to the selection moves every selected frame together. A press that stays
+ * under 3 px is a click, so the title still selects. Esc or a cancelled pointer restores the start
+ * rects. `onPreview` runs at most once per animation frame.
  */
-export function useFrameEdit({ camera, boards, enabled, onSelect, onPreview, onCommit }: Options) {
+export function useFrameEdit({
+  camera,
+  boards,
+  enabled,
+  selected,
+  onSelect,
+  onPreview,
+  onCommit,
+}: Options) {
   const run = useCallback(
-    ({ element, event, name, start, threshold, apply }: Gesture) => {
+    ({ element, event, kind, items, selects, threshold, apply }: Gesture) => {
       const k = camera.view.k || 1
       let dragging = threshold === 0
-      let current = start
+      let current: Move[] = items.map(({ name, start }) => ({ name, rect: start, before: start }))
       let frame = 0
 
       const finish = (keep: boolean) => {
@@ -65,8 +78,9 @@ export function useFrameEdit({ camera, boards, enabled, onSelect, onPreview, onC
           element.releasePointerCapture(event.pointerId)
         if (!dragging) return
         if (threshold > 0) swallowClick()
-        if (keep && !same(current, start)) onCommit(name, current, rectOf(start))
-        else onPreview(name, null)
+        const moved = current.filter(({ rect, before }) => !same(rect, before))
+        if (keep && moved.length > 0) onCommit(moved, kind)
+        else onPreview(null)
       }
       const move = (next: PointerEvent) => {
         if (next.pointerId !== event.pointerId) return
@@ -75,14 +89,18 @@ export function useFrameEdit({ camera, boards, enabled, onSelect, onPreview, onC
         if (!dragging) {
           if (Math.hypot(dx, dy) < threshold) return
           dragging = true
-          onSelect(name)
+          if (selects) onSelect(selects)
           camera.focusViewport()
         }
-        current = apply(dx / k, dy / k)
+        current = items.map(({ name, start }) => ({
+          name,
+          rect: apply(start, dx / k, dy / k),
+          before: start,
+        }))
         if (!frame) {
           frame = requestAnimationFrame(() => {
             frame = 0
-            onPreview(name, current)
+            onPreview(previewOf(current))
           })
         }
       }
@@ -113,16 +131,21 @@ export function useFrameEdit({ camera, boards, enabled, onSelect, onPreview, onC
       const name = element?.closest('[data-board]')?.getAttribute('data-board')
       const board = boards.find((candidate) => candidate.name === name)
       if (!element || !board) return
+      const together = selected.includes(board.name) && selected.length > 1
+      const moving = together
+        ? boards.filter((candidate) => selected.includes(candidate.name))
+        : [board]
       run({
         element,
         event,
-        name: board.name,
-        start: rectOf(board),
+        kind: 'move',
+        items: moving.map((candidate) => ({ name: candidate.name, start: rectOf(candidate) })),
+        selects: selected.includes(board.name) ? null : board.name,
         threshold: DRAG_THRESHOLD,
-        apply: (dx, dy) => moveRect(board, dx, dy),
+        apply: (start, dx, dy) => moveRect(start, dx, dy),
       })
     },
-    [boards, enabled, run],
+    [boards, enabled, run, selected],
   )
 
   const onResizeDown = useCallback(
@@ -135,10 +158,11 @@ export function useFrameEdit({ camera, boards, enabled, onSelect, onPreview, onC
       run({
         element: event.currentTarget,
         event,
-        name,
-        start: rectOf(board),
+        kind: 'resize',
+        items: [{ name, start: rectOf(board) }],
+        selects: null,
         threshold: 0,
-        apply: (dx, dy) => resizeRect(board, handle, dx, dy),
+        apply: (start, dx, dy) => resizeRect(start, handle, dx, dy),
       })
     },
     [boards, camera, run],

@@ -17,7 +17,10 @@ body{margin:0}
 <div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="width: 100%; min-height: 100vh; background: var(--surface); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
 <sc-if value="{{hasPages}}" hint-placeholder-val="{{true}}">
 <main style="box-sizing: border-box; max-width: 1152px; margin: 0 auto; padding: 32px;">
-<h1 style="margin: 0 0 24px; font-size: 24px; line-height: 32px; font-weight: 600;">Pages</h1>
+<div style="display: flex; align-items: center; gap: 16px; margin: 0 0 24px;">
+<h1 style="margin: 0; flex: 1; font-size: 24px; line-height: 32px; font-weight: 600;">Pages</h1>
+<button type="button" style="height: 34px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--card); color: var(--foreground); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Settings</button>
+</div>
 <sc-if value="{{showUpdate}}" hint-placeholder-val="{{false}}">
 <section aria-label="irsim update" style="display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; max-width: 384px; margin: 0 0 24px; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card);">
 <div style="display: flex; align-items: flex-start; gap: 8px;">

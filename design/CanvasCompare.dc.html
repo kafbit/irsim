@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<title>Canvas compare</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.cv-root{--pick:#14161a;--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted:#efefeb;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a;--play:#2563eb;--mock-bg:#f6f6f3;--mock-ink:#14161a;--mock-card:#ffffff;--mock-line:#e4e4e0;--mock-bar:#d6d7d2}
+.cv-root.dark{--pick:#14161a;--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8;--play:#60a5fa}
+</style>
+</helmet>
+<div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="display: flex; flex-direction: column; width: 100%; height: 100vh; overflow: hidden; background: var(--shell); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
+<header style="display: flex; align-items: center; gap: 16px; flex-shrink: 0; height: 56px; box-sizing: border-box; padding: 0 16px; border-bottom: 1px solid var(--border); background: var(--card);">
+<button type="button" style="display: inline-flex; align-items: center; gap: 6px; height: 34px; margin: 0; padding: 0 10px 0 6px; border: 1px solid transparent; border-radius: 10px; background: transparent; color: var(--foreground); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>Back to canvas</button>
+<h1 style="margin: 0; min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; line-height: 24px; font-weight: 600;">CanvasInspector variants</h1>
+<div role="group" aria-label="Width" style="display: inline-flex; align-items: center; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: 8px;"><sc-for list="{{widths}}" as="o"><span style="display: inline-flex; align-items: center; height: 26px; box-sizing: border-box; padding: 0 10px; border-radius: 6px; background: {{o.bg}}; font-size: 12px; font-weight: {{o.weight}}; color: {{o.color}}; white-space: nowrap;">{{o.label}}</span></sc-for></div>
+<div role="group" aria-label="Theme" style="display: inline-flex; align-items: center; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: 8px;"><sc-for list="{{themes}}" as="o"><span style="display: inline-flex; align-items: center; height: 26px; box-sizing: border-box; padding: 0 10px; border-radius: 6px; background: {{o.bg}}; font-size: 12px; font-weight: {{o.weight}}; color: {{o.color}}; white-space: nowrap;">{{o.label}}</span></sc-for></div>
+<button type="button" style="display: inline-flex; align-items: center; justify-content: center; height: 34px; margin: 0; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--card); color: var(--destructive); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Discard variants</button>
+</header>
+<sc-if value="{{hasError}}" hint-placeholder-val="{{false}}">
+<p role="alert" style="margin: 0; flex-shrink: 0; padding: 8px 16px; border-bottom: 1px solid var(--border); background: var(--warning); font-size: 14px; line-height: 20px; color: var(--warning-foreground);">{{errorText}}</p>
+</sc-if>
+<div style="display: flex; justify-content: center; align-items: flex-start; gap: 16px; flex: 1; min-height: 0; box-sizing: border-box; padding: 16px; overflow: hidden;">
+<sc-for list="{{columns}}" as="col">
+<section style="display: flex; flex-direction: column; gap: 12px; flex: {{colFlex}}; width: {{colWidth}}; min-width: 0; box-sizing: border-box;">
+<div style="display: flex; align-items: baseline; gap: 8px;"><span style="font-size: 14px; font-weight: 600;">{{col.label}}</span><span style="font-size: 12px; color: var(--muted-foreground);">{{col.name}}</span><sc-if value="{{col.unchanged}}" hint-placeholder-val="{{false}}"><span style="font-size: 12px; color: var(--muted-foreground);">Not changed yet</span></sc-if></div>
+<div style="position: relative; width: {{boardWidth}}px; max-width: 100%; align-self: center; height: 680px; box-sizing: border-box; overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: var(--card);">
+<div style="position: absolute; left: 0; top: 0; width: 288px; height: 680px; overflow: hidden;">
+<dc-import name="CanvasInspector" theme="{{theme}}" approval="none" imports="{{col.imports}}" hint-size="288px,680px"></dc-import>
+</div>
+</div>
+<button type="button" style="display: inline-flex; align-items: center; justify-content: center; height: 34px; margin: 0; padding: 0 12px; border: 1px solid {{col.border}}; border-radius: 10px; background: {{col.bg}}; color: {{col.fg}}; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;">{{col.button}}</button>
+</section>
+</sc-for>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"width":{"editor":"enum","default":"board","options":["board","1280","768","390"]},"error":{"editor":"enum","default":"no","options":["no","yes"]},"unchanged":{"editor":"enum","default":"no","options":["no","yes"]},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const { theme, width, error, unchanged } = this.props
+    const widths = [
+      { id: 'board', label: 'Board width' },
+      { id: '1280', label: '1280' },
+      { id: '768', label: '768' },
+      { id: '390', label: '390' },
+    ]
+    const pill = (active, label) => ({
+      label,
+      bg: active ? 'var(--secondary)' : 'transparent',
+      weight: active ? 600 : 500,
+      color: active ? 'var(--foreground)' : 'var(--muted-foreground)',
+    })
+    const boardWidth = width === 'board' ? 288 : Number(width)
+    const primary = { border: 'var(--primary)', bg: 'var(--primary)', fg: 'var(--primary-foreground)' }
+    const secondary = { border: 'transparent', bg: 'var(--secondary)', fg: 'var(--foreground)' }
+    const columns = [
+      { label: 'Original', name: 'CanvasInspector', imports: '3', button: 'Keep original', unchanged: false, ...secondary },
+      { label: 'Simpler', name: 'CanvasInspectorVariantSimpler', imports: '0', button: 'Choose', unchanged: false, ...primary },
+      { label: 'Clearer', name: 'CanvasInspectorVariantClearer', imports: '3', button: 'Choose', unchanged: unchanged === 'yes', ...primary },
+    ]
+    const narrow = width === '390'
+    return {
+      themeClass: theme === 'dark' ? 'dark' : '',
+      theme,
+      hasError: error === 'yes',
+      errorText: 'Boards outside the variants import a variant: Settings, Billing. Change them first.',
+      widths: widths.map((item) => pill(item.id === width, item.label)),
+      themes: [pill(theme !== 'dark', 'Light'), pill(theme === 'dark', 'Dark')],
+      columns,
+      boardWidth: Math.min(boardWidth, 440),
+      colFlex: narrow ? '0 0 auto' : '1 1 0',
+      colWidth: narrow ? '392px' : 'auto',
+    }
+  }
+}
+</script>
+</body>
+</html>

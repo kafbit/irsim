@@ -4,13 +4,18 @@
     "name": "Kafbit"
   },
   "metadata": {
-    "description": "Kafbit tools for Claude Code."
+    "description": "Kafbit tools for Claude Code and Codex."
   },
   "plugins": [
     {
       "name": "irsim",
       "source": "./plugin",
       "description": "Opens the irsim design canvas and delivers its comments to the session."
+    },
+    {
+      "name": "irsim-codex",
+      "source": "./plugin/harnesses/codex",
+      "description": "Opens the irsim design canvas in Codex, adds design_canvas as an MCP tool, and delivers its comments to the session."
     }
   ]
 }

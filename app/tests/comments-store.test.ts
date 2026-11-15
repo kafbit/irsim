@@ -175,6 +175,20 @@ describe('comments store', () => {
     })
   })
 
+  it('a reply from an agent session keeps that agent', async () => {
+    await upsertSession({ id: 'codex-1', label: 'codex', cwd: '/repo', agent: 'codex' })
+    const comment = await createComment(input())
+    const result = await addReply(comment.id, {
+      author: 'claude',
+      body: 'Done',
+      session: 'codex-1',
+    })
+    expect(result).toMatchObject({
+      ok: true,
+      value: { replies: [{ author: 'claude', session: 'codex-1', agent: 'codex', seen: true }] },
+    })
+  })
+
   describe('replies from the user', () => {
     const sent = async (sessionId = 's1') => {
       const comment = await createComment(input())
@@ -193,6 +207,22 @@ describe('comments store', () => {
       await claim('s1')
       const again = await addReply(comment.id, { author: 'user', body: 'Again' })
       expect(again).toMatchObject({ ok: true, value: { status: 'queued', sessionId: 's1', batch } })
+    })
+
+    it('a thread stays with the session that has it after another session is picked', async () => {
+      await upsertSession({ id: 'A', label: 'a', cwd: '/a' })
+      await upsertSession({ id: 'B', label: 'b', cwd: '/b' })
+      const comment = await sent('A')
+      await claim('A')
+      const answered = await addReply(comment.id, { author: 'claude', body: 'Done', session: 'A' })
+      expect(answered).toMatchObject({
+        ok: true,
+        value: { sessionId: 'A', replies: [{ author: 'claude', session: 'A', seen: true }] },
+      })
+      const follow = await addReply(comment.id, { author: 'user', body: 'More' })
+      expect(follow).toMatchObject({ ok: true, value: { status: 'queued', sessionId: 'A' } })
+      expect((await claim('B')).count).toBe(0)
+      expect((await claim('A')).count).toBe(1)
     })
 
     it('a user reply reopens a resolved comment', async () => {

@@ -15,15 +15,16 @@ body{margin:0}
 </style>
 </helmet>
 <div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="display: flex; align-items: center; justify-content: center; width: 100%; min-height: var(--cv-h, 100vh); background: var(--cv-bg, var(--shell)); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
-<div role="alert" style="box-sizing: border-box; width: fit-content; max-width: 448px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); color: var(--destructive); font-size: 14px; line-height: 20px; box-shadow: 0 14px 36px rgba(20,22,26,0.14);">{{message}}</div>
+<div role="alert" style="box-sizing: border-box; width: fit-content; max-width: 448px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); color: {{color}}; font-size: 14px; line-height: 20px; box-shadow: 0 14px 36px rgba(20,22,26,0.14);">{{message}}</div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"message":{"editor":"text","default":"No board named Checkout."},"$preview":{"width":420,"height":44}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"message":{"editor":"text","default":"No board named Checkout."},"tone":{"editor":"enum","default":"error","options":["error","info"]},"$preview":{"width":420,"height":44}}'>
 class Component extends DCLogic {
   renderVals() {
     return {
       themeClass: this.props.theme === 'dark' ? 'dark' : '',
       message: this.props.message,
+      color: this.props.tone === 'info' ? 'var(--foreground)' : 'var(--destructive)',
     }
   }
 }

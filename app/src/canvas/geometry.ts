@@ -15,6 +15,8 @@ export type PlacedBoard = Rect & {
   hash: string
   interactive?: boolean
   fill?: boolean
+  section?: string | undefined
+  unchanged?: boolean | undefined
 }
 export type Layout = { boards: PlacedBoard[]; all: Rect }
 
@@ -38,7 +40,7 @@ export function layoutOf(boards: PlacedBoard[]): Layout {
 /** Positions come from the manifest, already page-local. */
 export function buildPageLayout(manifest: PageManifest): Layout {
   return layoutOf(
-    manifest.boards.map(({ name, title, x, y, width, height, hash, interactive, fill }) => ({
+    manifest.boards.map(({ name, title, x, y, width, height, hash, interactive, fill, section, unchanged }) => ({
       name,
       title,
       hash,
@@ -48,6 +50,8 @@ export function buildPageLayout(manifest: PageManifest): Layout {
       y,
       width,
       height,
+      ...(section === undefined ? {} : { section }),
+      ...(unchanged === undefined ? {} : { unchanged }),
     })),
   )
 }
@@ -114,6 +118,21 @@ export function intersects(a: Rect, b: Rect, margin = 0): boolean {
     a.y < b.y + b.height + margin &&
     a.y + a.height > b.y - margin
   )
+}
+
+/** The names of the boards `rect` touches, in board order. Boards that only share an edge are not touched. */
+export function boardsInRect(rect: Rect, boards: (Rect & { name: string })[]): string[] {
+  return boards.filter((board) => intersects(rect, board)).map((board) => board.name)
+}
+
+/** The smallest rectangle that holds every rect in `rects`, or `null` for none. */
+export function boundsOf(rects: Rect[]): Rect | null {
+  if (rects.length === 0) return null
+  const left = Math.min(...rects.map((rect) => rect.x))
+  const top = Math.min(...rects.map((rect) => rect.y))
+  const right = Math.max(...rects.map((rect) => rect.x + rect.width))
+  const bottom = Math.max(...rects.map((rect) => rect.y + rect.height))
+  return { x: left, y: top, width: right - left, height: bottom - top }
 }
 
 /** A board with the room its label takes above it. */

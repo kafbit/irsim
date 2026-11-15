@@ -12,7 +12,7 @@ import {
 import { ChevronDown, MapIcon } from '../ui/icons'
 import type { ReactNode } from 'react'
 import type { Camera } from './camera'
-import type { Layout } from './geometry'
+import type { Layout, Rect } from './geometry'
 import { Minimap } from './minimap'
 import { useTheme } from './use-theme'
 
@@ -43,21 +43,25 @@ function Item({
 export function ViewControls({
   camera,
   layout,
+  sections,
   k,
   actions,
   selected,
   onFitSelection,
   minimap,
   onToggleMinimap,
+  onOpenSettings,
 }: {
   camera: Camera
   layout: Layout
+  sections: Rect[]
   k: number
   actions: Actions
-  selected: string | null
+  selected: string[]
   onFitSelection: () => void
   minimap: boolean
   onToggleMinimap: () => void
+  onOpenSettings?: () => void
 }) {
   const { theme, toggle: toggleTheme } = useTheme()
   return (
@@ -65,7 +69,7 @@ export function ViewControls({
       className="absolute end-4 bottom-4 flex flex-col items-end gap-2"
       onPointerDown={(event) => event.stopPropagation()}
     >
-      {minimap ? <Minimap camera={camera} layout={layout} selected={selected} /> : null}
+      {minimap ? <Minimap camera={camera} layout={layout} sections={sections} selected={selected} /> : null}
       <div className="flex items-center gap-1 rounded-xl border border-border bg-card p-1 shadow-[0_14px_36px_rgba(20,22,26,0.14)]">
         <IconButton
           label={minimap ? 'Hide minimap' : 'Show minimap'}
@@ -98,7 +102,7 @@ export function ViewControls({
             <Item onSelect={actions.fit} keys="Shift+1">
               Fit page
             </Item>
-            <DropdownMenuItem disabled={selected === null} onSelect={onFitSelection}>
+            <DropdownMenuItem disabled={selected.length === 0} onSelect={onFitSelection}>
               Fit selection
               <span className="ms-auto ps-6 text-xs text-muted-foreground">Shift+2</span>
             </DropdownMenuItem>
@@ -106,6 +110,7 @@ export function ViewControls({
             <Item onSelect={toggleTheme}>
               {theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
             </Item>
+            {onOpenSettings ? <Item onSelect={onOpenSettings}>Settings…</Item> : null}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

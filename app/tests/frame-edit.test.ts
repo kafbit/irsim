@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { type Handle, MIN_H, MIN_W, moveRect, resizeRect } from '../src/canvas/frame-edit'
+import { editsOf, type Handle, MIN_H, MIN_W, moveRect, resizeRect } from '../src/canvas/frame-edit'
 import { buildPageLayout, layoutOf } from '../src/canvas/geometry'
 
 const rect = { x: 100, y: 200, width: 400, height: 300 }
@@ -94,5 +94,22 @@ describe('layoutOf', () => {
       boards: [{ ...board('A', 10, 20, 300, 200), closure: ['A'] }],
     }
     expect(buildPageLayout(manifest)).toEqual(layoutOf([board('A', 10, 20, 300, 200)]))
+  })
+})
+
+describe('editsOf', () => {
+  it('holds only the changed fields, forward and back', () => {
+    const moved = { ...rect, x: 130, y: 150 }
+    expect(editsOf([{ name: 'A', rect: moved, before: rect }])).toEqual({
+      before: { boards: [{ name: 'A', x: 100, y: 200 }] },
+      after: { boards: [{ name: 'A', x: 130, y: 150 }] },
+    })
+  })
+
+  it('keeps the size fields of a resize', () => {
+    const resized = { ...rect, width: 450 }
+    const { before, after } = editsOf([{ name: 'A', rect: resized, before: rect }])
+    expect(before.boards).toEqual([{ name: 'A', width: 400 }])
+    expect(after.boards).toEqual([{ name: 'A', width: 450 }])
   })
 })

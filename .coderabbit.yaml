@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+reviews:
+  path_instructions:
+    - path: "design/**"
+      instructions: |
+        These are irsim boards. The user accepts them visually in irsim, so do not review their markup, styles, copy, structure or layout values, and post no comments on lines of these files.
+        Report only a pairing problem: a board changed with no matching app change in this pull request, or a board that shows something the app code in this pull request does not do. Use the source to board table in AGENTS.md.
+    - path: "app/src/canvas/**"
+      instructions: |
+        Use the source to board table in AGENTS.md. When this change alters what a person sees (a screen, part, state, label, layout or interaction), the matching board in design/ must change in the same pull request and show the same thing.
+        Report a visible change with no board change, a board that contradicts the code (a missing state, a different label, a control the code does not have), and a new part, state or prop with no board, table row or canvas.json position.
+    - path: "app/src/app/{ui-tokens,globals}.css"
+      instructions: |
+        A token change must be copied into the token block of every Canvas* and UpdateNotice* board in the same pull request. Report a token whose value differs between this file and the boards.

@@ -89,6 +89,7 @@ export function useUpdate() {
   const baseline = useRef<string | null>(null)
   const phaseRef = useRef<UpdatePhase>('idle')
   phaseRef.current = phase
+  const recheck = useRef<(() => Promise<void>) | null>(null)
 
   useMountEffect(() => {
     mounted.current = true
@@ -106,7 +107,7 @@ export function useUpdate() {
         .catch(() => {})
     }
     const check = () => {
-      readInfo({ probe: false })
+      const run = readInfo({ probe: false })
         .then((next) => {
           if (next !== null && baseline.current === null) baseline.current = next.running
           if (!mounted.current || next === null) return
@@ -114,11 +115,14 @@ export function useUpdate() {
           if (next.canUpdate && release === null) release = acquireWatcher(watch)
         })
         .catch(() => {})
+      return run
     }
-    check()
+    recheck.current = check
+    void check()
     const timer = setInterval(check, CHECK_EVERY_MS)
     return () => {
       mounted.current = false
+      recheck.current = null
       clearInterval(timer)
       release?.()
     }
@@ -182,5 +186,16 @@ export function useUpdate() {
     setRestartFailed(false)
   }
 
-  return { notice, phase, error, restartFailed, running: info?.running ?? null, dismiss, start }
+  return {
+    notice,
+    phase,
+    error,
+    restartFailed,
+    info,
+    running: info?.running ?? null,
+    /** Asks the release feed now, over the hourly poll. */
+    check: () => recheck.current?.(),
+    dismiss,
+    start,
+  }
 }

@@ -120,6 +120,7 @@ export function PlayView({
   thread,
   numbers,
   start = null,
+  canVary = true,
 }: {
   board: PlacedBoard
   reload: number
@@ -128,6 +129,7 @@ export function PlayView({
   thread: ReturnType<typeof useComments>
   numbers: ReadonlyMap<string, number>
   start?: { view: CommentView; commentId: string } | null
+  canVary?: boolean
 }) {
   const [space, setSpace] = useState<Size | null>(null)
   const [state, setState] = useState<ViewportState>(() =>
@@ -495,9 +497,12 @@ export function PlayView({
                   {commenting && picked && pick && shownPick ? (
                     <div className="pointer-events-auto">
                       <FrameComposer
+                        canVary={canVary}
                         key={`${pick.file}:${pick.line}:${pick.rect.x}:${pick.rect.y}`}
                         size={{ width: boxWidth, height: boxHeight }}
                         pick={shownPick}
+                        page={page}
+                        onSent={() => setPicked(null)}
                         onSave={async (body, images) => {
                           await thread.create({
                             ...pick,

@@ -2,31 +2,49 @@
 
 import { type PointerEvent, useCallback, useRef } from 'react'
 import type { Camera } from './camera'
-import { zoomAt } from './geometry'
+import { type Rect, zoomAt } from './geometry'
+import { rectBetween } from './marquee'
 import { type WheelInput, wheelView } from './wheel'
 
 const DRAG_THRESHOLD = 3
 const DOUBLE_TAP_MS = 350
 
-type Drag = { sx: number; sy: number; vx: number; vy: number; moved: boolean; board: string | null }
+type Drag = {
+  sx: number
+  sy: number
+  vx: number
+  vy: number
+  moved: boolean
+  board: string | null
+  mode: 'pan' | 'marquee'
+  tappable: boolean
+  additive: boolean
+}
 
 type Options = {
   camera: Camera
   hand: boolean
-  onTap: (board: string | null, double: boolean) => void
+  /** True in the Move tool: a left-button mouse drag draws the selection rectangle instead of panning. */
+  marquee: boolean
+  onTap: (board: string | null, double: boolean, additive: boolean) => void
+  /** `rect` is in viewport pixels, `null` when the drag ends. `start` is true on the first call of a drag. */
+  onMarquee: (rect: Rect | null, additive: boolean, start: boolean) => void
 }
 
 const boardOf = (target: EventTarget) =>
   (target as HTMLElement).closest('[data-board]')?.getAttribute('data-board') ?? null
 
 /**
- * Drag-to-pan, wheel pan, wheel and pinch zoom, and tap detection for the viewport. Everything
- * writes through the `Camera`; a pointer or wheel input ends a running animation. In hand mode
- * (the Hand tool or Space held) a tap does nothing and a drag may start on a frame label.
+ * Selection rectangle, drag-to-pan, wheel pan, wheel and pinch zoom, and tap detection for the
+ * viewport. In the Move tool a left-button mouse drag draws the selection rectangle. Space with the
+ * left button, the middle button, one finger on touch, and the Hand tool pan. Panning writes
+ * through the `Camera`; a pointer or wheel input ends a running animation. When panning with the
+ * Hand tool or Space, a tap does nothing and a drag may start on a frame label.
  */
-export function useGestures({ camera, hand, onTap }: Options) {
+export function useGestures({ camera, hand, marquee, onTap, onMarquee }: Options) {
   const drag = useRef<Drag | null>(null)
   const space = useRef(false)
+  const dragged = useRef(false)
   const lastTap = useRef<{ board: string; at: number } | null>(null)
 
   const syncMode = useCallback(
@@ -111,6 +129,9 @@ export function useGestures({ camera, hand, onTap }: Options) {
     if (event.button !== 0 && event.button !== 1) return
     const onLabel = (event.target as HTMLElement).closest('[data-frame-title], [data-pin]')
     if (onLabel && !hand && event.button === 0) return
+    const panning =
+      hand || !marquee || space.current || event.button === 1 || event.pointerType === 'touch'
+    dragged.current = false
     event.preventDefault()
     camera.focusViewport()
     camera.stop()
@@ -122,6 +143,9 @@ export function useGestures({ camera, hand, onTap }: Options) {
       vy: y,
       moved: false,
       board: boardOf(event.target),
+      mode: panning ? 'pan' : 'marquee',
+      tappable: event.button === 0 && !hand && !space.current,
+      additive: event.shiftKey,
     }
     event.currentTarget.setPointerCapture(event.pointerId)
   }
@@ -155,7 +179,23 @@ export function useGestures({ camera, hand, onTap }: Options) {
     if (!current.moved) {
       current.moved = true
       window.getSelection()?.removeAllRanges()
-      syncMode(true)
+      if (current.mode === 'marquee') camera.setBlocked(true)
+      else syncMode(true)
+    }
+    if (current.mode === 'marquee') {
+      const box = event.currentTarget.getBoundingClientRect()
+      onMarquee(
+        rectBetween(
+          current.sx - box.left,
+          current.sy - box.top,
+          event.clientX - box.left,
+          event.clientY - box.top,
+        ),
+        current.additive,
+        !dragged.current,
+      )
+      dragged.current = true
+      return
     }
     camera.move({ ...camera.view, x: current.vx + dx, y: current.vy + dy })
   }
@@ -175,8 +215,13 @@ export function useGestures({ camera, hand, onTap }: Options) {
     }
     if (!current) return
     syncMode(false)
+    if (current.mode === 'marquee' && current.moved) {
+      dragged.current = false
+      onMarquee(null, current.additive, false)
+      return
+    }
     if (current.moved) return camera.settle()
-    if (hand || event.type === 'pointercancel') return
+    if (!current.tappable || event.type === 'pointercancel') return
     const now = performance.now()
     const previous = lastTap.current
     const double =
@@ -184,7 +229,7 @@ export function useGestures({ camera, hand, onTap }: Options) {
       previous?.board === current.board &&
       now - previous.at < DOUBLE_TAP_MS
     lastTap.current = double || current.board === null ? null : { board: current.board, at: now }
-    onTap(current.board, double)
+    onTap(current.board, double, current.additive)
   }
 
   const setSpace = useCallback(

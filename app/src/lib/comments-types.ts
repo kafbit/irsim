@@ -1,6 +1,15 @@
+import type { AgentId } from './agents'
+
 export type CommentStatus = 'draft' | 'queued' | 'delivered' | 'resolved'
 
-export type Reply = { author: 'claude' | 'user'; body: string; at: string; seen: boolean }
+export type Reply = {
+  author: 'claude' | 'user'
+  body: string
+  at: string
+  seen: boolean
+  session?: string
+  agent?: AgentId
+}
 
 export type CommentView = {
   width: number
@@ -29,7 +38,15 @@ export type Comment = {
   createdAt: string
 }
 
-export type Session = { id: string; label: string; cwd: string; lastSeen: string }
+export type Session = {
+  id: string
+  label: string
+  cwd: string
+  lastSeen: string
+  title?: string
+  branch?: string
+  agent?: AgentId
+}
 
 /**
  * The user's one-click confirmation that a board is ready to build. `hash` is the board's closure
@@ -52,6 +69,23 @@ export type Approval = {
   board: string
   hash: string
   note: string
+  sessionId: string
+  status: 'queued' | 'delivered'
+  createdAt: string
+}
+
+export type VariantRequestEntry = { name: string; label: string; direction: string }
+
+export type VariantPick = { file: string; line: number; element: { tag: string; path: string; text: string } }
+
+export type VariantRequest = {
+  id: string
+  page: string
+  base: string
+  variants: VariantRequestEntry[]
+  note: string
+  pick?: VariantPick
+  images?: string[]
   sessionId: string
   status: 'queued' | 'delivered'
   createdAt: string

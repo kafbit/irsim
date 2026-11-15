@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<title>Canvas section</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.cv-root{--pick:#14161a;--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted:#efefeb;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a;--play:#2563eb;--mock-bg:#f6f6f3;--mock-ink:#14161a;--mock-card:#ffffff;--mock-line:#e4e4e0;--mock-bar:#d6d7d2}
+.cv-root.dark{--pick:#14161a;--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8;--play:#60a5fa}
+</style>
+</helmet>
+<div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 100%; min-height: var(--cv-h, 100vh); padding: 40px; background: var(--cv-bg, var(--shell)); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
+<div style="position: relative; box-sizing: border-box; width: 820px; height: 480px; border: 1px solid {{borderColor}}; border-radius: 12px; background: var(--secondary); cursor: {{cursor}};">
+<div style="position: absolute; left: 0; right: 0; top: 0; display: flex; align-items: center; gap: 12px; height: 40px; box-sizing: border-box; padding: 0 16px;">
+<sc-if value="{{renaming}}" hint-placeholder-val="{{false}}">
+<span role="textbox" aria-label="Section name" style="display: inline-flex; align-items: center; height: 26px; box-sizing: border-box; padding: 0 8px; border: 1px solid var(--ring); border-radius: 6px; background: var(--background); font-size: 13px; font-weight: 600;">{{title}}<span aria-hidden="true" style="width: 1px; height: 14px; margin-left: 1px; background: var(--foreground);"></span></span>
+</sc-if>
+<sc-if value="{{notRenaming}}" hint-placeholder-val="{{true}}">
+<span style="font-size: 13px; font-weight: 600; color: var(--foreground);">{{title}}</span>
+</sc-if>
+<span style="font-size: 12px; color: var(--muted-foreground);">{{countLabel}}</span>
+<span style="flex: 1;"></span>
+<sc-if value="{{variants}}" hint-placeholder-val="{{false}}">
+<button type="button" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 26px; box-sizing: border-box; margin: 0; padding: 0 10px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--card); color: var(--foreground); font: inherit; font-size: 12px; font-weight: 500; cursor: pointer;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3"></path><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"></path><path d="M12 2v20"></path></svg>Compare</button>
+</sc-if>
+</div>
+<sc-for list="{{frames}}" as="f">
+<div style="position: absolute; left: {{f.x}}px; top: {{f.y}}px; width: {{f.w}}px;">
+<div style="position: absolute; left: 0; bottom: 100%; display: flex; align-items: baseline; gap: 8px; max-width: 100%; overflow: hidden; padding-bottom: 6px; font-size: 12px; line-height: 16px; white-space: nowrap; color: var(--foreground);"><sc-if value="{{f.badge}}" hint-placeholder-val="{{false}}"><span style="flex-shrink: 0; font-weight: 500; color: var(--muted-foreground);">Not changed yet</span></sc-if><span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">{{f.title}}</span><span style="min-width: 0; flex-shrink: 10000; overflow: hidden; text-overflow: ellipsis; color: var(--muted-foreground);">{{f.name}}</span></div>
+<div style="position: relative; width: 100%; height: {{f.h}}px; box-sizing: border-box; overflow: hidden; border-radius: 12px; background: var(--mock-bg); outline: 1px solid var(--border);">
+<div style="position: absolute; left: 0; right: 0; top: 0; height: 16%; background: var(--mock-ink);"></div>
+<div style="position: absolute; left: 8%; top: 28%; width: 50%; height: 8%; border-radius: 2px; background: var(--mock-ink);"></div>
+<div style="position: absolute; left: 8%; top: 46%; width: 84%; height: 6%; border-radius: 2px; background: var(--mock-bar);"></div>
+<div style="position: absolute; left: 8%; top: 58%; width: 70%; height: 6%; border-radius: 2px; background: var(--mock-bar);"></div>
+<div style="position: absolute; left: 8%; top: 76%; width: 26%; height: 12%; border-radius: 6px; background: var(--mock-accent);"></div>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"default","options":["default","hover","renaming","variants"]},"$preview":{"width":900,"height":560}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const { state, theme } = this.props
+    const variants = state === 'variants'
+    const frames = variants
+      ? [
+          { x: 40, y: 92, w: 220, h: 300, title: 'Original', name: 'CanvasInspector', badge: false },
+          { x: 300, y: 92, w: 220, h: 300, title: 'Simpler', name: 'CanvasInspectorVariantSimpler', badge: false },
+          { x: 560, y: 92, w: 220, h: 300, title: 'Clearer', name: 'CanvasInspectorVariantClearer', badge: true },
+        ]
+      : [
+          { x: 64, y: 92, w: 340, h: 260, title: 'Confirmation dialog', name: 'Dialog', badge: false },
+          { x: 436, y: 92, w: 320, h: 260, title: 'Profile card', name: 'Card', badge: false },
+        ]
+    return {
+      themeClass: theme === 'dark' ? 'dark' : '',
+      title: variants ? 'CanvasInspector variants' : 'Checkout flow',
+      countLabel: `${frames.length} boards`,
+      frames,
+      variants,
+      renaming: state === 'renaming',
+      notRenaming: state !== 'renaming',
+      borderColor: state === 'hover' ? 'var(--ring)' : 'var(--border-strong)',
+      cursor: state === 'hover' ? 'move' : 'default',
+    }
+  }
+}
+</script>
+</body>
+</html>

@@ -14,8 +14,21 @@ export type CanvasBoard = {
   interactive?: boolean
   /** `"fill"`: a web page, which fills the window in full screen play. */
   expand?: string
+  /** The id of a section of the same page. */
+  section?: string
+  /** The base board this board is a variant of. */
+  variantOf?: string
+  variantLabel?: string
+  /** The render hash of the base when the variant was copied. */
+  baseHash?: string
 }
-export type CanvasPage = { id: string; title: string; boards: CanvasBoard[] }
+export type CanvasSection = { id: string; title: string; variantOf?: string; baseSection?: string }
+export type CanvasPage = {
+  id: string
+  title: string
+  sections?: CanvasSection[]
+  boards: CanvasBoard[]
+}
 
 /** The pages of `canvas.json`, or `[]` when the file does not exist yet. */
 export const readCanvasPages = async (): Promise<CanvasPage[]> => {

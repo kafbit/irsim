@@ -40,6 +40,7 @@ function PageData({ pageId }: { pageId: string }) {
       <PageCanvas
         key={board ?? ''}
         manifest={manifest.data}
+        onCanvasChange={manifest.refetch}
         pages={pages.status === 'ready' ? pages.data : []}
         focus={board}
         play={play === 'full' || play === 'canvas' ? play : null}

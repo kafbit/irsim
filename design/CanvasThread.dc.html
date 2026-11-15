@@ -52,7 +52,7 @@ body{margin:0}
 <p style="margin: 0;"><span style="display: inline-flex; align-items: center; gap: 4px; height: 20px; box-sizing: border-box; padding: 0 8px; border-radius: 9999px; background: {{sentChipBg}}; color: {{sentChipFg}}; font-size: 11px; font-weight: 600; white-space: nowrap;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>{{sentChip}}</span></p>
 <p style="margin: 0; font-size: 14px; line-height: 20px; white-space: pre-wrap;">Name the reservation that will be removed.</p>
 <ul style="display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0 0 0 8px; border-left: 2px solid var(--border); list-style: none;">
-<li style="display: flex; flex-direction: column; gap: 2px; font-size: 14px;"><span style="font-weight: 600;">Claude</span><p style="margin: 0; font-size: 14px; line-height: 20px; white-space: pre-wrap;">The dialog text now includes the guest name and the dates.</p></li>
+<li style="display: flex; flex-direction: column; gap: 2px; font-size: 14px;"><span style="display: flex; align-items: baseline; gap: 6px; min-width: 0;"><span style="flex-shrink: 0; font-weight: 600;">Claude</span><sc-if value="{{several}}" hint-placeholder-val="{{false}}"><span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted-foreground);">Frame sections and variant selection</span></sc-if></span><p style="margin: 0; font-size: 14px; line-height: 20px; white-space: pre-wrap;">The dialog text now includes the guest name and the dates.</p></li>
 </ul>
 <div style="display: flex; flex-direction: column; gap: 8px;">
 <textarea aria-label="Reply" placeholder="Reply to Claude" rows="2" style="display: block; width: 100%; min-height: 48px; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--input); border-radius: 10px; background: transparent; color: var(--foreground); font: inherit; font-size: 14px; resize: none;"></textarea>
@@ -83,13 +83,15 @@ body{margin:0}
 </sc-if>
 </div>
 <footer style="display: flex; flex-direction: column; gap: 8px; padding: 16px; border-top: 1px solid var(--border);">
-<p style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted-foreground);">Session: irsim canvas</p>
+<div style="--cv-h: 0px; --cv-pad: 0px; --cv-bg: transparent;">
+<dc-import name="CanvasSession" theme="{{theme}}" state="{{sessionState}}" hint-size="288px,52px"></dc-import>
+</div>
 <button type="button" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 42px; padding: 0 16px; border: 1px solid var(--primary); border-radius: 10px; background: var(--primary); color: var(--primary-foreground); font: inherit; font-size: 14px; font-weight: 600; opacity: {{sendOpacity}};"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>{{sendLabel}}</button>
 </footer>
 </aside>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"open","options":["open","resolved","empty"]},"viewing":{"editor":"enum","default":"no","options":["no","yes"]},"$preview":{"width":320,"height":820}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"open","options":["open","resolved","empty"]},"viewing":{"editor":"enum","default":"no","options":["no","yes"]},"sessions":{"editor":"enum","default":"one","options":["one","several"]},"$preview":{"width":320,"height":820}}'>
 class Component extends DCLogic {
   renderVals() {
     const state = this.props.state
@@ -98,6 +100,9 @@ class Component extends DCLogic {
     const resolvedOpen = state === 'resolved'
     return {
       themeClass: this.props.theme === 'dark' ? 'dark' : '',
+      theme: this.props.theme === 'dark' ? 'dark' : 'light',
+      several: this.props.sessions === 'several',
+      sessionState: this.props.sessions === 'several' ? 'several' : 'one',
       isEmpty,
       hasComments: !isEmpty,
       resolvedOpen,

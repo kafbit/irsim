@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<title>Canvas settings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.cv-root{--pick:#14161a;--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted:#efefeb;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a}
+.cv-root.dark{--pick:#14161a;--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8}
+.cs-spin{width:12px;height:12px;border-radius:50%;border:2px solid var(--border);border-top-color:var(--info-foreground);animation:cs-spin 0.8s linear infinite;flex-shrink:0}
+@keyframes cs-spin{to{transform:rotate(360deg)}}
+</style>
+</helmet>
+<div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="display: flex; align-items: flex-start; justify-content: center; box-sizing: border-box; width: 100%; min-height: var(--cv-h, 100vh); padding: 20px; background: var(--cv-bg, var(--shell)); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
+<div role="dialog" aria-modal="true" aria-label="Settings" style="display: flex; flex-direction: column; width: 600px; max-height: 680px; box-sizing: border-box; overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: var(--card); box-shadow: 0 14px 36px rgba(20,22,26,0.14);">
+<div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0; height: 52px; box-sizing: border-box; padding: 0 16px; border-bottom: 1px solid var(--border);">
+<span style="flex: 1; font-size: 15px; font-weight: 600;">Settings</span>
+<button type="button" aria-label="Close" style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: 0; border-radius: 8px; background: transparent; color: var(--muted-foreground); font: inherit; font-size: 18px; line-height: 1; cursor: pointer;">×</button>
+</div>
+<div style="display: flex; flex-direction: column; gap: 20px; flex: 1; min-height: 0; box-sizing: border-box; padding: 16px; overflow: hidden;">
+
+<div style="display: flex; flex-direction: column; gap: 8px;">
+<div style="font-size: 12px; font-weight: 600; color: var(--muted-foreground);">irsim</div>
+<div style="display: flex; align-items: center; gap: 10px; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--card);">
+<div style="flex: 1; min-width: 0;">
+<div style="font-size: 13px; font-weight: 500;">{{versionTitle}}</div>
+<div style="margin-top: 2px; font-size: 12px; color: {{versionColor}};">{{versionDetail}}</div>
+</div>
+<sc-if value="{{busy}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--info-foreground);"><span class="cs-spin"></span></div>
+</sc-if>
+<sc-if value="{{showUpdate}}" hint-placeholder-val="{{true}}">
+<button type="button" style="height: 30px; padding: 0 10px; border: 1px solid var(--primary); border-radius: 8px; background: var(--primary); color: var(--primary-foreground); font: inherit; font-size: 12px; font-weight: 500; cursor: pointer;">{{action}}</button>
+</sc-if>
+<sc-if value="{{showCheck}}" hint-placeholder-val="{{true}}">
+<button type="button" style="height: 30px; padding: 0 10px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--card); color: var(--foreground); font: inherit; font-size: 12px; font-weight: 500; cursor: pointer;">Check for updates</button>
+</sc-if>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px;">
+<div style="font-size: 12px; font-weight: 600; color: var(--muted-foreground);">Appearance</div>
+<div style="display: flex; align-items: center; gap: 8px;">
+<div style="display: flex; gap: 2px; box-sizing: border-box; padding: 2px; border: 1px solid var(--border); border-radius: 10px; background: var(--card);">
+<sc-for list="{{themes}}" as="item">
+<button type="button" aria-pressed="{{item.on}}" style="height: 28px; padding: 0 12px; border: 1px solid transparent; border-radius: 8px; background: {{item.bg}}; color: {{item.color}}; font: inherit; font-size: 12px; font-weight: 500; cursor: pointer;">{{item.label}}</button>
+</sc-for>
+</div>
+<span style="font-size: 12px; color: var(--muted-foreground);">Applies to the canvas. Boards keep their own colours.</span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px;">
+<div style="font-size: 12px; font-weight: 600; color: var(--muted-foreground);">Project</div>
+<dl style="display: flex; flex-direction: column; gap: 6px; margin: 0;">
+<sc-for list="{{context}}" as="row">
+<div style="display: flex; align-items: baseline; gap: 12px;">
+<dt style="width: 120px; flex-shrink: 0; font-size: 12px; color: var(--muted-foreground);">{{row.label}}</dt>
+<dd style="min-width: 0; flex: 1; margin: 0; overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: {{row.color}};">{{row.value}}</dd>
+</div>
+</sc-for>
+</dl>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px; min-height: 0;">
+<div style="display: flex; align-items: center; gap: 10px;">
+<span style="flex: 1; font-size: 12px; font-weight: 600; color: var(--muted-foreground);">Health</span>
+<sc-if value="{{canRun}}" hint-placeholder-val="{{true}}">
+<button type="button" style="display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--card); color: var(--foreground); font: inherit; font-size: 12px; font-weight: 500; cursor: pointer;">
+<sc-if value="{{running}}" hint-placeholder-val="{{false}}"><span class="cs-spin"></span></sc-if>
+<span>{{runLabel}}</span>
+</button>
+</sc-if>
+</div>
+<sc-if value="{{idle}}" hint-placeholder-val="{{false}}">
+<div style="font-size: 12px; color: var(--muted-foreground);">Checks the project rules, the git setup and the config. Run it after a fresh clone or when something looks wrong.</div>
+</sc-if>
+<sc-if value="{{unavailable}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--warning); color: var(--warning-foreground);">
+<div style="font-size: 13px; font-weight: 500;">This canvas cannot run the doctor.</div>
+<div style="font-size: 12px;">It was started without the irsim launcher. Start it with <code style="font-family: ui-monospace, monospace;">irsim serve</code>, or run the check in a terminal.</div>
+</div>
+</sc-if>
+<sc-if value="{{hasReport}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: {{summaryColor}};">
+<span style="width: 6px; height: 6px; border-radius: 50%; background: {{summaryDot}};"></span>
+<span>{{summary}}</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px; box-sizing: border-box; height: 232px; padding: 8px 12px; overflow: hidden; border: 1px solid var(--border); border-radius: 10px; background: var(--card);">
+<sc-for list="{{checks}}" as="row">
+<sc-if value="{{row.isGroup}}" hint-placeholder-val="{{false}}">
+<div style="margin-top: 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--muted-foreground);">{{row.title}}</div>
+</sc-if>
+<sc-if value="{{row.isCheck}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; align-items: flex-start; gap: 8px; padding: 3px 0;">
+<span aria-hidden="true" style="flex-shrink: 0; width: 6px; height: 6px; margin-top: 6px; border-radius: 50%; background: {{row.dot}};"></span>
+<div style="min-width: 0; flex: 1;">
+<div style="font-size: 12px; color: var(--foreground);">{{row.title}}<span style="color: var(--muted-foreground);"> · {{row.detail}}</span></div>
+<sc-if value="{{row.hasFix}}" hint-placeholder-val="{{false}}">
+<code style="display: inline-block; margin-top: 3px; padding: 1px 6px; border-radius: 5px; background: var(--secondary); font-family: ui-monospace, monospace; font-size: 11px; color: {{row.fixColor}};">{{row.fix}}</code>
+</sc-if>
+</div>
+</div>
+</sc-if>
+</sc-for>
+</div>
+<p style="margin: 0; font-size: 12px; color: var(--muted-foreground);">{{reportFooter}}</p>
+</sc-if>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"health","options":["idle","checking","health","unavailable"]},"update":{"editor":"enum","default":"none","options":["none","source","available","restart","updating","failed"]},"$preview":{"width":600,"height":740}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const { theme, state, update } = this.props
+    const running = '0.2.3'
+    const version = {
+      none: { title: `irsim ${running}`, detail: 'Up to date.', color: 'var(--muted-foreground)' },
+      source: { title: `irsim ${running}`, detail: 'A source checkout does not update itself.', color: 'var(--muted-foreground)' },
+      available: { title: `irsim 0.2.4 is available`, detail: `You have ${running}.`, color: 'var(--foreground)', action: 'Update and restart' },
+      restart: { title: `irsim 0.2.4 is installed`, detail: `This canvas still runs ${running}. Restart it to use 0.2.4.`, color: 'var(--foreground)', action: 'Restart' },
+      updating: { title: `Updating to 0.2.4`, detail: 'The canvas restarts when the download is installed.', color: 'var(--info-foreground)' },
+      failed: { title: 'The update failed', detail: 'gh release download exited 1.', color: 'var(--destructive)' },
+    }[update]
+    const checks = [
+      { group: 'Config' },
+      { status: 'ok', title: '.irsim.json', detail: 'designDir design' },
+      { status: 'ok', title: 'design folder', detail: 'design, 205 boards' },
+      { status: 'fail', title: 'board files', detail: '2 boards have no file: CanvasFoo, CanvasBar', fix: 'irsim build' },
+      { group: 'Rules' },
+      { status: 'ok', title: 'AGENTS.md block', detail: 'matches the template' },
+      { status: 'warn', title: 'board diffs collapsed', detail: 'design/*.dc.html is not marked generated', fix: 'see README, Review boards in pull requests' },
+      { status: 'warn', title: 'CodeRabbit', detail: 'no .coderabbit.yaml', fix: '.coderabbit.yaml' },
+      { group: 'Git' },
+      { status: 'ok', title: 'branch', detail: 'feat/sections-variants' },
+      { status: 'ok', title: 'remote', detail: 'kafbit/irsim' },
+      { status: 'ok', title: 'gh', detail: 'authenticated' },
+      { group: 'Runtime' },
+      { status: 'ok', title: 'canvas', detail: 'http://localhost:3285' },
+      { status: 'ok', title: 'browser', detail: 'Chrome 141' },
+    ]
+    const dot = { ok: 'var(--success-foreground)', warn: 'var(--warning-foreground)', fail: 'var(--destructive)', skip: 'var(--input)' }
+    const fixColor = { fail: 'var(--destructive)', warn: 'var(--muted-foreground)' }
+    const context = [
+      { label: 'Directory', value: '~/Projects/irsim', color: 'var(--foreground)' },
+      { label: 'Design folder', value: 'design', color: 'var(--foreground)' },
+      { label: 'Repository', value: 'github.com/kafbit/irsim', color: 'var(--foreground)' },
+      { label: 'Branch', value: 'feat/sections-variants', color: 'var(--foreground)' },
+      { label: 'Commit', value: '6972071 · 2 uncommitted', color: 'var(--muted-foreground)' },
+      { label: 'Canvas', value: 'http://localhost:3285', color: 'var(--foreground)' },
+    ]
+    const report = state === 'health'
+    const summaryCount = { ok: 10, warn: 2, fail: 1 }
+    return {
+      themeClass: theme === 'dark' ? 'dark' : '',
+      versionTitle: version.title,
+      versionDetail: version.detail,
+      versionColor: version.color,
+      showUpdate: update === 'available' || update === 'restart' || update === 'failed',
+      action: version.action || 'irsim update',
+      showCheck: update === 'none' || update === 'source',
+      busy: update === 'updating',
+      themes: [
+        { label: 'Light', on: theme !== 'dark', bg: theme !== 'dark' ? 'var(--secondary)' : 'transparent', color: theme !== 'dark' ? 'var(--foreground)' : 'var(--muted-foreground)' },
+        { label: 'Dark', on: theme === 'dark', bg: theme === 'dark' ? 'var(--secondary)' : 'transparent', color: theme === 'dark' ? 'var(--foreground)' : 'var(--muted-foreground)' },
+      ],
+      context,
+      canRun: state !== 'unavailable',
+      runLabel: state === 'checking' ? 'Running' : 'Run doctor',
+      running: state === 'checking',
+      idle: state === 'idle' || state === 'checking',
+      unavailable: state === 'unavailable',
+      hasReport: report,
+      summary: `${summaryCount.ok} passed · ${summaryCount.warn} warnings · ${summaryCount.fail} failed`,
+      summaryColor: summaryCount.fail > 0 ? 'var(--destructive)' : 'var(--muted-foreground)',
+      summaryDot: summaryCount.fail > 0 ? 'var(--destructive)' : 'var(--success-foreground)',
+      reportFooter: '17 checks · 0.2.3 on linux-x64',
+      checks: report
+        ? checks.map((row) =>
+            row.group
+              ? { isGroup: true, isCheck: false, title: row.group }
+              : {
+                  isGroup: false,
+                  isCheck: true,
+                  title: row.title,
+                  detail: row.detail,
+                  dot: dot[row.status],
+                  hasFix: Boolean(row.fix),
+                  fix: row.fix || '',
+                  fixColor: fixColor[row.status] || 'var(--muted-foreground)',
+                },
+          )
+        : [],
+    }
+  }
+}
+</script>
+</body>
+</html>

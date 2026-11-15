@@ -9,7 +9,7 @@ import { Check, DeleteIcon, EditIcon, Monitor, Smartphone, Tablet } from '../../
 import { useState } from 'react'
 import { ClampedText } from './clamped-text'
 import { ImageStrip, imageUrl } from './image-strip'
-import type { Comment, CommentView } from './types'
+import type { Comment, CommentView, Session } from './types'
 import { usePastedImages } from './use-pasted-images'
 
 const STATUS = {
@@ -52,6 +52,7 @@ type Props = {
   onResolve: (id: string) => Promise<void>
   onReply: (id: string, body: string) => Promise<void>
   sessionEnded?: boolean
+  sessions?: Session[]
   viewing?: boolean
 }
 
@@ -66,6 +67,7 @@ export function CommentCard({
   onResolve,
   onReply,
   sessionEnded = false,
+  sessions = [],
   viewing = false,
 }: Props) {
   const [editing, setEditing] = useState(false)
@@ -73,6 +75,8 @@ export function CommentCard({
   const [busy, setBusy] = useState(false)
   const [replyDraft, setReplyDraft] = useState('')
   const pasted = usePastedImages(comment.images)
+  const replier = (id: string | undefined) =>
+    sessions.length > 1 ? sessions.find((live) => live.id === id)?.title : undefined
 
   const run = async (action: () => Promise<void>) => {
     setBusy(true)
@@ -196,10 +200,15 @@ export function CommentCard({
         <ul data-reply className="m-0 flex list-none flex-col gap-1.5 border-s-2 border-border p-0 ps-2">
           {comment.replies.map((reply) => (
             <li key={reply.at + reply.author} className="flex flex-col gap-0.5 text-sm">
-              <span>
-                <span className="font-semibold">
+              <span className="flex min-w-0 items-baseline gap-1.5">
+                <span className="shrink-0 font-semibold">
                   {reply.author === 'claude' ? 'Claude' : 'You'}
                 </span>
+                {reply.author === 'claude' && replier(reply.session) ? (
+                  <span className="min-w-0 truncate text-xs text-muted-foreground">
+                    {replier(reply.session)}
+                  </span>
+                ) : null}
                 {reply.author === 'user' && !reply.seen ? (
                   <>
                     {' '}

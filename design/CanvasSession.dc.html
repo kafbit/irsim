@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<title>Canvas session</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.cv-root{--pick:#14161a;--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted:#efefeb;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a;--play:#2563eb;--mock-bg:#f6f6f3;--mock-ink:#14161a;--mock-card:#ffffff;--mock-line:#e4e4e0;--mock-bar:#d6d7d2}
+.cv-root.dark{--pick:#14161a;--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8;--play:#60a5fa}
+</style>
+</helmet>
+<div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="box-sizing: border-box; width: 100%; min-height: var(--cv-h, 100vh); padding: var(--cv-pad, {{pad}}); background: var(--cv-bg, var(--card)); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
+<div style="position: relative;">
+<sc-if value="{{hasSession}}" hint-placeholder-val="{{true}}">
+<button type="button" aria-haspopup="{{popup}}" aria-expanded="{{open}}" aria-label="Claude session" style="display: flex; align-items: center; gap: 10px; width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); font: inherit; text-align: left; color: var(--foreground); cursor: {{cursor}};">
+<span aria-hidden="true" style="flex-shrink: 0; width: 8px; height: 8px; border-radius: 50%; background: var(--success-foreground); box-shadow: 0 0 0 3px var(--success);"></span>
+<span style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1;">
+<span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 500;">{{title}}</span>
+<sc-if value="{{picked}}" hint-placeholder-val="{{true}}">
+<span style="display: flex; align-items: center; gap: 4px; min-width: 0; font-size: 12px; color: var(--muted-foreground);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><line x1="6" x2="6" y1="3" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg><span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, monospace;">{{branch}}</span><span style="flex-shrink: 0;">· listening</span></span>
+</sc-if>
+</span>
+<sc-if value="{{several}}" hint-placeholder-val="{{false}}">
+<span style="flex-shrink: 0; display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: 9999px; background: var(--muted); font-size: 11px; font-weight: 500; color: var(--muted-foreground);">2</span>
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: var(--muted-foreground);"><path d="m7 15 5 5 5-5"></path><path d="m7 9 5-5 5 5"></path></svg>
+</sc-if>
+</button>
+</sc-if>
+<sc-if value="{{noSession}}" hint-placeholder-val="{{false}}">
+<div role="status" style="display: flex; align-items: center; gap: 10px; box-sizing: border-box; padding: 8px 10px; border: 1px dashed var(--border-strong); border-radius: 10px;">
+<span aria-hidden="true" style="flex-shrink: 0; width: 8px; height: 8px; border-radius: 50%; background: var(--input);"></span>
+<span style="display: flex; flex-direction: column; gap: 2px; min-width: 0;">
+<span style="font-size: 13px; font-weight: 500;">No Claude session listening</span>
+<span style="font-size: 12px; color: var(--muted-foreground);">Run <code style="font-family: ui-monospace, monospace;">/irsim</code> in Claude Code</span>
+</span>
+</div>
+</sc-if>
+<sc-if value="{{menuOpen}}" hint-placeholder-val="{{false}}">
+<ul role="listbox" aria-label="Claude sessions" style="position: absolute; left: 0; right: 0; bottom: calc(100% + 6px); display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 4px; list-style: none; border: 1px solid var(--border); border-radius: 12px; background: var(--card); box-shadow: 0 14px 36px rgba(20,22,26,0.14);">
+<sc-for list="{{sessions}}" as="s">
+<li role="option" aria-selected="{{s.selected}}" style="display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; background: {{s.bg}};">
+<span style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1;">
+<span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 500;">{{s.title}}</span>
+<span style="display: flex; align-items: center; gap: 4px; min-width: 0; font-size: 12px; color: var(--muted-foreground);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><line x1="6" x2="6" y1="3" y2="15"></line><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="18" r="3"></circle><path d="M18 9a9 9 0 0 1-9 9"></path></svg><span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, monospace;">{{s.branch}}</span></span>
+</span>
+<span aria-hidden="true" style="flex-shrink: 0; width: 14px; font-size: 13px; color: var(--foreground);">{{s.check}}</span>
+</li>
+</sc-for>
+</ul>
+</sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"one","options":["one","several","several-open","pick","none"]},"$preview":{"width":288,"height":200}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const { theme, state } = this.props
+    const several = state === 'several' || state === 'several-open' || state === 'pick'
+    const open = state === 'several-open'
+    const sessions = [
+      { title: 'Frame sections and variant selection', branch: 'feat/sections-variants', selected: 'true', bg: 'var(--accent)', check: '✓' },
+      { title: 'Doctor and settings page', branch: 'feat/doctor-settings', selected: 'false', bg: 'transparent', check: '' },
+    ]
+    return {
+      themeClass: theme === 'dark' ? 'dark' : '',
+      pad: open ? '128px 16px 16px' : '16px',
+      hasSession: state !== 'none',
+      noSession: state === 'none',
+      several,
+      menuOpen: open,
+      popup: several ? 'listbox' : 'false',
+      open: open ? 'true' : 'false',
+      cursor: several ? 'pointer' : 'default',
+      picked: state !== 'pick',
+      title: state === 'pick' ? 'Pick a session' : sessions[0].title,
+      branch: sessions[0].branch,
+      sessions,
+    }
+  }
+}
+</script>
+</body>
+</html>

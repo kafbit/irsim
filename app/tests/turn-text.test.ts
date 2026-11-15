@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Comment } from '../src/lib/comments-types'
-import { REPLY_RULE, buildTurnText } from '../src/lib/turn-text'
+import { REPLY_RULE, buildTurnText, buildVariantText } from '../src/lib/turn-text'
 
 const comment = (overrides: Partial<Comment>): Comment => ({
   id: 'c_1',
@@ -184,6 +184,18 @@ describe('buildTurnText', () => {
       )
     })
 
+    it('names the agent that wrote a reply', () => {
+      const text = buildTurnText([
+        followUp({
+          replies: [
+            { author: 'claude', body: 'Done', at, seen: true, agent: 'opencode' },
+            { author: 'user', body: 'Still wrong', at, seen: false },
+          ],
+        }),
+      ])
+      expect(text).toContain('   OpenCode: Done')
+    })
+
     it('adds the count breakdown only when a follow-up exists', () => {
       const mixed = buildTurnText([comment({ id: 'c_a' }), followUp()])
       expect(mixed.split('\n')[0]).toContain('2 comments (1 new, 1 follow-up) on page sales')
@@ -204,5 +216,86 @@ describe('buildTurnText', () => {
         '   Use the primary button.\n   image: /data/i_a.png\n   You: First ask',
       )
     })
+  })
+})
+
+describe('buildVariantText', () => {
+  it('names each variant file with its direction and ends with the reply rule once', () => {
+    const text = buildVariantText([
+      {
+        id: 'v_1',
+        page: 'sales',
+        base: 'Leads',
+        variants: [
+          { name: 'LeadsVariantBetter', label: 'Better', direction: 'Improve it.' },
+          { name: 'LeadsVariantSimpler', label: 'Simpler', direction: 'Cut it.' },
+        ],
+        note: 'Keep the filter.',
+        sessionId: 's1',
+        status: 'queued',
+        createdAt: '2026-11-14T00:00:00.000Z',
+      },
+    ])
+    expect(text).toBe(
+      [
+        'Design canvas: the user asked for 2 variants of board Leads (page sales). Each file below is a copy of design/Leads.dc.html; edit only that file.',
+        '   design/LeadsVariantBetter.dc.html: Better. Improve it.',
+        '   design/LeadsVariantSimpler.dc.html: Simpler. Cut it.',
+        '   Keep the filter.',
+        `   Keep each board's size and the board conventions. Run design_canvas {action: "check", board} on each and look at the screenshot. Do not edit Leads.dc.html; the user compares the variants and chooses one in irsim.`,
+        REPLY_RULE,
+      ].join('\n'),
+    )
+  })
+
+  it('says where a free-form request came from and puts the note before the copies', () => {
+    const text = buildVariantText([
+      {
+        id: 'v_2',
+        page: 'sales',
+        base: 'Leads',
+        variants: [
+          { name: 'LeadsVariantOption1', label: 'Option 1', direction: 'Option 1 of 2: a take.' },
+          { name: 'LeadsVariantOption2', label: 'Option 2', direction: 'Option 2 of 2: a take.' },
+        ],
+        note: 'Calmer header.',
+        pick: { file: 'design/Leads.dc.html', line: 7, element: { tag: 'h1', path: 'h1', text: 'Leads' } },
+        sessionId: 's1',
+        status: 'queued',
+        createdAt: '2026-11-14T00:00:00.000Z',
+      },
+    ])
+    expect(text).toBe(
+      [
+        'Design canvas: the user asked for 2 variants of board Leads (page sales) from a comment on design/Leads.dc.html:7 · h1 "Leads". Each file below is a copy of design/Leads.dc.html; edit only that file.',
+        '   Calmer header.',
+        '   design/LeadsVariantOption1.dc.html: Option 1. Option 1 of 2: a take.',
+        '   design/LeadsVariantOption2.dc.html: Option 2. Option 2 of 2: a take.',
+        `   Keep each board's size and the board conventions. Run design_canvas {action: "check", board} on each and look at the screenshot. Do not edit Leads.dc.html; the user compares the variants and chooses one in irsim.`,
+        REPLY_RULE,
+      ].join('\n'),
+    )
+  })
+
+  it('lists the image paths of a request after the note', () => {
+    const text = buildVariantText(
+      [
+        {
+          id: 'v_3',
+          page: 'sales',
+          base: 'Leads',
+          variants: [{ name: 'LeadsVariantOption1', label: 'Option 1', direction: 'Option 1 of 2: a take.' }],
+          note: 'Like this.',
+          images: ['i_a', 'i_gone'],
+          sessionId: 's1',
+          status: 'queued',
+          createdAt: '2026-11-14T00:00:00.000Z',
+        },
+      ],
+      'design',
+      { i_a: '/data/images/i_a.png' },
+    )
+    expect(text).toContain('   Like this.\n   image: /data/images/i_a.png\n')
+    expect(text).not.toContain('i_gone')
   })
 })

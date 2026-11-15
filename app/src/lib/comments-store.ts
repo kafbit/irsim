@@ -9,12 +9,15 @@ import type {
   PageApprovals,
   Reply,
   Session,
+  VariantRequest,
+  VariantPick,
+  VariantRequestEntry,
 } from './comments-types'
 import { dataDir } from './data-dir'
 import { designFolderName } from './design-dir'
 import { emit } from './events'
 import { closureOf } from './closure'
-import { buildApprovalText, buildTurnText, unseenUserReplies } from './turn-text'
+import { buildApprovalText, buildTurnText, buildVariantText, unseenUserReplies } from './turn-text'
 
 export type NewComment = Pick<
   Comment,
@@ -95,7 +98,7 @@ const writeList = async (name: string, list: unknown[]): Promise<void> => {
   await rename(temp, file)
 }
 
-const newId = (prefix: 'c' | 'b' | 'a'): string =>
+const newId = (prefix: 'c' | 'b' | 'a' | 'v'): string =>
   `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6).padEnd(4, '0')}`
 
 const touched = (ids: string[]): void => emit({ event: 'comments', data: { ids } })
@@ -210,15 +213,28 @@ export const updateComment = async (
   return result
 }
 
-export const addReply = (
+export const addReply = async (
   id: string,
-  reply: { author: 'claude' | 'user'; body: string },
+  reply: { author: 'claude' | 'user'; body: string; session?: string | undefined },
   now = Date.now(),
-): Promise<Change<Comment>> =>
-  mutateOne(id, (comment) => {
+): Promise<Change<Comment>> => {
+  const agent =
+    reply.author === 'claude' && reply.session
+      ? (await readList<Session>('sessions.json')).find((entry) => entry.id === reply.session)
+          ?.agent
+      : undefined
+  return mutateOne(id, (comment) => {
     const at = new Date(now).toISOString()
     if (reply.author === 'claude') {
-      return { ...comment, replies: [...comment.replies, { ...reply, at, seen: true }] }
+      const { session, ...rest } = reply
+      const stored = session ? { ...rest, session } : rest
+      return {
+        ...comment,
+        replies: [
+          ...comment.replies,
+          { ...stored, ...(agent ? { agent } : {}), at, seen: true },
+        ],
+      }
     }
     if (comment.status === 'draft') return 'is_draft'
     if (!comment.sessionId) return 'no_session'
@@ -226,9 +242,10 @@ export const addReply = (
       ...comment,
       status: 'queued',
       reopened: comment.status === 'resolved' || comment.reopened === true,
-      replies: [...comment.replies, { ...reply, at, seen: false }],
+      replies: [...comment.replies, { author: reply.author, body: reply.body, at, seen: false }],
     }
   })
+}
 
 export const deleteComment = (id: string): Promise<Change<string>> =>
   enqueue(async () => {
@@ -322,6 +339,41 @@ export const createApproval = (
     return approval
   })
 
+export const isSessionLive = async (sessionId: string, now = Date.now()): Promise<boolean> =>
+  (await readList<Session>('sessions.json')).some(
+    (session) => session.id === sessionId && now - Date.parse(session.lastSeen) <= SESSION_TTL_MS,
+  )
+
+/** Queues a variant request for a live session; its next claim delivers it. */
+export const createVariantRequest = (
+  input: {
+    page: string
+    base: string
+    variants: VariantRequestEntry[]
+    note: string
+    pick?: VariantPick
+    images?: string[]
+    sessionId: string
+  },
+  now = Date.now(),
+): Promise<VariantRequest | 'no_session'> =>
+  enqueue(async () => {
+    if (!(await isSessionLive(input.sessionId, now))) return 'no_session'
+    const request: VariantRequest = {
+      id: newId('v'),
+      ...input,
+      status: 'queued',
+      createdAt: new Date(now).toISOString(),
+    }
+    await writeList('variant-requests.json', [
+      ...(await readList<VariantRequest>('variant-requests.json')),
+      request,
+    ])
+    return request
+  })
+
+const joinText = (...parts: string[]): string => parts.filter((part) => part !== '').join('\n\n')
+
 export const claim = (sessionId: string, now = Date.now()): Promise<Claim> =>
   enqueue(async () => {
     const sessions = await readList<Session>('sessions.json')
@@ -351,13 +403,41 @@ export const claim = (sessionId: string, now = Date.now()): Promise<Claim> =>
       )
       approvalsChanged([...ids])
     }
+    const allVariants = await readList<VariantRequest>('variant-requests.json')
+    const variants = allVariants.filter(
+      (request) => request.status === 'queued' && request.sessionId === sessionId,
+    )
+    const variantPaths: Record<string, string> = {}
+    for (const image of variants.flatMap((request) => request.images ?? [])) {
+      const path = await imagePath(image)
+      if (path) variantPaths[image] = path
+    }
+    const variantText =
+      variants.length > 0 ? buildVariantText(variants, designFolderName(), variantPaths) : ''
+    const deliverVariants = async (): Promise<void> => {
+      if (variants.length === 0) return
+      const ids = new Set(variants.map((request) => request.id))
+      await writeList(
+        'variant-requests.json',
+        allVariants.map((request) =>
+          ids.has(request.id) ? { ...request, status: 'delivered' } : request,
+        ),
+      )
+    }
     const all = await readComments()
     const taken = all.filter(
       (comment) => comment.status === 'queued' && comment.sessionId === sessionId,
     )
     if (taken.length === 0) {
       await deliverApprovals()
-      return { batch: null, count: approvals.length, text: approvalText, comments: [], approvals }
+      await deliverVariants()
+      return {
+        batch: null,
+        count: approvals.length + variants.length,
+        text: joinText(approvalText, variantText),
+        comments: [],
+        approvals,
+      }
     }
     const ids = new Set(taken.map((comment) => comment.id))
     const before = new Map(taken.map((comment) => [comment.id, comment]))
@@ -391,10 +471,11 @@ export const claim = (sessionId: string, now = Date.now()): Promise<Claim> =>
       })
     const commentText = buildTurnText(taken, paths, designFolderName())
     await deliverApprovals()
+    await deliverVariants()
     return {
       batch: delivered[delivered.length - 1]?.batch ?? null,
-      count: delivered.length + approvals.length,
-      text: approvalText ? `${approvalText}\n\n${commentText}` : commentText,
+      count: delivered.length + approvals.length + variants.length,
+      text: joinText(approvalText, variantText, commentText),
       comments: delivered,
       approvals,
     }

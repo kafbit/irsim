@@ -1,11 +1,19 @@
 import type { Rect } from '../geometry'
+import type { AgentId } from '../../lib/agents'
 import type { CommentView } from '../../lib/comments-types'
 
 export type { CommentView }
 
 export type CommentStatus = 'draft' | 'queued' | 'delivered' | 'resolved'
 
-export type Reply = { author: 'claude' | 'user'; body: string; at: string; seen: boolean }
+export type Reply = {
+  author: 'claude' | 'user'
+  body: string
+  at: string
+  seen: boolean
+  session?: string
+  agent?: AgentId
+}
 
 export type CommentElement = { tag: string; path: string; text: string }
 
@@ -27,7 +35,15 @@ export type Comment = {
   createdAt: string
 }
 
-export type Session = { id: string; label: string; cwd: string; lastSeen: string }
+export type Session = {
+  id: string
+  label: string
+  cwd: string
+  lastSeen: string
+  title: string
+  branch?: string
+  agent?: AgentId
+}
 
 export type PickedElement = {
   board: string

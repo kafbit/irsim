@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { type Command, commandFor, zoomChord } from './keymap'
+import { type Command, commandFor, modChord, zoomChord } from './keymap'
 
 /** A handler that returns `false` did not handle the key, so the browser keeps its default action. */
 export type CommandHandlers = Partial<Record<Command, () => unknown>>
@@ -32,6 +32,19 @@ export function useShortcuts(handlers: CommandHandlers, onSpace: (held: boolean)
       if (chord) {
         event.preventDefault()
         handlers[chord]?.()
+        return
+      }
+      const mod = modChord(event)
+      if (mod === 'global-search') {
+        const handler = handlers[mod]
+        if (handler && handler() !== false) event.preventDefault()
+        return
+      }
+      if (mod) {
+        const target = event.target instanceof Element ? event.target : null
+        if (target?.closest(EDITABLE) || target?.closest(OVERLAYS)) return
+        const handler = handlers[mod]
+        if (handler && handler() !== false) event.preventDefault()
         return
       }
       if (belongsElsewhere(event)) return

@@ -170,6 +170,12 @@ window.addEventListener('keydown', (event) => {
   event.preventDefault()
   post('zoom-chord', { command })
 })
+window.addEventListener('keydown', (event) => {
+  if (!(event.ctrlKey || event.metaKey) || event.shiftKey || event.altKey) return
+  if (event.key.toLowerCase() !== 'k') return
+  event.preventDefault()
+  post('search-chord')
+})
 window.addEventListener(
   'wheel',
   (event) => {

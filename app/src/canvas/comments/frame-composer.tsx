@@ -2,6 +2,7 @@
 
 import { CommentForm } from './comment-form'
 import { PANEL, PANEL_CLASS } from './composer'
+import { useGenerate } from './use-generate'
 import { placePanel } from './model'
 import type { PickedElement } from './types'
 
@@ -13,14 +14,22 @@ import type { PickedElement } from './types'
 export function FrameComposer({
   size,
   pick,
+  page,
+  canVary = true,
   onSave,
+  onSent,
   onCancel,
 }: {
   size: { width: number; height: number }
   pick: PickedElement
+  page: string
+  /** False for a board that is itself a variant: the Variants toggle is not offered. */
+  canVary?: boolean
   onSave: (body: string, images: string[]) => Promise<void>
+  onSent: (count: number) => void
   onCancel: () => void
 }) {
+  const variants = useGenerate({ page, pick, onSent })
   const at = placePanel(pick.rect, size, PANEL)
   return (
     <>
@@ -39,7 +48,13 @@ export function FrameComposer({
         className={PANEL_CLASS}
         style={{ transform: `translate(${at.x}px, ${at.y}px)` }}
       >
-        <CommentForm pick={pick} onSave={onSave} onCancel={onCancel} />
+        <CommentForm
+          pick={pick}
+          onSave={onSave}
+          onGenerate={canVary ? variants.generate : undefined}
+          canGenerate={variants.canGenerate}
+          onCancel={onCancel}
+        />
       </div>
     </>
   )

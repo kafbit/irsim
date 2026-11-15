@@ -10,9 +10,9 @@
 <helmet>
 <style>body{margin:0}</style>
 </helmet>
-<dc-import name="CanvasZoomBar" minimap="on" menu="open" theme="{{theme}}" hint-size="260px,420px"></dc-import>
+<dc-import name="CanvasZoomBar" minimap="on" menu="open" theme="{{theme}}" hint-size="260px,540px"></dc-import>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"$preview":{"width":260,"height":420}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"$preview":{"width":260,"height":540}}'>
 class Component extends DCLogic {
   renderVals() {
     return { theme: this.props.theme }

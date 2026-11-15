@@ -9,6 +9,11 @@ export type Command =
   | 'interact'
   | 'escape'
   | 'search'
+  | 'global-search'
+  | 'undo'
+  | 'redo'
+  | 'select-all'
+  | 'create-section'
   | 'tool-move'
   | 'tool-hand'
   | 'tool-comment'
@@ -49,6 +54,34 @@ export function zoomChord({
   return null
 }
 
+export type ChordInput = {
+  key: string
+  ctrlKey: boolean
+  metaKey: boolean
+  altKey: boolean
+  shiftKey: boolean
+}
+
+/**
+ * Ctrl or Cmd chords: Z undo, Shift+Z and Ctrl+Y redo, A select all, K global search. Alt turns
+ * them off. Cmd+Y is not redo, because it opens the history in Safari and Firefox.
+ */
+export function modChord({ key, ctrlKey, metaKey, altKey, shiftKey }: ChordInput): Command | null {
+  if (!(ctrlKey || metaKey) || altKey) return null
+  switch (key.toLowerCase()) {
+    case 'z':
+      return shiftKey ? 'redo' : 'undo'
+    case 'y':
+      return ctrlKey && !shiftKey ? 'redo' : null
+    case 'a':
+      return shiftKey ? null : 'select-all'
+    case 'k':
+      return shiftKey ? null : 'global-search'
+    default:
+      return null
+  }
+}
+
 export type KeyInput = { key: string; code: string; shiftKey: boolean }
 
 /** Shift+digit is read from `code`, because `key` holds `!` or `@` on some layouts. Plain `0` and `1` stay as aliases. */
@@ -60,6 +93,7 @@ export function commandFor({ key, code, shiftKey }: KeyInput): Command | null {
     if (code === 'Digit2') return 'fit-selection'
     if (code === 'Digit0') return 'actual-size'
     if (key === 'N') return 'previous-board'
+    if (key === 'S') return 'create-section'
     if (key === '+') return 'zoom-in'
     return null
   }

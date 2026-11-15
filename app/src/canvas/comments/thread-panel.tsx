@@ -59,6 +59,7 @@ export function ThreadPanel({
       onDelete={actions.onDelete}
       onResolve={actions.onResolve}
       onReply={actions.onReply}
+      sessions={session.sessions}
       viewing={
         comment.view !== undefined &&
         viewport !== null &&

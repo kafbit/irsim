@@ -6,6 +6,7 @@ export type CanvasEvent =
   | { event: 'comments'; data: { ids: string[] } }
   | { event: 'approvals'; data: { ids: string[] } }
   | { event: 'thumb'; data: { board: string; ok: boolean } }
+  | { event: 'canvas'; data: Record<string, never> }
 
 type Listener = (event: CanvasEvent) => void
 
@@ -16,6 +17,7 @@ type State = {
 }
 
 const DEBOUNCE_MS = 100
+const CANVAS_FILE = 'canvas.json'
 const BOARD_FILE = /^([A-Za-z][A-Za-z0-9]*)\.dc\.html$/
 
 const holder = globalThis as typeof globalThis & { __canvasEvents?: State }
@@ -25,17 +27,22 @@ export const emit = (event: CanvasEvent): void => {
   for (const listener of state.listeners) listener(event)
 }
 
-const onFile = (file: string): void => {
-  const board = BOARD_FILE.exec(file)?.[1]
-  if (!board) return
+const debounced = (file: string, send: () => void): void => {
   clearTimeout(state.timers.get(file))
   state.timers.set(
     file,
     setTimeout(() => {
       state.timers.delete(file)
-      emit({ event: 'board', data: { board } })
+      send()
     }, DEBOUNCE_MS),
   )
+}
+
+const onFile = (file: string): void => {
+  if (file === CANVAS_FILE) return debounced(file, () => emit({ event: 'canvas', data: {} }))
+  const board = BOARD_FILE.exec(file)?.[1]
+  if (!board) return
+  debounced(file, () => emit({ event: 'board', data: { board } }))
 }
 
 const ensureWatcher = (): void => {

@@ -1,8 +1,9 @@
-import { api, listenKey } from './api'
+import { api, baseUrl, listenKey } from './api'
 import type { Claim, Engine } from './api'
 
 const POLL_MS = 2000
-const STATUS_LINE = 'canvas · listening'
+const statusLine = (url: string): string =>
+  url ? `canvas ${url} · listening` : 'canvas · listening'
 
 let timer: { cancel: () => void } | null = null
 let isPolling = false
@@ -12,7 +13,8 @@ export async function syncPoll($: Engine): Promise<void> {
   const isOn = Boolean(await $.store.get(listenKey(sessionId)))
   if (isOn && !timer) {
     timer = $.clock.every(POLL_MS, () => poll($))
-    $.ui.status(STATUS_LINE)
+    const url = await baseUrl($).catch(() => '')
+    if (timer) $.ui.status(statusLine(url))
   } else if (!isOn && timer) {
     timer.cancel()
     timer = null

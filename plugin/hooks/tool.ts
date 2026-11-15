@@ -1,17 +1,20 @@
-import { CanvasError, api, oneLine } from './api'
+import { CanvasError, api, doctorLines, oneLine, runDoctor } from './api'
 import type { CheckResult, Comment, Engine, Page } from './api'
 import { openCanvas } from './canvas'
 
 export const TOOL_NAME = 'design_canvas'
 export const TOOL_DESCRIPTION =
-  'Reads and answers design canvas comments, and checks boards. Actions: open, page, comments, reply, resolve, check. check renders a board (or every board of a page) in headless Chromium and returns errors, warnings and a screenshot path to look at. Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.'
+  'Reads and answers design canvas comments, checks boards, and checks the project. Actions: open, page, comments, reply, resolve, check, doctor. check renders a board (or every board of a page) in headless Chromium and returns errors, warnings and a screenshot path to look at. doctor checks the project rules, git setup and config. Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.'
 
 export const TOOL_MATCH = /^mcp__.*__design_canvas$/
 
 export const TOOL_SCHEMA = {
   type: 'object',
   properties: {
-    action: { type: 'string', enum: ['open', 'page', 'comments', 'reply', 'resolve', 'check'] },
+    action: {
+      type: 'string',
+      enum: ['open', 'page', 'comments', 'reply', 'resolve', 'check', 'doctor'],
+    },
     page: { type: 'string', description: 'Page id, for open, page, comments and check.' },
     board: { type: 'string', description: 'Board name, for open and check.' },
     status: {
@@ -54,9 +57,15 @@ async function pageManifest($: Engine, pageId: string): Promise<string> {
   const lines = page.boards.map((board) => {
     const closure =
       board.closure && board.closure.length > 0 ? `  closure: ${board.closure.join(', ')}` : ''
-    return `${board.name}  ${board.width}x${board.height}${closure}`
+    const variant = board.variantOf ? `  variant of ${board.variantOf}: ${board.variantLabel ?? ''}` : ''
+    const section = board.section ? `  section: ${board.section}` : ''
+    return `${board.name}  ${board.width}x${board.height}${closure}${variant}${section}`
   })
-  return [`${page.id}: ${page.title}`, ...lines].join('\n')
+  const sections = (page.sections ?? []).map((entry) => {
+    const count = page.boards.filter((board) => board.section === entry.id).length
+    return `section ${entry.id}: ${entry.title} (${count} ${count === 1 ? 'board' : 'boards'})`
+  })
+  return [`${page.id}: ${page.title}`, ...sections, ...lines].join('\n')
 }
 
 export function checkLines(results: CheckResult[]): string {
@@ -113,7 +122,7 @@ export async function runTool($: Engine, args: Record<string, unknown>): Promise
     case 'reply':
       await api($, `/api/comments/${id}/reply`, {
         method: 'POST',
-        body: { body: need(args, 'body'), author: 'claude' },
+        body: { body: need(args, 'body'), author: 'claude', session: await $.session.id() },
       })
       return `Replied to ${id}.`
     case 'resolve': {
@@ -121,7 +130,7 @@ export async function runTool($: Engine, args: Record<string, unknown>): Promise
       if (body) {
         await api($, `/api/comments/${id}/reply`, {
           method: 'POST',
-          body: { body, author: 'claude' },
+          body: { body, author: 'claude', session: await $.session.id() },
         })
       }
       await api($, `/api/comments/${id}`, { method: 'PATCH', body: { status: 'resolved' } })
@@ -129,6 +138,8 @@ export async function runTool($: Engine, args: Record<string, unknown>): Promise
     }
     case 'check':
       return check($, optional(args, 'board'), optional(args, 'page'))
+    case 'doctor':
+      return doctorLines(await runDoctor($))
     default:
       throw new CanvasError(`unknown action ${String(args.action)}`)
   }
