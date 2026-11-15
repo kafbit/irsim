@@ -22,7 +22,14 @@ export type CanvasBoard = {
   /** The render hash of the base when the variant was copied. */
   baseHash?: string
 }
-export type CanvasSection = { id: string; title: string; variantOf?: string; baseSection?: string }
+export type CanvasSection = {
+  id: string
+  title: string
+  variantOf?: string
+  baseSection?: string
+  parent?: string
+  color?: 'gray' | 'blue' | 'green' | 'amber' | 'purple' | 'red'
+}
 export type CanvasPage = {
   id: string
   title: string

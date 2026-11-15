@@ -11,7 +11,13 @@ export type CanvasBoard = {
   baseHash?: string
 }
 
-export type CanvasSection = { id: string; title: string; variantOf?: string }
+export type CanvasSection = {
+  id: string
+  title: string
+  variantOf?: string
+  parent?: string
+  color?: 'gray' | 'blue' | 'green' | 'amber' | 'purple' | 'red'
+}
 
 /**
  * `interactive`: the board works when played, so it gets a Play button. `fill`: the board is a web

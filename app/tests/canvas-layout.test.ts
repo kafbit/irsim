@@ -218,3 +218,52 @@ describe('applyEdit', () => {
     expect(result.pages[1]).toBe(before.pages[1])
   })
 })
+
+describe('nested sections', () => {
+  const withSections = (): CanvasFile => {
+    const file = canvas()
+    file.pages[0]!.sections = [
+      { id: 'a', title: 'A' },
+      { id: 'b', title: 'B', parent: 'a', color: 'blue' },
+      { id: 'c', title: 'C', parent: 'b' },
+    ]
+    return file
+  }
+  const edited = (file: CanvasFile, edit: Parameters<typeof applyEdit>[2]) => {
+    const result = applyEdit(file, 'sales', edit)
+    if ('error' in result) throw new Error(result.error)
+    return result.canvas.pages[0]!.sections as Record<string, unknown>[]
+  }
+
+  it('sets a parent and a color', () => {
+    const sections = edited(canvas(), {
+      sections: { set: [{ id: 'a', title: 'A' }, { id: 'b', title: 'B', parent: 'a', color: 'green' }] },
+    })
+    expect(sections[1]).toEqual({ id: 'b', title: 'B', parent: 'a', color: 'green' })
+  })
+
+  it('clears a parent and a gray color with null', () => {
+    const sections = edited(withSections(), {
+      sections: { set: [{ id: 'b', title: 'B', parent: null, color: 'gray' }] },
+    })
+    expect(sections[1]).toEqual({ id: 'b', title: 'B' })
+  })
+
+  it('moves the children up when a section is removed', () => {
+    const sections = edited(withSections(), { sections: { remove: ['b'] } })
+    expect(sections).toEqual([
+      { id: 'a', title: 'A' },
+      { id: 'c', title: 'C', parent: 'a' },
+    ])
+  })
+
+  it.each([
+    ['a missing parent', { id: 'x', title: 'X', parent: 'nope' }],
+    ['a cycle', { id: 'a', title: 'A', parent: 'c' }],
+    ['an unknown color', { id: 'x', title: 'X', color: 'pink' as never }],
+    ['a fourth level', { id: 'x', title: 'X', parent: 'c' }],
+  ])('refuses %s', (_name, entry) => {
+    const result = applyEdit(withSections(), 'sales', { sections: { set: [entry] } })
+    expect(result).toMatchObject({ status: 400 })
+  })
+})

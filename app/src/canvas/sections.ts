@@ -69,6 +69,32 @@ export function initialSectionState(
   return { sections, sectionOf }
 }
 
+/** Drops a cleared (`null`, empty or gray) parent or color, as the server does. */
+type Loose = Omit<CanvasSection, 'parent' | 'color'> & {
+  parent?: string | null | undefined
+  color?: CanvasSection['color'] | null | undefined
+}
+const tidy = (section: Loose): CanvasSection => {
+  const { parent, color, ...rest } = section
+  return {
+    ...rest,
+    ...(parent ? { parent } : {}),
+    ...(color && color !== 'gray' ? { color } : {}),
+  }
+}
+
+/** The ancestors of `id`, nearest first. */
+export const ancestorsOf = (id: string, sections: CanvasSection[]): string[] => {
+  const byId = new Map(sections.map((section) => [section.id, section]))
+  const chain: string[] = []
+  let parent = byId.get(id)?.parent
+  while (parent && !chain.includes(parent)) {
+    chain.push(parent)
+    parent = byId.get(parent)?.parent
+  }
+  return chain
+}
+
 /**
  * The section part of `edit` applied to `state`, the way `applyEdit` applies it on the server:
  * upserts merge into an existing section, removals clear their members, and a board joins only a
@@ -78,7 +104,7 @@ export function applySectionEdit(state: SectionState, edit: CanvasEdit): Section
   const touches =
     edit.sections !== undefined || (edit.boards ?? []).some((item) => item.section !== undefined)
   if (!touches) return state
-  let sections = state.sections
+  let sections: Loose[] = state.sections
   const removed = new Set(edit.sections?.remove ?? [])
   for (const entry of edit.sections?.set ?? []) {
     const index = sections.findIndex((candidate) => candidate.id === entry.id)
@@ -88,7 +114,15 @@ export function applySectionEdit(state: SectionState, edit: CanvasEdit): Section
         : sections.map((candidate, at) => (at === index ? { ...candidate, ...entry } : candidate))
     removed.delete(entry.id)
   }
-  sections = sections.filter((candidate) => !removed.has(candidate.id))
+  const parentOf = new Map(sections.map((candidate) => [candidate.id, candidate.parent ?? null]))
+  sections = sections
+    .filter((candidate) => !removed.has(candidate.id))
+    .map((candidate) => {
+      let parent = candidate.parent ?? null
+      while (parent !== null && removed.has(parent)) parent = parentOf.get(parent) ?? null
+      return parent === (candidate.parent ?? null) ? candidate : { ...candidate, parent }
+    })
+    .map(tidy)
   const ids = new Set(sections.map((candidate) => candidate.id))
   const sectionOf = { ...state.sectionOf }
   for (const item of edit.boards ?? []) {
@@ -97,7 +131,7 @@ export function applySectionEdit(state: SectionState, edit: CanvasEdit): Section
       sectionOf[item.name] = item.section
   }
   for (const [name, id] of Object.entries(sectionOf)) if (!ids.has(id)) delete sectionOf[name]
-  return { sections, sectionOf }
+  return { sections: sections.map(tidy), sectionOf }
 }
 
 /** `boards` with `section` read from `sectionOf`; a board that already agrees keeps its object. */
