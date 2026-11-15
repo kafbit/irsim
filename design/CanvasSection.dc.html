@@ -10,29 +10,32 @@
 <helmet>
 <style>
 body{margin:0}
-.cv-root{--pick:#14161a;--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted:#efefeb;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a;--play:#2563eb;--mock-bg:#f6f6f3;--mock-ink:#14161a;--mock-card:#ffffff;--mock-line:#e4e4e0;--mock-bar:#d6d7d2}
-.cv-root.dark{--pick:#14161a;--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8;--play:#60a5fa}
+.cv-root{--pick:#14161a;--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted:#efefeb;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--destructive-tint:#fbe9e6;--rented:#f1ecfa;--rented-foreground:#4f2d8a;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a;--play:#2563eb;--mock-bg:#f6f6f3;--mock-ink:#14161a;--mock-card:#ffffff;--mock-line:#e4e4e0;--mock-bar:#d6d7d2}
+.cv-root.dark{--pick:#14161a;--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--destructive-tint:#3b1814;--rented:#281f3b;--rented-foreground:#bda7ec;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8;--play:#60a5fa}
 </style>
 </helmet>
-<div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 100%; min-height: var(--cv-h, 100vh); padding: 40px; background: var(--cv-bg, var(--shell)); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
-<div style="position: relative; box-sizing: border-box; width: 820px; height: 480px; border: 1px solid {{borderColor}}; border-radius: 12px; background: var(--secondary); cursor: {{cursor}};">
-<div style="position: absolute; left: 0; right: 0; top: 0; display: flex; align-items: center; gap: 12px; height: 40px; box-sizing: border-box; padding: 0 16px;">
+<div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 100%; min-height: var(--cv-h, 100vh); padding: 72px 40px 40px; background: var(--cv-bg, var(--shell)); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
+<div style="position: relative; box-sizing: border-box; width: {{areaW}}px; height: {{areaH}}px; border: {{borderWidth}}px solid {{borderColor}}; border-radius: {{areaR}}px; background: {{areaBg}}; cursor: {{cursor}};">
+<div style="position: absolute; left: 0; bottom: 100%; display: flex; align-items: center; gap: 8px; max-width: 100%; margin-bottom: 6px;">
 <sc-if value="{{renaming}}" hint-placeholder-val="{{false}}">
 <span role="textbox" aria-label="Section name" style="display: inline-flex; align-items: center; height: 26px; box-sizing: border-box; padding: 0 8px; border: 1px solid var(--ring); border-radius: 6px; background: var(--background); font-size: 13px; font-weight: 600;">{{title}}<span aria-hidden="true" style="width: 1px; height: 14px; margin-left: 1px; background: var(--foreground);"></span></span>
 </sc-if>
 <sc-if value="{{notRenaming}}" hint-placeholder-val="{{true}}">
-<span style="font-size: 13px; font-weight: 600; color: var(--foreground);">{{title}}</span>
+<span style="display: inline-flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; height: 26px; box-sizing: border-box; padding: 0 8px; border: 1px solid {{pillBorder}}; border-radius: 6px; background: var(--card); white-space: nowrap;"><span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 13px; font-weight: 600; color: {{pillText}};">{{title}}</span><sc-if value="{{showCount}}" hint-placeholder-val="{{true}}"><span style="flex-shrink: 0; font-size: 12px; color: var(--muted-foreground);">{{countLabel}}</span></sc-if></span>
 </sc-if>
-<span style="font-size: 12px; color: var(--muted-foreground);">{{countLabel}}</span>
-<span style="flex: 1;"></span>
 <sc-if value="{{variants}}" hint-placeholder-val="{{false}}">
 <button type="button" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 26px; box-sizing: border-box; margin: 0; padding: 0 10px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--card); color: var(--foreground); font: inherit; font-size: 12px; font-weight: 500; cursor: pointer;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3"></path><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"></path><path d="M12 2v20"></path></svg>Compare</button>
 </sc-if>
 </div>
+<sc-for list="{{subs}}" as="sub">
+<div style="position: absolute; left: {{sub.x}}px; top: {{sub.y}}px; width: {{sub.w}}px; height: {{sub.h}}px; box-sizing: border-box; border: 1px solid var(--border-strong); border-radius: {{subR}}px; background: {{sub.bg}};">
+<div style="position: absolute; left: 0; bottom: 100%; display: flex; align-items: center; max-width: 100%; margin-bottom: 6px;"><span style="display: inline-flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; height: 26px; box-sizing: border-box; padding: 0 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); white-space: nowrap;"><span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 13px; font-weight: 600; color: {{sub.pillText}};">{{sub.title}}</span><sc-if value="{{showCount}}" hint-placeholder-val="{{true}}"><span style="flex-shrink: 0; font-size: 12px; color: var(--muted-foreground);">{{sub.countLabel}}</span></sc-if></span></div>
+</div>
+</sc-for>
 <sc-for list="{{frames}}" as="f">
-<div style="position: absolute; left: {{f.x}}px; top: {{f.y}}px; width: {{f.w}}px;">
-<div style="position: absolute; left: 0; bottom: 100%; display: flex; align-items: baseline; gap: 8px; max-width: 100%; overflow: hidden; padding-bottom: 6px; font-size: 12px; line-height: 16px; white-space: nowrap; color: var(--foreground);"><sc-if value="{{f.badge}}" hint-placeholder-val="{{false}}"><span style="flex-shrink: 0; font-weight: 500; color: var(--muted-foreground);">Not changed yet</span></sc-if><span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">{{f.title}}</span><span style="min-width: 0; flex-shrink: 10000; overflow: hidden; text-overflow: ellipsis; color: var(--muted-foreground);">{{f.name}}</span></div>
-<div style="position: relative; width: 100%; height: {{f.h}}px; box-sizing: border-box; overflow: hidden; border-radius: 12px; background: var(--mock-bg); outline: 1px solid var(--border);">
+<div style="position: absolute; left: {{f.x}}px; top: {{f.y}}px; width: {{f.w}}px; opacity: {{f.opacity}};">
+<sc-if value="{{showTitles}}" hint-placeholder-val="{{true}}"><div style="position: absolute; left: 0; bottom: 100%; display: flex; align-items: baseline; gap: 8px; max-width: 100%; overflow: hidden; padding-bottom: 6px; font-size: 12px; line-height: 16px; white-space: nowrap; color: var(--foreground);"><sc-if value="{{f.badge}}" hint-placeholder-val="{{false}}"><span style="flex-shrink: 0; font-weight: 500; color: var(--muted-foreground);">Not changed yet</span></sc-if><span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">{{f.title}}</span><span style="min-width: 0; flex-shrink: 10000; overflow: hidden; text-overflow: ellipsis; color: var(--muted-foreground);">{{f.name}}</span></div></sc-if>
+<div style="position: relative; width: 100%; height: {{f.h}}px; box-sizing: border-box; overflow: hidden; border-radius: {{frameR}}px; background: var(--mock-bg); outline: 1px solid var(--border); box-shadow: {{f.shadow}};">
 <div style="position: absolute; left: 0; right: 0; top: 0; height: 16%; background: var(--mock-ink);"></div>
 <div style="position: absolute; left: 8%; top: 28%; width: 50%; height: 8%; border-radius: 2px; background: var(--mock-ink);"></div>
 <div style="position: absolute; left: 8%; top: 46%; width: 84%; height: 6%; border-radius: 2px; background: var(--mock-bar);"></div>
@@ -41,33 +44,86 @@ body{margin:0}
 </div>
 </div>
 </sc-for>
+<sc-if value="{{handlesShown}}" hint-placeholder-val="{{false}}">
+<div aria-hidden="true" style="position: absolute; left: -1px; top: -1px; right: -1px; bottom: -1px; pointer-events: none;">
+<sc-for list="{{handles}}" as="handle"><span style="position: absolute; left: {{handle.left}}; top: {{handle.top}}; width: 8px; height: 8px; box-sizing: border-box; border: 1px solid var(--ring); background: #ffffff; transform: translate(-50%, -50%);"></span></sc-for>
+</div>
+</sc-if>
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"default","options":["default","hover","renaming","variants"]},"$preview":{"width":900,"height":560}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"color":{"editor":"enum","default":"gray","options":["gray","blue","green","amber","purple","red"]},"nested":{"editor":"enum","default":"none","options":["none","child"]},"state":{"editor":"enum","default":"default","options":["default","hover","renaming","variants","selected","drop"]},"zoom":{"editor":"enum","default":"normal","options":["normal","far"]},"$preview":{"width":900,"height":640}}'>
 class Component extends DCLogic {
   renderVals() {
     const { state, theme } = this.props
+    const far = this.props.zoom === 'far'
+    const k = far ? 0.11 : 1
     const variants = state === 'variants'
+    const drop = state === 'drop'
     const frames = variants
       ? [
-          { x: 40, y: 92, w: 220, h: 300, title: 'Original', name: 'CanvasInspector', badge: false },
-          { x: 300, y: 92, w: 220, h: 300, title: 'Simpler', name: 'CanvasInspectorVariantSimpler', badge: false },
-          { x: 560, y: 92, w: 220, h: 300, title: 'Clearer', name: 'CanvasInspectorVariantClearer', badge: true },
+          { x: 40, y: 48, w: 220, h: 300, title: 'Original', name: 'CanvasInspector', badge: false },
+          { x: 300, y: 48, w: 220, h: 300, title: 'Simpler', name: 'CanvasInspectorVariantSimpler', badge: false },
+          { x: 560, y: 48, w: 220, h: 300, title: 'Clearer', name: 'CanvasInspectorVariantClearer', badge: true },
         ]
       : [
-          { x: 64, y: 92, w: 340, h: 260, title: 'Confirmation dialog', name: 'Dialog', badge: false },
-          { x: 436, y: 92, w: 320, h: 260, title: 'Profile card', name: 'Card', badge: false },
+          { x: 64, y: 48, w: 340, h: 260, title: 'Confirmation dialog', name: 'Dialog', badge: false },
+          { x: 436, y: 48, w: 320, h: 260, title: 'Profile card', name: 'Card', badge: false },
+          ...(drop ? [{ x: 620, y: 344, w: 240, h: 160, title: 'Error banner', name: 'ErrorBanner', badge: false, dragged: true }] : []),
         ]
+    const nested = this.props.nested === 'child' && !variants
+    const palette = {
+      gray: ['var(--secondary)', 'var(--foreground)'],
+      blue: ['var(--info)', 'var(--info-foreground)'],
+      green: ['var(--success)', 'var(--success-foreground)'],
+      amber: ['var(--warning)', 'var(--warning-foreground)'],
+      purple: ['var(--rented)', 'var(--rented-foreground)'],
+      red: ['var(--destructive-tint)', 'var(--destructive)'],
+    }
+    const [areaBg, pillText] = palette[this.props.color] || palette.gray
+    const sc = (n) => Math.round(n * k)
+    const subDefs = nested
+      ? [
+          { x: 32, y: 64, w: 360, h: 424, title: 'Errors', bg: 'var(--info)', pillText: 'var(--info-foreground)', frame: { x: 64, y: 136, w: 296, h: 220, title: 'Error dialog', name: 'DialogError', badge: false } },
+          { x: 428, y: 64, w: 360, h: 424, title: 'Empty states', bg: 'var(--card)', pillText: 'var(--foreground)', frame: { x: 460, y: 136, w: 296, h: 220, title: 'No results', name: 'EmptyState', badge: false } },
+        ]
+      : []
+    if (nested) frames.length = 0
+    if (nested) subDefs.forEach((d) => frames.push(d.frame))
+    const subs = subDefs.map((d) => ({ x: sc(d.x), y: sc(d.y), w: sc(d.w), h: sc(d.h), title: d.title, bg: d.bg, pillText: d.pillText, countLabel: '1 board' }))
+    const scaled = frames.map((f) => ({ ...f, opacity: f.dragged ? 0.9 : 1, shadow: f.dragged ? '0 14px 36px rgba(20,22,26,0.14)' : 'none', x: Math.round(f.x * k), y: Math.round(f.y * k), w: Math.round(f.w * k), h: Math.round(f.h * k) }))
     return {
       themeClass: theme === 'dark' ? 'dark' : '',
-      title: variants ? 'CanvasInspector variants' : 'Checkout flow',
-      countLabel: `${frames.length} boards`,
-      frames,
-      variants,
+      title: far ? 'Section name' : variants ? 'CanvasInspector variants' : 'Checkout flow',
+      countLabel: nested ? `${subs.length} sections` : `${frames.filter((f) => !f.dragged).length} boards`,
+      subs,
+      subR: far ? 3 : 10,
+      areaBg,
+      pillText,
+      frames: scaled,
+      areaW: Math.round(820 * k),
+      areaH: Math.round((nested ? 520 : 480) * k),
+      areaR: far ? 4 : 12,
+      frameR: far ? 2 : 12,
+      showTitles: !far,
+      showCount: !far,
+      pillBorder: state === 'hover' || state === 'selected' ? 'var(--ring)' : 'var(--border)',
+      variants: variants && !far,
       renaming: state === 'renaming',
       notRenaming: state !== 'renaming',
-      borderColor: state === 'hover' ? 'var(--ring)' : 'var(--border-strong)',
+      borderColor: state === 'hover' || state === 'selected' || drop ? 'var(--ring)' : 'var(--border-strong)',
+      borderWidth: drop ? 2 : 1,
+      handlesShown: state === 'selected' && !far,
+      handles: [
+        { left: '0%', top: '0%' },
+        { left: '50%', top: '0%' },
+        { left: '100%', top: '0%' },
+        { left: '100%', top: '50%' },
+        { left: '100%', top: '100%' },
+        { left: '50%', top: '100%' },
+        { left: '0%', top: '100%' },
+        { left: '0%', top: '50%' },
+      ],
       cursor: state === 'hover' ? 'move' : 'default',
     }
   }

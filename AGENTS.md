@@ -12,25 +12,28 @@ A change to one updates the other in the same pull request.
 | `canvas/page-index.tsx` | `CanvasPages` |
 | `canvas/inspector.tsx`, `canvas/approvals/approve-box.tsx` | `CanvasInspector`, `CanvasInspectorMulti`, `CanvasInspectorImports`, `CanvasInspectorImportsExpanded`, `CanvasInspectorMultiShared` (all selected boards in one section, with Delete section) |
 | `canvas/variants/variants-box.tsx` | `CanvasInspector` (modes `variants`, `variant-sent` and `variant`), `CanvasInspectorVariants`, `CanvasInspectorVariantSent`, `CanvasInspectorVariant` |
+| `canvas/top-bar.tsx` | `CanvasTopBar`, `CanvasTopBarMenu`, `CanvasTopBarIdle` |
 | `canvas/toolbar.tsx` | `CanvasToolbar`, `CanvasToolbarComment` |
 | `canvas/view-controls.tsx`, `canvas/minimap.tsx` | `CanvasZoomBar`, `CanvasZoomBarMenu` |
 | `canvas/settings-dialog.tsx` (its entry in the zoom menu) | `CanvasZoomBar`, `CanvasZoomBarMenu` |
+| `canvas/settings-dialog.tsx` (its Settings button in the top bar) | `CanvasTopBar` |
 | `canvas/page-index.tsx` (its Settings button) | `CanvasPages` |
 | `canvas/focus-bar.tsx` | `CanvasFocusBar` |
 | `canvas/toast.tsx` | `CanvasToast` |
 | `canvas/search-dialog.tsx` | `CanvasSearch`, `CanvasSearchRecent`, `CanvasSearchEmpty` |
-| `canvas/section-layer.tsx` | `CanvasSection`, `CanvasSectionHover`, `CanvasSectionRenaming`, `CanvasSectionVariants` |
+| `canvas/search-dialog.tsx` (its search field in the top bar) | `CanvasTopBar` |
+| `canvas/section-layer.tsx` | `CanvasSection`, `CanvasSectionHover`, `CanvasSectionRenaming`, `CanvasSectionNested`, `CanvasSectionSelected`, `CanvasSectionDrop`, `CanvasSectionVariants` |
 | `canvas/compare-view.tsx` | `CanvasCompare` (prop `error` for the Choose failure banner), `CanvasCompareNarrow`, `CanvasCompareError` |
 | `canvas/marquee.tsx`, `canvas/history.ts` | `CanvasAppMarquee`, `CanvasAppMultiSelected`, `CanvasAppUndoToast` |
 | `canvas/comments/thread-panel.tsx`, `canvas/comments/comment-card.tsx` | `CanvasThread`, `CanvasThreadResolved`, `CanvasThreadEmpty`, `CanvasThreadViewing`, `CanvasThreadSessions` |
 | `canvas/comments/comment-form.tsx` | `CanvasCommentForm`, `CanvasCommentFormVariants` |
-| `canvas/comments/session-row.tsx`, `canvas/comments/use-session.ts` | `CanvasSession`, `CanvasSessionSeveral`, `CanvasSessionPick`, `CanvasSessionNone`, and its place in `CanvasSidebar` and `CanvasThread` |
+| `canvas/comments/session-row.tsx`, `canvas/comments/use-session.ts` | `CanvasSession`, `CanvasSessionSeveral`, `CanvasSessionPick`, `CanvasSessionNone`, and its place in `CanvasTopBar` and `CanvasThread` |
 | `canvas/play-view.tsx` | `CanvasPlayView` and the `CanvasPlayView*` state boards (`Fit`, `Menu`, `Responsive`, `Commenting`, `ZoomMenu`, `Tall`, `Contain`) |
 | `canvas/viewport-bar.tsx` | `CanvasPlayView` (its header) |
-| `canvas/frame.tsx`, `canvas/overlay.tsx` | `CanvasFrame` and the `CanvasFrame*` state boards, among them `CanvasFrameCommentingTitle` for the frame title in comment mode, `CanvasFrameThumbnailStale` for the Outdated badge and `CanvasFrameGenerating` for the Not changed yet badge of a variant |
+| `canvas/frame.tsx`, `canvas/overlay.tsx` | `CanvasFrame` and the `CanvasFrame*` state boards, among them `CanvasFrameCommentingTitle` for the frame title in comment mode, `CanvasFrameThumbnailStale` for the Outdated badge and `CanvasFrameGenerating` for the Not changed yet badge of a variant and `CanvasFrameNew` for the New badge |
 | `canvas/update-notice.tsx`, `canvas/use-update.ts` | `UpdateNotice` and the `UpdateNotice*` state boards |
 | `canvas/settings-dialog.tsx`, `canvas/use-doctor.ts` | `CanvasSettings` and the `CanvasSettings*` state boards (`Idle`, `Checking`, `Unavailable`, `Update`), `CanvasAppSettings` |
-| `canvas/canvas.tsx`, `canvas/page-canvas.tsx` and any layout of the parts above | `CanvasApp` and the `CanvasApp*` state boards |
+| `canvas/canvas.tsx`, `canvas/page-canvas.tsx` and any layout of the parts above | `CanvasApp` and the `CanvasApp*` state boards, among them `CanvasAppSidebarHidden` |
 | `app/ui-tokens.css`, `app/globals.css` | the token block in every `Canvas*` and `UpdateNotice*` board |
 
 ## When you change the canvas app

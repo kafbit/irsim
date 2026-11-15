@@ -10,8 +10,8 @@
 <helmet>
 <style>
 body{margin:0}
-.cf-root{--pick:#14161a;--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a;--play:#2563eb;--play-hover:#1d4ed8;--mock-bg:#f6f6f3;--mock-ink:#14161a;--mock-on-ink:#ecece8;--mock-card:#ffffff;--mock-line:#e4e4e0;--mock-bar:#d6d7d2;--mock-accent:#2563eb}
-.cf-root.dark{--pick:#14161a;--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8;--play:#60a5fa;--play-hover:#93c5fd}
+.cf-root{--pick:#14161a;--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--destructive-tint:#fbe9e6;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a;--play:#2563eb;--play-hover:#1d4ed8;--mock-bg:#f6f6f3;--mock-ink:#14161a;--mock-on-ink:#ecece8;--mock-card:#ffffff;--mock-line:#e4e4e0;--mock-bar:#d6d7d2;--mock-accent:#2563eb}
+.cf-root.dark{--pick:#14161a;--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--destructive-tint:#3b1814;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8;--play:#60a5fa;--play-hover:#93c5fd}
 .cf-pulse{animation:cf-pulse 2s cubic-bezier(0.4,0,0.6,1) infinite}
 @keyframes cf-pulse{50%{opacity:0.5}}
 </style>
@@ -33,6 +33,9 @@ body{margin:0}
 </sc-if>
 <sc-if value="{{changed}}" hint-placeholder-val="{{false}}">
 <span style="flex-shrink: 0; font-weight: 500; color: var(--warning-foreground);">Changed</span>
+</sc-if>
+<sc-if value="{{isNew}}" hint-placeholder-val="{{false}}">
+<span style="flex-shrink: 0; font-weight: 500; color: var(--info-foreground);">New</span>
 </sc-if>
 <span dir="auto" style="min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">Confirmation dialog</span>
 <span style="min-width: 0; flex-shrink: 10000; overflow: hidden; text-overflow: ellipsis; color: var(--muted-foreground);">Dialog</span>
@@ -103,7 +106,7 @@ body{margin:0}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"live","options":["live","selected","thumbnail","selectedMany","stale","generating","pending","failed","playing","commenting"]},"prototype":{"editor":"enum","default":"no","options":["no","yes"]},"hover":{"editor":"enum","default":"none","options":["none","title"]},"whole":{"editor":"enum","default":"none","options":["none","pin","composing"]},"approval":{"editor":"enum","default":"none","options":["none","approved","changed"]},"width":{"editor":"number","default":360},"height":{"editor":"number","default":240},"$preview":{"width":400,"height":308}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"live","options":["live","selected","thumbnail","selectedMany","stale","generating","pending","failed","playing","commenting"]},"prototype":{"editor":"enum","default":"no","options":["no","yes"]},"hover":{"editor":"enum","default":"none","options":["none","title"]},"whole":{"editor":"enum","default":"none","options":["none","pin","composing"]},"approval":{"editor":"enum","default":"none","options":["none","approved","changed","new"]},"width":{"editor":"number","default":360},"height":{"editor":"number","default":240},"$preview":{"width":400,"height":308}}'>
 class Component extends DCLogic {
   renderVals() {
     const { state, prototype, approval, theme, hover, whole } = this.props
@@ -118,6 +121,7 @@ class Component extends DCLogic {
       isPrototype: prototype === 'yes',
       approved: approval === 'approved',
       changed: approval === 'changed',
+      isNew: approval === 'new',
       showPlay: prototype === 'yes' && !playing,
       showStop: playing,
       outline: playing ? '2px solid #2563eb' : '1px solid var(--border)',

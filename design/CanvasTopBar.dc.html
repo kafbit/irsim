@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<title>Canvas top bar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.cv-root{--pick:#14161a;--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted:#efefeb;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--destructive-tint:#fbe9e6;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a;--popover:#ffffff;--play:#2563eb;--mock-bg:#f6f6f3;--mock-ink:#14161a;--mock-card:#ffffff;--mock-line:#e4e4e0;--mock-bar:#d6d7d2}
+.cv-root.dark{--pick:#14161a;--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--destructive-tint:#3b1814;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8;--popover:#1a1b1e;--play:#60a5fa}
+</style>
+</helmet>
+<div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="position: relative; box-sizing: border-box; width: 100%; min-height: var(--cv-h, {{boardH}}px); background: var(--cv-bg, var(--surface)); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
+<header aria-label="Top bar" style="display: flex; align-items: center; gap: 8px; box-sizing: border-box; width: 100%; height: 48px; padding: 0 12px; background: var(--card); border-bottom: 1px solid var(--border);">
+<button type="button" aria-label="{{toggleLabel}}" title="Toggle sidebar (Ctrl+\)" style="display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 32px; height: 32px; box-sizing: border-box; padding: 0; font: inherit; color: var(--foreground); cursor: pointer; border: 1px solid transparent; border-radius: 8px; background: transparent;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M9 3v18"></path></svg></button>
+<nav aria-label="Breadcrumb" style="display: flex; align-items: center; gap: 6px; flex-shrink: 0; font-size: 13px;"><span style="color: var(--muted-foreground);">All pages</span><span aria-hidden="true" style="color: var(--muted-foreground);">/</span><span style="font-weight: 500;">{{page}}</span></nav>
+<div style="display: flex; flex: 1; justify-content: center; min-width: 0;">
+<button type="button" aria-label="Search boards, sections and actions" style="display: flex; align-items: center; gap: 8px; width: 100%; max-width: 420px; height: 32px; box-sizing: border-box; padding: 0 8px 0 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--background); font: inherit; font-size: 13px; text-align: left; color: var(--muted-foreground); cursor: pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Search boards, sections and actions</span><kbd style="flex-shrink: 0; padding: 0 6px; border: 1px solid var(--border); border-radius: 4px; background: var(--muted); font-family: inherit; font-size: 11px; line-height: 18px; color: var(--muted-foreground);">Ctrl K</kbd></button>
+</div>
+<div style="flex-shrink: 0; width: 260px; --cv-h: 0px; --cv-pad: 0px; --cv-bg: transparent;"><dc-import name="CanvasSession" theme="{{theme}}" state="{{sessionState}}" size="compact" hint-size="260px,32px"></dc-import></div>
+<sc-if value="{{hasPending}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; align-items: center; flex-shrink: 0;">
+<button type="button" style="display: inline-flex; align-items: center; gap: 6px; height: 32px; box-sizing: border-box; padding: 0 12px; border: 1px solid var(--primary); border-radius: 8px 0 0 8px; background: var(--primary); font: inherit; font-size: 13px; font-weight: 500; color: var(--primary-foreground); cursor: pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M20 6 9 17l-5-5"></path></svg>Approve and build<span style="display: inline-flex; align-items: center; height: 18px; padding: 0 6px; border-radius: 9999px; background: var(--primary-foreground); font-size: 11px; font-weight: 600; color: var(--primary);">3</span></button>
+<span aria-hidden="true" style="display: block; flex-shrink: 0; width: 1px; height: 32px; background: var(--border);"></span>
+<button type="button" aria-label="Approve options" aria-haspopup="menu" aria-expanded="{{expanded}}" style="display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 32px; height: 32px; box-sizing: border-box; padding: 0; font: inherit; color: var(--foreground); cursor: pointer; border: 1px solid var(--primary); border-radius: 0 8px 8px 0; background: var(--primary); color: var(--primary-foreground);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="m6 9 6 6 6-6"></path></svg></button>
+</div>
+</sc-if>
+<sc-if value="{{noPending}}" hint-placeholder-val="{{false}}">
+<button type="button" aria-label="Approve options" aria-haspopup="menu" aria-expanded="{{expanded}}" style="display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 32px; height: 32px; box-sizing: border-box; padding: 0; font: inherit; color: var(--foreground); cursor: pointer; border: 1px solid var(--border); border-radius: 8px; background: var(--card);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="m6 9 6 6 6-6"></path></svg></button>
+</sc-if>
+<button type="button" aria-label="Settings" style="display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 32px; height: 32px; box-sizing: border-box; padding: 0; font: inherit; color: var(--foreground); cursor: pointer; border: 1px solid transparent; border-radius: 8px; background: transparent;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+</header>
+<sc-if value="{{menuOpen}}" hint-placeholder-val="{{false}}">
+<div role="menu" aria-label="Approve options" style="position: absolute; top: 52px; right: 52px; display: flex; flex-direction: column; gap: 2px; box-sizing: border-box; width: 280px; padding: 4px; border: 1px solid var(--border); border-radius: 12px; background: var(--popover); box-shadow: 0 14px 36px rgba(20,22,26,0.14);">
+<div role="menuitem" aria-disabled="{{firstDisabled}}" style="display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border-radius: 8px; background: var(--accent); font-size: 13px; color: {{firstColor}};"><span style="font-weight: 500;">Approve {{firstCount}} and build</span><span style="font-size: 12px; color: var(--muted-foreground);">{{firstSub}}</span></div>
+<div role="menuitem" style="display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border-radius: 8px; font-size: 13px;"><span style="font-weight: 500;">Approve all and build</span><span style="font-size: 12px; color: var(--muted-foreground);">85 boards on this page</span></div>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"page":{"editor":"text","default":"Canvas app"},"theme":{"editor":"enum","default":"light","options":["light","dark"]},"sessions":{"editor":"enum","default":"one","options":["none","one","several"]},"pending":{"editor":"enum","default":"3","options":["0","3"]},"menu":{"editor":"enum","default":"closed","options":["closed","open"]},"sidebar":{"editor":"enum","default":"shown","options":["shown","hidden"]},"$preview":{"width":1440,"height":48}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const { theme, sessions, pending, menu, sidebar } = this.props
+    const page = this.props.page || 'Canvas app'
+    const open = menu === 'open'
+    const has = String(pending) === '3'
+    return {
+      page,
+      themeClass: theme === 'dark' ? 'dark' : '',
+      theme: theme === 'dark' ? 'dark' : 'light',
+      sessionState: sessions || 'one',
+      hasPending: has,
+      noPending: !has,
+      menuOpen: open,
+      expanded: open ? 'true' : 'false',
+      boardH: open ? 220 : 48,
+      toggleLabel: sidebar === 'hidden' ? 'Show sidebar' : 'Hide sidebar',
+      firstDisabled: has ? 'false' : 'true',
+      firstColor: has ? 'var(--foreground)' : 'var(--muted-foreground)',
+      firstCount: has ? '3 changed boards' : 'changed boards',
+      firstSub: has ? '2 changed, 1 new' : 'No changed boards',
+    }
+  }
+}
+</script>
+</body>
+</html>
