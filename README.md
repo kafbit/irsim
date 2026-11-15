@@ -12,12 +12,26 @@ The repository is private, so the install uses the GitHub CLI. Run `gh auth logi
 gh api repos/kafbit/irsim/contents/install.sh --jq .content | base64 -d | bash
 ```
 
+Pass flags through `bash -s --`:
+
+```bash
+gh api repos/kafbit/irsim/contents/install.sh --jq .content | base64 -d | bash -s -- --version 0.2.1
+```
+
+Flags:
+
+- `--version <v>`: release to install (`0.2.1` or `v0.2.1`), default the latest.
+- `--local [<dir>]`: build and install a checkout of this repository, default the folder of `install.sh` or the current folder. It needs `bun` and installs into `$IRSIM_PREFIX/<version>-local`, always rebuilt.
+- `--force`: download and replace a release that is already installed.
+- `-h`, `--help`: print the usage.
+
 Variables:
 
-- `IRSIM_VERSION`: release to install, default the latest.
+- `IRSIM_VERSION`: release to install, default the latest. `--version` overrides it.
 - `IRSIM_PREFIX`: install folder, default `~/.local/share/irsim`.
+- `IRSIM_BIN_DIR`: folder of the `irsim` link, default `~/.local/bin`.
 
-The script installs into `$IRSIM_PREFIX/<version>`, points `$IRSIM_PREFIX/current` at it and links `~/.local/bin/irsim` to `current/bin/irsim`. Node 22 or newer is required.
+The script installs into `$IRSIM_PREFIX/<version>`, points `$IRSIM_PREFIX/current` at it and links `~/.local/bin/irsim` to `current/bin/irsim`. A release that is already installed is not downloaded again: the script makes it current. Node 22 or newer is required.
 
 Install the Claude Code plugin:
 
