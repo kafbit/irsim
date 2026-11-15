@@ -90,6 +90,7 @@ export function Composer({
           onSave={onSave}
           onGenerate={canVary ? variants.generate : undefined}
           canGenerate={variants.canGenerate}
+          session={variants.session}
           onCancel={onCancel}
         />
       </div>

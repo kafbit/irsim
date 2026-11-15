@@ -2,6 +2,8 @@
 
 /* oxlint-disable next/no-img-element -- comment images come from /api/comments/images, no optimiser */
 
+import { agentName } from '../../lib/agents'
+import { AgentLogo } from '../../ui/agent-logo'
 import { Badge, Button, IconButton, Textarea } from '../../ui'
 import { placeText, targetName } from '../../lib/place-text'
 import { viewLabel } from '../../lib/view-label'
@@ -201,8 +203,15 @@ export function CommentCard({
           {comment.replies.map((reply) => (
             <li key={reply.at + reply.author} className="flex flex-col gap-0.5 text-sm">
               <span className="flex min-w-0 items-baseline gap-1.5">
-                <span className="shrink-0 font-semibold">
-                  {reply.author === 'claude' ? 'Claude' : 'You'}
+                <span className="inline-flex shrink-0 items-center gap-1.5 self-center font-semibold">
+                  {reply.author === 'claude' ? (
+                    <>
+                      <AgentLogo agent={reply.agent} />
+                      {agentName(reply.agent)}
+                    </>
+                  ) : (
+                    'You'
+                  )}
                 </span>
                 {reply.author === 'claude' && replier(reply.session) ? (
                   <span className="min-w-0 truncate text-xs text-muted-foreground">
@@ -256,7 +265,7 @@ export function CommentCard({
           <Textarea
             aria-label="Reply"
             dir="auto"
-            placeholder="Reply to Claude"
+            placeholder="Reply to the agent"
             value={replyDraft}
             disabled={busy}
             onChange={(event) => setReplyDraft(event.target.value)}

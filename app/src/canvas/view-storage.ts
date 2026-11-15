@@ -40,3 +40,20 @@ export function writeMinimap(on: boolean) {
     sessionStorage.setItem(MINIMAP_KEY, on ? 'on' : 'off')
   } catch {}
 }
+
+const SIDEBAR_KEY = 'canvas:sidebar'
+
+/** Whether the sidebar is shown. Kept per viewer in this browser; shown when nothing is stored. */
+export function readSidebar(): boolean {
+  try {
+    return localStorage.getItem(SIDEBAR_KEY) !== 'hidden'
+  } catch {
+    return true
+  }
+}
+
+export function writeSidebar(shown: boolean) {
+  try {
+    localStorage.setItem(SIDEBAR_KEY, shown ? 'shown' : 'hidden')
+  } catch {}
+}

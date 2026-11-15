@@ -6,7 +6,7 @@
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { ApproveBox } from './approvals/approve-box'
-import { approvalStateOf, useApprovals } from './approvals/use-approvals'
+import { useApprovals } from './approvals/use-approvals'
 import { CommentLayer } from './comments/comment-layer'
 import { Composer } from './comments/composer'
 import { boardPick, numberComments, placedRect } from './comments/model'
@@ -25,7 +25,6 @@ import { noticeFor } from './history'
 import { isVisible } from './mount-policy'
 import { adjacentBoard, readingOrder } from './navigation'
 import { Overlay } from './overlay'
-import { PageLabel } from './page-label'
 import { PlayView } from './play-view'
 import { NO_SELECTION, reduceSelection, type Selection } from './selection'
 import {
@@ -39,6 +38,7 @@ import {
 import { SectionLayer } from './section-layer'
 import { SettingsDialog } from './settings-dialog'
 import { Sidebar } from './sidebar'
+import { pendingOf, TopBar } from './top-bar'
 import { FocusBar } from './focus-bar'
 import { Toast, useNotice } from './toast'
 import { type Tool, Toolbar } from './toolbar'
@@ -58,7 +58,7 @@ import {
 import { type CommandHandlers, useShortcuts } from './use-shortcuts'
 import { useViewport } from './use-viewport'
 import { ViewControls } from './view-controls'
-import { readMinimap, writeMinimap } from './view-storage'
+import { readMinimap, writeMinimap, readSidebar, writeSidebar} from './view-storage'
 
 const GRID_STYLE = {
   backgroundColor: 'var(--surface)',
@@ -127,6 +127,7 @@ export function PageCanvas({
   const [panelOpen, setPanelOpen] = useState(false)
   const [activeComment, setActiveComment] = useState<string | null>(null)
   const [minimap, setMinimap] = useState(readMinimap)
+  const [sidebarShown, setSidebarShown] = useState(readSidebar)
   const [searchOpen, setSearchOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [renaming, setRenaming] = useState<string | null>(null)
@@ -260,6 +261,12 @@ export function PageCanvas({
     () => placedSections(sections, boards),
     [sections, boards],
   )
+  const toggleSidebar = useCallback(() => {
+    setSidebarShown((shown) => {
+      writeSidebar(!shown)
+      return !shown
+    })
+  }, [])
   const latestEdit = useRef({ boards, sections })
   useEffect(() => {
     latestEdit.current = { boards, sections }
@@ -422,8 +429,12 @@ export function PageCanvas({
         if (only) dispatch({ type: 'interact' })
       },
       escape: () => (commenting ? changeTool('move') : dispatch({ type: 'escape' })),
-      search: () => searchRef.current?.focus(),
+      search: () => {
+        if (searchRef.current) searchRef.current.focus()
+        else setSearchOpen(true)
+      },
       'global-search': () => setSearchOpen(true),
+      'toggle-sidebar': () => toggleSidebar(),
       undo: () => walk(edit.undo),
       redo: () => walk(edit.redo),
       'select-all': () => {
@@ -454,6 +465,7 @@ export function PageCanvas({
     selection.interacting,
     selection.names,
     setNotice,
+    toggleSidebar,
   ])
   // Boards with the flags read again after a change; the same objects when nothing changed.
   const shown = useMemo(
@@ -497,18 +509,47 @@ export function PageCanvas({
   // page shows no view, so the canvas keeps its shortcuts.
   useShortcuts(fullBoard ? playCommands : commands, setSpace)
 
+  const pending = useMemo(
+    () =>
+      pendingOf(
+        boards.map((board) => board.name),
+        approvals.stateOf,
+      ),
+    [boards, approvals.stateOf],
+  )
+  const approveBoards = useCallback(
+    async ({ boards: names, sessionId }: { boards: string[]; sessionId: string }) => {
+      await approvals.approveMany({ boards: names, sessionId, note: '' })
+      setNotice(`Sent ${names.length} ${names.length === 1 ? 'board' : 'boards'} to the agent`, 'info')
+    },
+    [approvals, setNotice],
+  )
+
   return (
-    <div className="flex h-screen">
-      <Sidebar
-        pages={pages}
-        pageId={manifest.id}
-        boards={sidebarBoards}
-        sections={sections}
-        selected={selection.names}
-        searchRef={searchRef}
-        onFocusBoard={focusBoard}
-        onSelectBoards={selectBoards}
+    <div className="flex h-screen flex-col">
+      <TopBar
+        pageTitle={manifest.title}
+        boards={boards.map((board) => board.name)}
+        pending={pending}
+        sidebarShown={sidebarShown}
+        onToggleSidebar={toggleSidebar}
+        onSearch={() => setSearchOpen(true)}
+        onSettings={() => setSettingsOpen(true)}
+        onApprove={approveBoards}
       />
+      <div className="flex min-h-0 flex-1">
+      {sidebarShown ? (
+        <Sidebar
+          pages={pages}
+          pageId={manifest.id}
+          boards={sidebarBoards}
+          sections={sections}
+          selected={selection.names}
+          searchRef={searchRef}
+          onFocusBoard={focusBoard}
+          onSelectBoards={selectBoards}
+        />
+      ) : null}
       <div
         ref={viewportRef}
         tabIndex={0}
@@ -528,7 +569,6 @@ export function PageCanvas({
           onPointerOver={(event) => event.buttons === 0 && setHovered(boardOf(event.target))}
           onPointerLeave={() => setHovered(null)}
         >
-          <PageLabel title={manifest.title} k={view.k} />
           <SectionLayer
             hovered={hoveredSection}
             onHover={setHoveredSection}
@@ -557,7 +597,7 @@ export function PageCanvas({
                 interacting={selection.interacting && only === board.name}
                 commenting={commenting}
                 reload={reloads.counters[board.name] ?? 0}
-                approval={approvalStateOf(approvals.approvals.get(board.name))}
+                approval={approvals.stateOf(board.name)}
                 thumb={thumbs[board.name]}
                 onSelect={clickFrame}
                 onComment={commentOnBoard}
@@ -659,16 +699,19 @@ export function PageCanvas({
           }}
           onFocusBoard={focusBoard}
         >
-          {selectedBoard ? (
+          {selectedBoard && approvals.stateOf(selectedBoard.name) !== undefined &&
+          approvals.stateOf(selectedBoard.name) !== 'approved' ? (
             <ApproveBox
               key={selectedBoard.name}
               board={selectedBoard.name}
+              state={approvals.stateOf(selectedBoard.name)}
               approval={approvals.approvals.get(selectedBoard.name)}
               onApprove={approvals.approve}
             />
           ) : null}
         </InspectorHost>
       ) : null}
+      </div>
       <GlobalSearch
         open={searchOpen}
         onOpenChange={setSearchOpen}

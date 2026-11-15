@@ -154,6 +154,8 @@ export const Frame = memo(function Frame({
           >
             Changed
           </span>
+        ) : approval === 'new' ? (
+          <span className="shrink-0 font-medium text-info-foreground">New</span>
         ) : null}
         <span dir="auto" className="truncate font-medium">
           {board.title}

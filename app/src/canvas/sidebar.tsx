@@ -7,8 +7,6 @@ import Link from 'next/link'
 import { Fragment, type Ref, useCallback, useState } from 'react'
 import { CHROME_FORMAT } from './chrome-format'
 import type { CanvasSection, ManifestBoard, PageSummary } from './types'
-import { SessionRow } from './comments/session-row'
-import { useSession } from './comments/use-session'
 import { UpdateNotice } from './update-notice'
 import { playHref } from './use-play-links'
 
@@ -111,7 +109,6 @@ export function Sidebar({
   onSelectBoards: (names: string[]) => void
 }) {
   const [query, setQuery] = useState('')
-  const session = useSession()
   const needle = query.trim().toLowerCase()
   const shown = boards.filter(
     (board) =>
@@ -191,14 +188,6 @@ export function Sidebar({
         ) : null}
       </ul>
       <UpdateNotice />
-      <div className="-mx-3 -mb-3 border-t border-border p-3">
-        <SessionRow
-          sessions={session.sessions}
-          loaded={session.loaded}
-          sessionId={session.sessionId}
-          onPick={session.pick}
-        />
-      </div>
     </aside>
   )
 }
