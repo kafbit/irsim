@@ -649,7 +649,6 @@ export function PageCanvas({
             boards={boards}
             pageId={manifest.id}
             camera={camera}
-            selected={selection.names}
             renaming={renaming}
             movable={tool === 'move'}
             onSelect={selectBoards}

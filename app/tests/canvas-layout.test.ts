@@ -267,3 +267,16 @@ describe('nested sections', () => {
     expect(result).toMatchObject({ status: 400 })
   })
 })
+
+describe('moving a board smaller than the minimum', () => {
+  const small = (): CanvasFile => ({
+    pages: [{ id: 'p', boards: [{ name: 'Bar', x: 0, y: 0, width: 1440, height: 48 }] }],
+  })
+  it('allows a move and keeps the size', () => {
+    const result = applyEdit(small(), 'p', { boards: [{ name: 'Bar', x: 10, y: 20 }] })
+    expect('canvas' in result && result.canvas.pages[0]?.boards[0]).toEqual({ name: 'Bar', x: 10, y: 20, width: 1440, height: 48 })
+  })
+  it('still refuses a resize under the minimum', () => {
+    expect(applyEdit(small(), 'p', { boards: [{ name: 'Bar', height: 100 }] })).toMatchObject({ status: 400 })
+  })
+})

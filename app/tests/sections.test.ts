@@ -66,8 +66,11 @@ describe('nested sections', () => {
     expect(top!.members).toEqual(['A', 'B'])
     expect(child!.members).toEqual(['A'])
   })
-  it('gives a sub-section its parent color', () => {
-    expect(placedSections(sections, boards).map((item) => item.color)).toEqual(['blue', 'blue'])
+  it('keeps only a color the section has itself, so a plain sub-section can read as a card', () => {
+    expect(placedSections(sections, boards).map((item) => item.color)).toEqual(['blue', null])
+  })
+  it('counts the boards a section holds itself', () => {
+    expect(placedSections(sections, boards).map((item) => item.own)).toEqual([1, 1])
   })
   it('makes a sub-section when the boards share a section', () => {
     const made = createSectionEdits(['A'], boards, sections)

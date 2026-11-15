@@ -19,7 +19,9 @@ export type PlacedSection = {
   fit: Rect
   /** 0 for a top level section. */
   depth: number
-  /** The color the area takes, the nearest ancestor's when the section has none. */
+  /** Boards the section holds itself, not in its sub-sections. */
+  own: number
+  /** The section's own color; `null` for none: gray at the top level, `--card` in a parent. */
   color: NonNullable<CanvasSection['color']> | null
 }
 
@@ -106,15 +108,6 @@ function sectionBounds2(
   return fit ? (boundsOf([stored, fit]) ?? stored) : stored
 }
 
-/** The color a section shows: its own, else the nearest ancestor's, else `null` for gray. */
-export const colorOf = (
-  section: CanvasSection,
-  sections: CanvasSection[],
-): NonNullable<CanvasSection['color']> | null =>
-  [section.id, ...ancestorsOf(section.id, sections)]
-    .map((id) => sections.find((candidate) => candidate.id === id)?.color)
-    .find((value) => value !== undefined) ?? null
-
 const depthOf = (section: CanvasSection, sections: CanvasSection[]) =>
   ancestorsOf(section.id, sections).length
 
@@ -130,12 +123,13 @@ export function placedSections(sections: CanvasSection[], boards: Member[]): Pla
     const members = membersOf(section.id, boards, sections)
     // A stored area alone does not draw a section: it needs a board somewhere in it.
     if (!bounds || !fit || members.length === 0) continue
-    const color = colorOf(section, sections)
+    const color = section.color ?? null
     placed.push({
       section,
       members,
       bounds,
       fit,
+      own: boards.filter((board) => board.section === section.id).length,
       depth: depthOf(section, sections),
       color,
     })

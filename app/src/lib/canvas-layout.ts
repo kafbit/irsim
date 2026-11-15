@@ -196,9 +196,12 @@ export function applyEdit(canvas: CanvasFile, page: string, edit: CanvasEdit): P
         patch[key] = Math.round(value)
       }
       next = { ...board, ...patch }
+      // The minimum applies to a size the edit sets; moving a board that is already smaller (a
+      // 48 px bar, say) is allowed and keeps its size.
+      const sizing = 'width' in patch || 'height' in patch
       if (
-        (next.width as number) < MIN_BOARD_WIDTH ||
-        (next.height as number) < MIN_BOARD_HEIGHT
+        sizing &&
+        ((next.width as number) < MIN_BOARD_WIDTH || (next.height as number) < MIN_BOARD_HEIGHT)
       ) {
         return {
           error: `a board is at least ${MIN_BOARD_WIDTH} wide and ${MIN_BOARD_HEIGHT} high`,

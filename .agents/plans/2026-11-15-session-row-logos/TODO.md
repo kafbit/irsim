@@ -13,5 +13,5 @@
 - [x] App: session titles from Command Code and Codex; session row in the comment form.
 - [x] App: board status (New, Changed), batch approval.
 - [x] App: section label pill.
-- [x] Compare app and boards, light and dark. Top bar and sidebar checked at 1440 wide; the comment form, thread and inspector were not compared with a screenshot.
+- [x] Compare app and boards, light and dark. Top bar and sidebar checked at 1440 wide; the thread reply logo, the comment form session row and the session listbox were checked in the running canvas.
 - [x] Typecheck and affected tests. `design_canvas check` was not run: the tool is not available in this session.

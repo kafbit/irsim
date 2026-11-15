@@ -11,5 +11,5 @@
 - [x] App: sidebar tree, inspector Color row and Create sub-section.
 - [x] App: drop a frame into or out of a section; resize a section.
 - [x] Tests for sections and layout edits (`sections.test.ts`, `canvas-layout.test.ts`).
-- [x] Compare app and boards, light and dark. Sidebar tree and section label checked in the running canvas; the section selected and drop states and handles were not compared with a screenshot.
+- [x] Compare app and boards, light and dark. Sidebar tree and section label checked in the running canvas; the selected state, pill, handles and drop ring were compared with `CanvasSectionSelected` and `CanvasSectionDrop`, light and dark.
 - [x] Typecheck and affected tests. `design_canvas check` was not run: the tool is not available in this session.

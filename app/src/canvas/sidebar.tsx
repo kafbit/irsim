@@ -6,7 +6,7 @@ import { ChevronDown, Play } from '../ui/icons'
 import Link from 'next/link'
 import { Fragment, type ReactNode, type Ref, useCallback, useState } from 'react'
 import { CHROME_FORMAT } from './chrome-format'
-import { colorOf, membersOf } from './sections'
+import { membersOf } from './sections'
 import type { CanvasSection, ManifestBoard, PageSummary } from './types'
 import { UpdateNotice } from './update-notice'
 import { playHref } from './use-play-links'
@@ -164,7 +164,7 @@ export function Sidebar({
         <SectionHeader
           title={section.title}
           count={subtree.length}
-          color={colorOf(section, sections) ?? 'gray'}
+          color={section.color ?? 'gray'}
           depth={depth}
           onSelect={() => onSelectBoards(subtree)}
         />

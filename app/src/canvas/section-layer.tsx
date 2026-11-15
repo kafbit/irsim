@@ -12,14 +12,14 @@ import { type PlacedSection, SECTION_LABEL } from './sections'
 
 const DRAG_THRESHOLD = 3
 
-/** Tokens only: the area tint, the label pill background and its text, per color name. */
+/** Tokens only: the area tint and the pill text per color name. The pill itself is always `--card`. */
 const TONES = {
-  gray: { area: 'var(--secondary)', pill: 'var(--muted)', text: 'var(--foreground)' },
-  blue: { area: 'var(--info)', pill: 'var(--info)', text: 'var(--info-foreground)' },
-  green: { area: 'var(--success)', pill: 'var(--success)', text: 'var(--success-foreground)' },
-  amber: { area: 'var(--warning)', pill: 'var(--warning)', text: 'var(--warning-foreground)' },
-  purple: { area: 'var(--rented)', pill: 'var(--rented)', text: 'var(--rented-foreground)' },
-  red: { area: 'var(--destructive-tint)', pill: 'var(--destructive-tint)', text: 'var(--destructive)' },
+  gray: { area: 'var(--secondary)', text: 'var(--foreground)' },
+  blue: { area: 'var(--info)', text: 'var(--info-foreground)' },
+  green: { area: 'var(--success)', text: 'var(--success-foreground)' },
+  amber: { area: 'var(--warning)', text: 'var(--warning-foreground)' },
+  purple: { area: 'var(--rented)', text: 'var(--rented-foreground)' },
+  red: { area: 'var(--destructive-tint)', text: 'var(--destructive)' },
 } as const
 
 const rectOf = ({ x, y, width, height }: Rect): Rect => ({ x, y, width, height })
@@ -66,7 +66,6 @@ type Props = {
   boards: PlacedBoard[]
   pageId: string
   camera: Camera
-  selected: string[]
   renaming: string | null
   /** False in the Hand tool, which pans from a label instead of moving the section. */
   movable: boolean
@@ -109,7 +108,6 @@ export const SectionLayer = memo(function SectionLayer({
   boards,
   pageId,
   camera,
-  selected,
   renaming,
   movable,
   onSelect,
@@ -247,11 +245,19 @@ export const SectionLayer = memo(function SectionLayer({
         const { section, members, depth } = placed
         const bounds = liveRect?.id === section.id ? liveRect.rect : placed.bounds
         const selectedHere = selectedSection === section.id
-        const active = selectedHere || hovered === section.id || members.every((name) => selected.includes(name))
+        const active = selectedHere || hovered === section.id
         const variants = section.variantOf !== undefined
-        const tone = TONES[placed.color ?? 'gray']
         // A sub-section with no color of its own reads on top of its parent's tint.
-        const area = placed.color === null && depth > 0 ? 'var(--card)' : tone.area
+        const plain = placed.color === null && depth > 0
+        const tone = plain
+          ? { area: 'var(--card)', text: 'var(--foreground)' }
+          : TONES[placed.color ?? 'gray']
+        const area = tone.area
+        const subs = sections.filter((candidate) => candidate.section.parent === section.id).length
+        const count =
+          placed.own === 0 && subs > 0
+            ? `${subs} ${subs === 1 ? 'section' : 'sections'}`
+            : `${members.length} ${members.length === 1 ? 'board' : 'boards'}`
         return (
           <div
             key={section.id}
@@ -264,7 +270,7 @@ export const SectionLayer = memo(function SectionLayer({
               width: bounds.width,
               height: bounds.height,
               background: area,
-              borderWidth: `calc(var(--inv, 1) * ${dropTarget === section.id || selectedHere ? 2 : 1}px)`,
+              borderWidth: `calc(var(--inv, 1) * ${dropTarget === section.id ? 2 : 1}px)`,
               borderColor: active || dropTarget === section.id ? 'var(--ring)' : 'var(--border-strong)',
             }}
           >
@@ -283,20 +289,24 @@ export const SectionLayer = memo(function SectionLayer({
               ) : (
                 <span
                   data-section-label=""
-                  className={`pointer-events-auto flex h-full min-w-0 items-center gap-2 rounded-[8px] px-2.5 ${
+                  className={`pointer-events-auto box-border flex h-full min-w-0 items-center gap-2 rounded-[6px] border border-solid bg-card px-2 ${
                     movable ? 'cursor-move' : 'cursor-grab'
                   }`}
-                  style={{ background: tone.pill, color: tone.text }}
+                  style={{ borderColor: active ? 'var(--ring)' : 'var(--border)' }}
                   onPointerDown={(event) => press(event, placed)}
                   onPointerEnter={() => onHover(section.id)}
                   onPointerLeave={() => onHover(null)}
                   onDoubleClick={() => movable && onRenameStart(section.id)}
                 >
-                  <span dir="auto" className="truncate text-[13px] font-semibold whitespace-nowrap">
+                  <span
+                    dir="auto"
+                    className="truncate text-[13px] font-semibold whitespace-nowrap"
+                    style={{ color: tone.text }}
+                  >
                     {section.title}
                   </span>
-                  <span className="shrink-0 text-xs whitespace-nowrap opacity-70">
-                    {members.length} {members.length === 1 ? 'board' : 'boards'}
+                  <span className="shrink-0 text-xs whitespace-nowrap text-muted-foreground">
+                    {count}
                   </span>
                 </span>
               )}
