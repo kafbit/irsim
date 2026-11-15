@@ -41,6 +41,7 @@ A change to one updates the other in the same pull request.
 4. After the code change, compare the board and the running canvas at the same width with Playwright screenshots, light and dark.
 5. A new part, state or prop gets a board or a prop on the existing board, a row in the table above, and a position on the `canvas-app` page in `design/canvas.json`.
 6. A removed or renamed part removes or renames its boards and its table row.
+7. Use the tools already installed on the machine. Playwright launches the installed Chrome, Chromium, Brave or Edge (`channel` or `executablePath`); do not download Playwright's Chromium or add a heavy dependency where a lighter path exists.
 
 ## Board conventions
 
