@@ -1,9 +1,10 @@
 import { execFile } from 'node:child_process'
-import { open, readdir, stat } from 'node:fs/promises'
+import { open, readdir, readFile, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
 import type { Session } from './comments-types'
+import { agentOf } from './agents'
 
 const run = promisify(execFile)
 
@@ -82,6 +83,96 @@ const transcriptTitle = async (id: string, cwd: string): Promise<string | null> 
   return title
 }
 
+export const commandCodeDir = (): string =>
+  process.env.COMMANDCODE_HOME || join(homedir(), '.commandcode')
+
+export const codexDir = (): string => process.env.CODEX_HOME || join(homedir(), '.codex')
+
+type FileTitle = { mtimeMs: number; title: string | null }
+const fileTitles = new Map<string, FileTitle>()
+
+/** Runs `read` on `file`'s text again only when its mtime changed. */
+const cachedFile = async (
+  key: string,
+  file: string,
+  read: (text: string) => string | null,
+): Promise<string | null> => {
+  const info = await stat(file).catch(() => null)
+  if (!info) return null
+  const cached = fileTitles.get(key)
+  if (cached && cached.mtimeMs === info.mtimeMs) return cached.title
+  const title = read(await readFile(file, 'utf8').catch(() => ''))
+  fileTitles.set(key, { mtimeMs: info.mtimeMs, title })
+  return title
+}
+
+/** `title` of a Command Code `<id>.meta.json`. */
+export const commandCodeTitleOf = (text: string): string | null => {
+  try {
+    const meta = JSON.parse(text) as { title?: unknown }
+    return typeof meta.title === 'string' && meta.title.trim() ? meta.title.trim() : null
+  } catch {
+    return null
+  }
+}
+
+/** The newest `thread_name` for `id` in Codex's `session_index.jsonl`; a later line wins. */
+export const codexTitleOf = (text: string, id: string): string | null => {
+  let title: string | null = null
+  for (const line of text.split('\n')) {
+    if (!line.includes(id)) continue
+    try {
+      const entry = JSON.parse(line) as { id?: unknown; thread_name?: unknown }
+      if (entry.id === id && typeof entry.thread_name === 'string' && entry.thread_name.trim()) {
+        title = entry.thread_name.trim()
+      }
+    } catch {}
+  }
+  return title
+}
+
+let commandCodeDirs: string[] | null = null
+let commandCodeRoot = ''
+
+const commandCodeTitle = async (id: string, cwd: string): Promise<string | null> => {
+  const root = join(commandCodeDir(), 'projects')
+  const direct = join(root, projectSlug(cwd), `${id}.meta.json`)
+  let file: string | null = (await stat(direct).then(() => true, () => false)) ? direct : null
+  if (!file) {
+    if (commandCodeDirs === null || commandCodeRoot !== root) {
+      commandCodeDirs = await readdir(root).catch(() => [])
+      commandCodeRoot = root
+    }
+    for (const dir of commandCodeDirs) {
+      const candidate = join(root, dir, `${id}.meta.json`)
+      if (await stat(candidate).then(() => true, () => false)) {
+        file = candidate
+        break
+      }
+    }
+  }
+  return file ? cachedFile(`cc:${id}`, file, commandCodeTitleOf) : null
+}
+
+const codexTitle = (id: string): Promise<string | null> =>
+  cachedFile(`codex:${id}`, join(codexDir(), 'session_index.jsonl'), (text) =>
+    codexTitleOf(text, id),
+  )
+
+/** The agent's own name for the session, read from its session store. OpenCode and Pi keep the label. */
+const agentTitle = (session: Pick<Session, 'id' | 'cwd'> & { agent?: Session['agent'] | undefined }): Promise<string | null> => {
+  switch (agentOf(session.agent)) {
+    case 'claude-code':
+      return transcriptTitle(session.id, session.cwd)
+    case 'command-code':
+      return commandCodeTitle(session.id, session.cwd)
+    case 'codex':
+      return codexTitle(session.id)
+    default:
+      return Promise.resolve(null)
+  }
+}
+
 const branchOf = async (cwd: string, now: number): Promise<string | null> => {
   const cached = branches.get(cwd)
   if (cached && now - cached.at < BRANCH_TTL_MS) return cached.branch
@@ -99,16 +190,18 @@ const branchOf = async (cwd: string, now: number): Promise<string | null> => {
 }
 
 export const sessionInfo = async (
-  session: Pick<Session, 'id' | 'label' | 'cwd'>,
+  session: Pick<Session, 'id' | 'label' | 'cwd'> & { agent?: Session['agent'] | undefined },
   now = Date.now(),
 ): Promise<{ title: string; branch?: string }> => {
-  const title = await transcriptTitle(session.id, session.cwd).catch(() => null)
+  const title = await agentTitle(session).catch(() => null)
   const branch = session.cwd ? await branchOf(session.cwd, now) : null
   return { title: title ?? session.label, ...(branch ? { branch } : {}) }
 }
 
 export const resetSessionInfoCache = (): void => {
   titles.clear()
+  fileTitles.clear()
   branches.clear()
   projectDirs = null
+  commandCodeDirs = null
 }
