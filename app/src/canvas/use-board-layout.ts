@@ -8,6 +8,7 @@ import { type ApplyResult, createHistory, type Outcome } from './history'
 import { dropServed, sectionsKey } from './layout-sync'
 import {
   applySectionEdit,
+  assignEdits,
   initialSectionState,
   type SectionState,
   withMembership,
@@ -183,23 +184,43 @@ export function useBoardLayout(
   const preview = useCallback((rects: Record<string, Rect> | null) => setLive(rects), [])
 
   const commit = useCallback(
-    (moves: Move[], kind: 'move' | 'resize', label?: string) => {
+    (
+      moves: Move[],
+      kind: 'move' | 'resize',
+      label?: string | { section: string | null },
+      drop?: { section: string | null },
+    ) => {
+      const target = typeof label === 'object' ? label : drop
+      const name = typeof label === 'string' ? label : undefined
+      const names = moves.map((move) => move.name)
+      const text = name ?? describe(kind, names)
+      // A frame dropped into or out of a section: the move and the new section are one edit, so
+      // one undo puts both back.
+      if (
+        target &&
+        names.some((item) => (sectionState.sectionOf[item] ?? null) !== target.section)
+      ) {
+        const { before, after } = editsOf(moves)
+        const assigned = assignEdits(names, boards, target.section)
+        const join = (geometry: CanvasEdit, section: CanvasEdit): CanvasEdit => ({
+          boards: (geometry.boards ?? []).map((item) => ({
+            ...item,
+            ...(section.boards ?? []).find((entry) => entry.name === item.name),
+          })),
+        })
+        setLive(null)
+        editSections(text, join(before, assigned.before), join(after, assigned.after))
+        return
+      }
       flush()
       setPlaced((current) => ({
         ...current,
         ...Object.fromEntries(moves.map(({ name, rect }) => [name, rect])),
       }))
       setLive(null)
-      persist(
-        moves,
-        label ??
-          describe(
-            kind,
-            moves.map((move) => move.name),
-          ),
-      )
+      persist(moves, text)
     },
-    [describe, flush, persist],
+    [boards, describe, editSections, flush, persist, sectionState.sectionOf],
   )
 
   const nudge = useCallback(

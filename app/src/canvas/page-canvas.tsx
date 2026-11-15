@@ -18,6 +18,7 @@ import { useComments } from './comments/use-comments'
 import { useEvents } from './comments/use-events'
 import { Frame } from './frame'
 import { GlobalSearch } from './global-search'
+import { editsOf, type Move } from './frame-edit'
 import { boardsInRect, buildPageLayout, type Rect } from './geometry'
 import { Inspector, InspectorMulti } from './inspector'
 import { Marquee } from './marquee'
@@ -32,6 +33,8 @@ import {
   colorEdits,
   createSectionEdits,
   deleteSectionEdits,
+  moveSectionEdits,
+  resizeSectionEdits,
   placedSections,
   renameEdits,
   withMembership,
@@ -242,6 +245,16 @@ export function PageCanvas({
     [],
   )
   const moving = tool === 'move'
+  const [dropTarget, setDropTarget] = useState<string | null>(null)
+  // The sections as they were when a drag started: read through a ref so the callback is stable.
+  const dragState = useRef({ boards: edit.boards, sections: edit.sections })
+  useEffect(() => {
+    dragState.current = { boards: edit.boards, sections: edit.sections }
+  })
+  const dropAreas = useCallback(
+    () => placedSections(dragState.current.sections, dragState.current.boards),
+    [],
+  )
   const { placedLayout, selectedRect, frameEdit, actions, nudges } = useBoardEditing({
     camera,
     cameraActions,
@@ -249,6 +262,8 @@ export function PageCanvas({
     selection,
     moving,
     onSelect: select,
+    dropAreas,
+    onTarget: setDropTarget,
   })
   const focusBoard = useCallback(
     (name: string) => {
@@ -317,6 +332,39 @@ export function PageCanvas({
       editSections(`color of ${section.title}`, before, after)
     },
     [editSections],
+  )
+  const [selectedSection, setSelectedSection] = useState<string | null>(null)
+  const resizeSection = useCallback(
+    (id: string, rect: Rect) => {
+      const section = latestEdit.current.sections.find((candidate) => candidate.id === id)
+      if (!section) return
+      const { before, after } = resizeSectionEdits(section, rect)
+      editSections(`resize of ${section.title}`, before, after)
+    },
+    [editSections],
+  )
+  const moveSection = useCallback(
+    (id: string, moves: Move[], label: string) => {
+      const [first] = moves
+      const stored = first
+        ? moveSectionEdits(
+            id,
+            latestEdit.current.sections,
+            first.rect.x - first.before.x,
+            first.rect.y - first.before.y,
+          )
+        : null
+      if (!stored) return edit.commit(moves, 'move', label)
+      // The boards and the stored areas move together, so one undo puts both back.
+      const { before, after } = editsOf(moves)
+      edit.preview(null)
+      editSections(
+        label,
+        { ...before, ...stored.before },
+        { ...after, ...stored.after },
+      )
+    },
+    [edit, editSections],
   )
   const assignSection = useCallback(
     (names: string[], id: string | null) => {
@@ -524,6 +572,15 @@ export function PageCanvas({
   // page shows no view, so the canvas keeps its shortcuts.
   useShortcuts(fullBoard ? playCommands : commands, setSpace)
 
+  // A section is selected while exactly its boards are: any other selection puts it away.
+  const sectionSelected = useMemo(() => {
+    const placed = placedSectionList.find((item) => item.section.id === selectedSection)
+    if (!placed) return null
+    const names = new Set(selection.names)
+    return placed.members.length === names.size && placed.members.every((name) => names.has(name))
+      ? placed.section.id
+      : null
+  }, [placedSectionList, selectedSection, selection.names])
   const pending = useMemo(
     () =>
       pendingOf(
@@ -586,6 +643,7 @@ export function PageCanvas({
         >
           <SectionLayer
             hovered={hoveredSection}
+            dropTarget={dropTarget}
             onHover={setHoveredSection}
             sections={placedSectionList}
             boards={boards}
@@ -598,7 +656,10 @@ export function PageCanvas({
             onRenameStart={setRenaming}
             onRename={renameSection}
             onPreview={edit.preview}
-            onCommit={edit.commit}
+            selectedSection={sectionSelected}
+            onSelectSection={setSelectedSection}
+            onMoveSection={moveSection}
+            onResizeSection={resizeSection}
           />
           {shown.map((board) => {
             const entry = mounts.state.entries[board.name]

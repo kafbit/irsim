@@ -61,6 +61,11 @@ export type SectionEntry = {
   /** The id of the section this one sits in. `null` in an edit takes it out of its parent. */
   parent?: string | null
   color?: SectionColor | null
+  /** A stored area. Without it the section fits its boards. `null` clears a stored field. */
+  x?: number | null
+  y?: number | null
+  width?: number | null
+  height?: number | null
 }
 export type CanvasEdit = {
   boards?: BoardEdit[]
@@ -74,11 +79,20 @@ const withParent = (entry: SectionEntry, parent: string | null): SectionEntry =>
 
 /** Drops a `null` parent or color, which an edit uses to clear the field. */
 const clean = (entry: SectionEntry): SectionEntry => {
-  const { parent, color, ...rest } = entry
+  const { parent, color, x, y, width, height, ...rest } = entry
+  const stored = [x, y, width, height].every((value) => Number.isFinite(value))
   return {
     ...rest,
     ...(parent ? { parent } : {}),
     ...(color && color !== 'gray' ? { color } : {}),
+    ...(stored
+      ? {
+          x: Math.round(x as number),
+          y: Math.round(y as number),
+          width: Math.round(width as number),
+          height: Math.round(height as number),
+        }
+      : {}),
   }
 }
 
@@ -88,6 +102,18 @@ export function validateSections(sections: SectionEntry[]): string | null {
   for (const entry of sections) {
     if (entry.color != null && !(SECTION_COLORS as readonly string[]).includes(entry.color)) {
       return `section ${entry.id} has an unknown color ${String(entry.color)}`
+    }
+    const given = [entry.x, entry.y, entry.width, entry.height].filter(
+      (value) => value !== undefined && value !== null,
+    )
+    if (given.length > 0 && given.length < 4) {
+      return `section ${entry.id} needs x, y, width and height together`
+    }
+    if (given.some((value) => !Number.isFinite(value))) {
+      return `the area of section ${entry.id} must be finite numbers`
+    }
+    if (given.length === 4 && ((entry.width as number) <= 0 || (entry.height as number) <= 0)) {
+      return `section ${entry.id} needs a positive width and height`
     }
     let depth = 1
     const seen = new Set([entry.id])
@@ -142,9 +168,9 @@ export function applyEdit(canvas: CanvasFile, page: string, edit: CanvasEdit): P
       while (parent !== null && removed.has(parent)) parent = parentOf.get(parent) ?? null
       return parent === (candidate.parent ?? null) ? candidate : withParent(candidate, parent)
     })
-    .map(clean)
   const invalid = validateSections(sections)
   if (invalid) return { error: invalid, status: 400 }
+  sections = sections.map(clean)
   const sectionIds = new Set(sections.map((candidate) => candidate.id))
 
   const edits = new Map<string, BoardEdit>()

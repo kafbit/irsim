@@ -4,10 +4,10 @@
 /* oxlint-disable jsx-a11y/no-static-element-interactions */
 
 import Link from 'next/link'
-import { type KeyboardEvent, memo, type PointerEvent, useCallback, useRef } from 'react'
+import { type KeyboardEvent, memo, type PointerEvent, useCallback, useRef, useState } from 'react'
 import type { Camera } from './camera'
-import { moveRect, type Move } from './frame-edit'
-import type { PlacedBoard, Rect } from './geometry'
+import { type Handle, moveRect, type Move, resizeRect } from './frame-edit'
+import { boundsOf, type PlacedBoard, type Rect } from './geometry'
 import { type PlacedSection, SECTION_LABEL } from './sections'
 
 const DRAG_THRESHOLD = 3
@@ -59,6 +59,8 @@ function RenameField({ title, onDone }: { title: string; onDone: (title: string 
 
 type Props = {
   hovered: string | null
+  /** The section a dragged frame would be dropped into: a 2 px ring border. */
+  dropTarget?: string | null
   onHover: (id: string | null) => void
   sections: PlacedSection[]
   boards: PlacedBoard[]
@@ -72,8 +74,25 @@ type Props = {
   onRenameStart: (id: string) => void
   onRename: (id: string, title: string | null) => void
   onPreview: (rects: Record<string, Rect> | null) => void
-  onCommit: (moves: Move[], kind: 'move' | 'resize', label: string) => void
+  /** The section a click or drag on a label selected; its members are the selection. */
+  selectedSection?: string | null
+  onSelectSection?: (id: string) => void
+  /** The label was dragged: the members' moves, which also move the stored areas of the section and below. */
+  onMoveSection: (id: string, moves: Move[], label: string) => void
+  /** A handle was dragged: the new area, never smaller than the section's fit. */
+  onResizeSection: (id: string, rect: Rect) => void
 }
+
+const HANDLES: { handle: Handle; left: string; top: string; cursor: string }[] = [
+  { handle: 'nw', left: '0%', top: '0%', cursor: 'cursor-nwse-resize' },
+  { handle: 'n', left: '50%', top: '0%', cursor: 'cursor-ns-resize' },
+  { handle: 'ne', left: '100%', top: '0%', cursor: 'cursor-nesw-resize' },
+  { handle: 'e', left: '100%', top: '50%', cursor: 'cursor-ew-resize' },
+  { handle: 'se', left: '100%', top: '100%', cursor: 'cursor-nwse-resize' },
+  { handle: 's', left: '50%', top: '100%', cursor: 'cursor-ns-resize' },
+  { handle: 'sw', left: '0%', top: '100%', cursor: 'cursor-nesw-resize' },
+  { handle: 'w', left: '0%', top: '50%', cursor: 'cursor-ew-resize' },
+]
 
 /**
  * The sections, in one layer under the frames: a tinted rectangle with a border, and a label pill
@@ -83,6 +102,7 @@ type Props = {
  * the section.
  */
 export const SectionLayer = memo(function SectionLayer({
+  dropTarget = null,
   hovered,
   onHover,
   sections,
@@ -96,8 +116,13 @@ export const SectionLayer = memo(function SectionLayer({
   onRenameStart,
   onRename,
   onPreview,
-  onCommit,
+  selectedSection = null,
+  onSelectSection,
+  onMoveSection,
+  onResizeSection,
 }: Props) {
+  const [liveRect, setLiveRect] = useState<{ id: string; rect: Rect } | null>(null)
+
   const press = (event: PointerEvent<HTMLElement>, placed: PlacedSection) => {
     if (event.button !== 0 || !movable) return
     event.stopPropagation()
@@ -123,11 +148,15 @@ export const SectionLayer = memo(function SectionLayer({
       window.removeEventListener('keydown', key, true)
       if (element.hasPointerCapture(pointerId)) element.releasePointerCapture(pointerId)
       if (!dragging) {
-        if (commit) onSelect(placed.members, additive)
+        if (commit) {
+          onSelect(placed.members, additive)
+          onSelectSection?.(placed.section.id)
+        }
         return
       }
       const moved = current.filter(({ rect, before }) => !same(rect, before))
-      if (commit && moved.length > 0) onCommit(moved, 'move', `move of ${placed.section.title}`)
+      if (commit && moved.length > 0)
+        onMoveSection(placed.section.id, moved, `move of ${placed.section.title}`)
       else onPreview(null)
     }
     const move = (next: globalThis.PointerEvent) => {
@@ -138,6 +167,7 @@ export const SectionLayer = memo(function SectionLayer({
         if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return
         dragging = true
         onSelect(placed.members, false)
+        onSelectSection?.(placed.section.id)
       }
       current = items.map(({ name, start }) => ({
         name,
@@ -165,11 +195,59 @@ export const SectionLayer = memo(function SectionLayer({
     window.addEventListener('keydown', key, true)
   }
 
+  const startResize = (event: PointerEvent<HTMLElement>, placed: PlacedSection, handle: Handle) => {
+    if (event.button !== 0) return
+    event.stopPropagation()
+    event.preventDefault()
+    const element = event.currentTarget
+    const { pointerId, clientX, clientY } = event
+    const k = camera.view.k || 1
+    const start = rectOf(placed.bounds)
+    let rect = start
+    camera.focusViewport()
+    element.setPointerCapture(pointerId)
+    const end = (commit: boolean) => {
+      element.removeEventListener('pointermove', move)
+      element.removeEventListener('pointerup', up)
+      element.removeEventListener('pointercancel', cancel)
+      window.removeEventListener('keydown', key, true)
+      if (element.hasPointerCapture(pointerId)) element.releasePointerCapture(pointerId)
+      setLiveRect(null)
+      if (commit && !same(rect, start)) onResizeSection(placed.section.id, rect)
+    }
+    const move = (next: globalThis.PointerEvent) => {
+      if (next.pointerId !== pointerId) return
+      const dragged = resizeRect(
+        start,
+        handle,
+        (next.clientX - clientX) / k,
+        (next.clientY - clientY) / k,
+        { width: 1, height: 1 },
+      )
+      // The area always holds the boards and sub-sections, so a resize cannot cut one out.
+      rect = rectOf(boundsOf([dragged, placed.fit]) ?? dragged)
+      setLiveRect({ id: placed.section.id, rect })
+    }
+    const up = () => end(true)
+    const cancel = () => end(false)
+    const key = (next: globalThis.KeyboardEvent) => {
+      if (next.key !== 'Escape') return
+      next.stopPropagation()
+      end(false)
+    }
+    element.addEventListener('pointermove', move)
+    element.addEventListener('pointerup', up)
+    element.addEventListener('pointercancel', cancel)
+    window.addEventListener('keydown', key, true)
+  }
+
   return (
     <>
       {sections.map((placed) => {
-        const { section, members, bounds, depth } = placed
-        const active = hovered === section.id || members.every((name) => selected.includes(name))
+        const { section, members, depth } = placed
+        const bounds = liveRect?.id === section.id ? liveRect.rect : placed.bounds
+        const selectedHere = selectedSection === section.id
+        const active = selectedHere || hovered === section.id || members.every((name) => selected.includes(name))
         const variants = section.variantOf !== undefined
         const tone = TONES[placed.color ?? 'gray']
         // A sub-section with no color of its own reads on top of its parent's tint.
@@ -186,8 +264,8 @@ export const SectionLayer = memo(function SectionLayer({
               width: bounds.width,
               height: bounds.height,
               background: area,
-              borderWidth: 'calc(var(--inv, 1) * 1px)',
-              borderColor: active ? 'var(--ring)' : 'var(--border-strong)',
+              borderWidth: `calc(var(--inv, 1) * ${dropTarget === section.id || selectedHere ? 2 : 1}px)`,
+              borderColor: active || dropTarget === section.id ? 'var(--ring)' : 'var(--border-strong)',
             }}
           >
             <div
@@ -247,6 +325,33 @@ export const SectionLayer = memo(function SectionLayer({
                 </Link>
               ) : null}
             </div>
+            {selectedHere && movable
+              ? HANDLES.map(({ handle, left, top, cursor }) => (
+                  <div
+                    key={handle}
+                    data-section-handle={handle}
+                    className={`pointer-events-auto absolute grid place-items-center ${cursor}`}
+                    style={{
+                      left,
+                      top,
+                      width: 'calc(var(--inv, 1) * 16px)',
+                      height: 'calc(var(--inv, 1) * 16px)',
+                      transform: 'translate(-50%, -50%)',
+                    }}
+                    onPointerDown={(event) => startResize(event, placed, handle)}
+                  >
+                    <span
+                      className="border-solid bg-white"
+                      style={{
+                        width: 'calc(var(--inv, 1) * 8px)',
+                        height: 'calc(var(--inv, 1) * 8px)',
+                        borderWidth: 'calc(var(--inv, 1) * 1px)',
+                        borderColor: 'var(--ring)',
+                      }}
+                    />
+                  </div>
+                ))
+              : null}
           </div>
         )
       })}

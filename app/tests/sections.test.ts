@@ -3,6 +3,10 @@ import { applyEdit, type CanvasEdit, type CanvasFile } from '../src/lib/canvas-l
 import {
   applySectionEdit,
   assignEdits,
+  colorEdits,
+  moveSectionEdits,
+  resizeSectionEdits,
+  sectionAt,
   createSectionEdits,
   defaultTitle,
   deleteSectionEdits,
@@ -168,5 +172,70 @@ describe('edit builders', () => {
     expect(x).toEqual(board('X', 0, 0))
     expect(y?.section).toBe('a')
     expect(withMembership(boards, { X: 'a' })[0]).toBe(boards[0])
+  })
+})
+
+describe('stored area, resize, move and color edits', () => {
+  const sections = [
+    { id: 'top', title: 'Top', x: 0, y: 0, width: 2000, height: 1000 },
+    { id: 'sub', title: 'Sub', parent: 'top', x: 100, y: 100, width: 500, height: 400 },
+  ]
+  const boards = [board('A', 500, 400, 'sub')]
+
+  it('keeps the stored area when it holds the boards and grows to hold them otherwise', () => {
+    const [top] = placedSections(sections, boards)
+    expect(top!.bounds).toEqual({ x: 0, y: 0, width: 2000, height: 1000 })
+    const small = placedSections([{ id: 'top', title: 'Top', x: 600, y: 500, width: 10, height: 10 }], [board('A', 0, 0, 'top')])
+    expect(small[0]!.bounds.x).toBeLessThanOrEqual(0 - 64)
+    expect(small[0]!.fit).toEqual({ x: -64, y: -48 - 64, width: 300 + 128, height: 248 + 128 })
+  })
+
+  it('does not draw a stored area without a board', () => {
+    expect(placedSections([{ id: 'e', title: 'E', x: 0, y: 0, width: 5, height: 5 }], [])).toEqual([])
+  })
+
+  it('moves the stored area of the section and of the sections below it', () => {
+    const edits = moveSectionEdits('top', sections, 10, -20)!
+    expect(edits.after.sections?.set).toEqual([
+      { id: 'top', title: 'Top', x: 10, y: -20, width: 2000, height: 1000 },
+      { id: 'sub', title: 'Sub', x: 110, y: 80, width: 500, height: 400 },
+    ])
+    expect(moveSectionEdits('top', [{ id: 'top', title: 'Top' }], 1, 1)).toBeNull()
+  })
+
+  it('resizes and restores, with null for no stored area', () => {
+    const { before, after } = resizeSectionEdits({ id: 'a', title: 'A' }, { x: 1, y: 2, width: 3, height: 4 })
+    const state = initialSectionState([{ id: 'a', title: 'A' }], [])
+    const grown = applySectionEdit(state, after)
+    expect(grown.sections[0]).toEqual({ id: 'a', title: 'A', x: 1, y: 2, width: 3, height: 4 })
+    expect(applySectionEdit(grown, before).sections[0]).toEqual({ id: 'a', title: 'A' })
+  })
+
+  it('sets and restores a color', () => {
+    const section = { id: 'a', title: 'A' }
+    const { before, after } = colorEdits(section, 'red')
+    const state = initialSectionState([section], [])
+    const red = applySectionEdit(state, after)
+    expect(red.sections[0]?.color).toBe('red')
+    expect(applySectionEdit(red, before).sections[0]).toEqual({ id: 'a', title: 'A' })
+  })
+
+  it('finds the deepest section that holds a frame center', () => {
+    const placed = placedSections(sections, boards)
+    expect(sectionAt({ x: 500, y: 400, width: 100, height: 100 }, placed)).toBe('sub')
+    expect(sectionAt({ x: 1500, y: 800, width: 100, height: 100 }, placed)).toBe('top')
+    expect(sectionAt({ x: 5000, y: 5000, width: 100, height: 100 }, placed)).toBeNull()
+  })
+})
+
+describe('server accepts a stored area only whole', () => {
+  const file = (): CanvasFile => ({
+    pages: [{ id: 'p', sections: [{ id: 'a', title: 'A' }], boards: [] }],
+  })
+  it('refuses a partial or non-positive area and keeps a whole one', () => {
+    expect(applyEdit(file(), 'p', { sections: { set: [{ id: 'a', title: 'A', x: 1 }] } })).toMatchObject({ status: 400 })
+    expect(applyEdit(file(), 'p', { sections: { set: [{ id: 'a', title: 'A', x: 0, y: 0, width: 0, height: 5 }] } })).toMatchObject({ status: 400 })
+    const result = applyEdit(file(), 'p', { sections: { set: [{ id: 'a', title: 'A', x: 1.4, y: 2, width: 30, height: 40 }] } })
+    expect('canvas' in result && result.canvas.pages[0]?.sections).toEqual([{ id: 'a', title: 'A', x: 1, y: 2, width: 30, height: 40 }])
   })
 })

@@ -17,6 +17,11 @@ export type CanvasSection = {
   variantOf?: string
   parent?: string
   color?: 'gray' | 'blue' | 'green' | 'amber' | 'purple' | 'red'
+  /** A stored area; a section without one fits its boards. */
+  x?: number
+  y?: number
+  width?: number
+  height?: number
 }
 
 /**

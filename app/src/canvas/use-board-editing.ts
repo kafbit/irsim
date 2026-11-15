@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import type { Camera } from './camera'
 import { boardRegion, boundsOf, fitRect, layoutOf } from './geometry'
 import type { Selection } from './selection'
+import type { PlacedSection } from './sections'
 import type { useBoardLayout } from './use-board-layout'
 import { FOCUS_PADDING } from './use-camera'
 import { useFrameEdit } from './use-frame-edit'
@@ -34,6 +35,8 @@ export function useBoardEditing({
   selection,
   moving,
   onSelect,
+  dropAreas,
+  onTarget,
 }: {
   camera: Camera
   cameraActions: CameraActions
@@ -41,6 +44,8 @@ export function useBoardEditing({
   selection: Selection
   moving: boolean
   onSelect: (name: string) => void
+  dropAreas?: (() => PlacedSection[]) | undefined
+  onTarget?: ((id: string | null) => void) | undefined
 }) {
   const { boards } = edit
   const placedLayout = useMemo(() => layoutOf(boards), [boards])
@@ -57,6 +62,8 @@ export function useBoardEditing({
     onSelect,
     onPreview: edit.preview,
     onCommit: edit.commit,
+    ...(dropAreas ? { dropAreas } : {}),
+    ...(onTarget ? { onTarget } : {}),
   })
 
   const actions = useMemo(

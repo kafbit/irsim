@@ -15,6 +15,8 @@ export type PlacedSection = {
   /** Every board in the section and in its sub-sections. */
   members: string[]
   bounds: Rect
+  /** The smallest the area can be resized to: the boards and sub-sections, padded. */
+  fit: Rect
   /** 0 for a top level section. */
   depth: number
   /** The color the area takes, the nearest ancestor's when the section has none. */
@@ -47,6 +49,30 @@ export function sectionBounds(
   section: CanvasSection,
   boards: Member[],
   sections: CanvasSection[] = [section],
+): Rect | null {
+  const fit = sectionFit(section, boards, sections)
+  const stored = storedRect(section)
+  if (!stored) return fit
+  return fit ? (boundsOf([stored, fit]) ?? stored) : stored
+}
+
+/** The area stored in `canvas.json`, when the section has one. */
+export const storedRect = (section: CanvasSection): Rect | null =>
+  section.x !== undefined &&
+  section.y !== undefined &&
+  section.width !== undefined &&
+  section.height !== undefined
+    ? { x: section.x, y: section.y, width: section.width, height: section.height }
+    : null
+
+/**
+ * The smallest area that holds the section's boards and its sub-sections, padded. A stored area
+ * is never smaller than this, so resizing cannot cut a member out.
+ */
+export function sectionFit(
+  section: CanvasSection,
+  boards: Member[],
+  sections: CanvasSection[] = [section],
   seen: ReadonlySet<string> = new Set(),
 ): Rect | null {
   if (seen.has(section.id)) return null
@@ -54,7 +80,7 @@ export function sectionBounds(
   const parts: Rect[] = boards.filter((board) => board.section === section.id).map(boardRegion)
   for (const child of sections) {
     if (child.parent !== section.id) continue
-    const area = sectionBounds(child, boards, sections, path)
+    const area = sectionBounds2(child, boards, sections, path)
     if (area) parts.push(area)
   }
   const bounds = boundsOf(parts)
@@ -65,6 +91,19 @@ export function sectionBounds(
     width: bounds.width + SECTION_PAD * 2,
     height: bounds.height + SECTION_PAD * 2,
   }
+}
+
+/** A sub-section's drawn area, stored rect included, for its parent's fit. */
+function sectionBounds2(
+  section: CanvasSection,
+  boards: Member[],
+  sections: CanvasSection[],
+  seen: ReadonlySet<string>,
+): Rect | null {
+  const fit = sectionFit(section, boards, sections, seen)
+  const stored = storedRect(section)
+  if (!stored) return fit
+  return fit ? (boundsOf([stored, fit]) ?? stored) : stored
 }
 
 /** The color a section shows: its own, else the nearest ancestor's, else `null` for gray. */
@@ -87,12 +126,16 @@ export function placedSections(sections: CanvasSection[], boards: Member[]): Pla
   const placed: PlacedSection[] = []
   for (const section of sections) {
     const bounds = sectionBounds(section, boards, sections)
-    if (!bounds) continue
+    const fit = sectionFit(section, boards, sections)
+    const members = membersOf(section.id, boards, sections)
+    // A stored area alone does not draw a section: it needs a board somewhere in it.
+    if (!bounds || !fit || members.length === 0) continue
     const color = colorOf(section, sections)
     placed.push({
       section,
-      members: membersOf(section.id, boards, sections),
+      members,
       bounds,
+      fit,
       depth: depthOf(section, sections),
       color,
     })
@@ -124,16 +167,29 @@ export function initialSectionState(
 }
 
 /** Drops a cleared (`null`, empty or gray) parent or color, as the server does. */
-type Loose = Omit<CanvasSection, 'parent' | 'color'> & {
+type Loose = Omit<CanvasSection, 'parent' | 'color' | 'x' | 'y' | 'width' | 'height'> & {
   parent?: string | null | undefined
   color?: CanvasSection['color'] | null | undefined
+  x?: number | null | undefined
+  y?: number | null | undefined
+  width?: number | null | undefined
+  height?: number | null | undefined
 }
 const tidy = (section: Loose): CanvasSection => {
-  const { parent, color, ...rest } = section
+  const { parent, color, x, y, width, height, ...rest } = section
+  const stored = [x, y, width, height].every((value) => Number.isFinite(value))
   return {
     ...rest,
     ...(parent ? { parent } : {}),
     ...(color && color !== 'gray' ? { color } : {}),
+    ...(stored
+      ? {
+          x: Math.round(x as number),
+          y: Math.round(y as number),
+          width: Math.round(width as number),
+          height: Math.round(height as number),
+        }
+      : {}),
   }
 }
 
@@ -308,3 +364,79 @@ export function colorEdits(
 /** The depth of a new sub-section of `id`: whether another level fits under the limit. */
 export const canNest = (id: string, sections: CanvasSection[]): boolean =>
   ancestorsOf(id, sections).length + 2 <= MAX_SECTION_DEPTH
+
+/** The center of `rect`. */
+const centerOf = (rect: Rect) => ({ x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 })
+
+/**
+ * The innermost section whose area holds the center of `rect`, `null` when none does. `placed`
+ * is in drawing order, parents first, so the last hit is the deepest.
+ */
+export function sectionAt(rect: Rect, placed: PlacedSection[]): string | null {
+  const { x, y } = centerOf(rect)
+  let hit: string | null = null
+  for (const { section, bounds } of placed) {
+    if (x >= bounds.x && x <= bounds.x + bounds.width && y >= bounds.y && y <= bounds.y + bounds.height) {
+      hit = section.id
+    }
+  }
+  return hit
+}
+
+/** The edits that give `section` the stored area `rect` and put its old area (or none) back. */
+export function resizeSectionEdits(
+  section: CanvasSection,
+  rect: Rect,
+): { before: CanvasEdit; after: CanvasEdit } {
+  const old = storedRect(section)
+  return {
+    before: {
+      sections: {
+        set: [
+          {
+            id: section.id,
+            title: section.title,
+            x: old?.x ?? null,
+            y: old?.y ?? null,
+            width: old?.width ?? null,
+            height: old?.height ?? null,
+          },
+        ],
+      },
+    },
+    after: { sections: { set: [{ id: section.id, title: section.title, ...rect }] } },
+  }
+}
+
+/**
+ * The section edits that go with moving `id` by `(dx, dy)`: the stored area of the section and of
+ * every section below it moves too, so the areas keep their place around the moved boards. `null`
+ * when none of them has a stored area.
+ */
+export function moveSectionEdits(
+  id: string,
+  sections: CanvasSection[],
+  dx: number,
+  dy: number,
+): { before: CanvasEdit; after: CanvasEdit } | null {
+  const moved = subtreeOf(id, sections)
+    .map((item) => sections.find((section) => section.id === item))
+    .filter((section): section is CanvasSection => section !== undefined && storedRect(section) !== null)
+  if (moved.length === 0) return null
+  const entry = (section: CanvasSection, rect: Rect) => ({
+    id: section.id,
+    title: section.title,
+    ...rect,
+  })
+  return {
+    before: { sections: { set: moved.map((section) => entry(section, storedRect(section) as Rect)) } },
+    after: {
+      sections: {
+        set: moved.map((section) => {
+          const rect = storedRect(section) as Rect
+          return entry(section, { ...rect, x: Math.round(rect.x + dx), y: Math.round(rect.y + dy) })
+        }),
+      },
+    },
+  }
+}
