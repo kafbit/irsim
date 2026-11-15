@@ -313,6 +313,8 @@ export function PageCanvas({
     (names: string[]) => {
       const known = names.filter((name) => onPage.has(name))
       if (known.length === 0) return
+      setFullPlay(null)
+      setPlayStart(null)
       dispatch({ type: 'set', names: known })
       actions.focusBoards(known)
     },

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef } from 'react'
-import type { Camera } from '../camera'
+import type { Camera, CameraListener } from '../camera'
 import type { PlacedBoard } from '../geometry'
 import { isWholeBoard } from '../../lib/place-text'
 import { CommentForm } from './comment-form'
@@ -43,19 +43,31 @@ export function Composer({
   const variants = useGenerate({ page, pick, onSent })
 
   // Syncs the two elements with the camera, an imperative external system; React never writes their geometry.
-  useEffect(
-    () =>
-      camera.subscribe((view, size) => {
-        if (!frame || !box.current || !panel.current) return
-        const rect = toScreen(frame, placedRect(frame, pick), view)
-        box.current.style.width = `${rect.width}px`
-        box.current.style.height = `${rect.height}px`
-        box.current.style.transform = `translate(${rect.x}px, ${rect.y}px)`
-        const at = placePanel(rect, size, PANEL)
-        panel.current.style.transform = `translate(${at.x}px, ${at.y}px)`
-      }),
-    [camera, frame, pick],
-  )
+  useEffect(() => {
+    let latest: { view: Parameters<CameraListener>[0]; size: Parameters<CameraListener>[1] } | null = null
+    const place = () => {
+      if (!latest || !frame || !box.current || !panel.current) return
+      const rect = toScreen(frame, placedRect(frame, pick), latest.view)
+      box.current.style.width = `${rect.width}px`
+      box.current.style.height = `${rect.height}px`
+      box.current.style.transform = `translate(${rect.x}px, ${rect.y}px)`
+      const at = placePanel(rect, latest.size, {
+        width: PANEL.width,
+        height: panel.current.offsetHeight || PANEL.height,
+      })
+      panel.current.style.transform = `translate(${at.x}px, ${at.y}px)`
+    }
+    const unsubscribe = camera.subscribe((view, size) => {
+      latest = { view, size }
+      place()
+    })
+    const observer = new ResizeObserver(place)
+    if (panel.current) observer.observe(panel.current)
+    return () => {
+      unsubscribe()
+      observer.disconnect()
+    }
+  }, [camera, frame, pick])
 
   return (
     <>

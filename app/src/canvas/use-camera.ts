@@ -40,6 +40,8 @@ export function useCamera({ layout, pageId, focus, onCommit }: Options) {
       }),
   )
   const fitted = useRef(false)
+  const first = useRef({ layout, focus, pageId })
+  first.current = { layout, focus, pageId }
 
   const viewportRef = useCallback(
     (element: HTMLDivElement | null) => {
@@ -50,6 +52,7 @@ export function useCamera({ layout, pageId, focus, onCommit }: Options) {
         if (camera.size.width === 0) return
         if (fitted.current) return camera.settle()
         fitted.current = true
+        const { layout, focus, pageId } = first.current
         const board = layout.boards.find((candidate) => candidate.name === focus)
         camera.jump(
           (board && fitRect(boardRegion(board), camera.size, FOCUS_PADDING)) ||
@@ -65,7 +68,7 @@ export function useCamera({ layout, pageId, focus, onCommit }: Options) {
         camera.detach()
       }
     },
-    [camera, focus, layout, pageId],
+    [camera],
   )
 
   const worldRef = useCallback(
