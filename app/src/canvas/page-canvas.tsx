@@ -257,8 +257,8 @@ export function PageCanvas({
   )
   const { sections, sectionOf, editSections } = edit
   const placedSectionList = useMemo(
-    () => placedSections(sections, boards, view.k),
-    [sections, boards, view.k],
+    () => placedSections(sections, boards),
+    [sections, boards],
   )
   const latestEdit = useRef({ boards, sections })
   useEffect(() => {
@@ -291,7 +291,7 @@ export function PageCanvas({
       const current = latestEdit.current
       const section = current.sections.find((candidate) => candidate.id === id)
       if (!section) return
-      const { before, after } = deleteSectionEdits(section, current.boards)
+      const { before, after } = deleteSectionEdits(section, current.boards, current.sections)
       editSections(`delete of ${section.title}`, before, after)
     },
     [editSections],
@@ -530,7 +530,6 @@ export function PageCanvas({
         >
           <PageLabel title={manifest.title} k={view.k} />
           <SectionLayer
-            part="areas"
             hovered={hoveredSection}
             onHover={setHoveredSection}
             sections={placedSectionList}
@@ -567,23 +566,6 @@ export function PageCanvas({
               />
             )
           })}
-          <SectionLayer
-            part="labels"
-            hovered={hoveredSection}
-            onHover={setHoveredSection}
-            sections={placedSectionList}
-            boards={boards}
-            pageId={manifest.id}
-            camera={camera}
-            selected={selection.names}
-            renaming={renaming}
-            movable={tool === 'move'}
-            onSelect={selectBoards}
-            onRenameStart={setRenaming}
-            onRename={renameSection}
-            onPreview={edit.preview}
-            onCommit={edit.commit}
-          />
           <CommentLayer
             boards={boards}
             comments={comments.comments}

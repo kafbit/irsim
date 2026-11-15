@@ -12,6 +12,16 @@ import { type PlacedSection, SECTION_LABEL } from './sections'
 
 const DRAG_THRESHOLD = 3
 
+/** Tokens only: the area tint, the label pill background and its text, per color name. */
+const TONES = {
+  gray: { area: 'var(--secondary)', pill: 'var(--muted)', text: 'var(--foreground)' },
+  blue: { area: 'var(--info)', pill: 'var(--info)', text: 'var(--info-foreground)' },
+  green: { area: 'var(--success)', pill: 'var(--success)', text: 'var(--success-foreground)' },
+  amber: { area: 'var(--warning)', pill: 'var(--warning)', text: 'var(--warning-foreground)' },
+  purple: { area: 'var(--rented)', pill: 'var(--rented)', text: 'var(--rented-foreground)' },
+  red: { area: 'var(--destructive-tint)', pill: 'var(--destructive-tint)', text: 'var(--destructive)' },
+} as const
+
 const rectOf = ({ x, y, width, height }: Rect): Rect => ({ x, y, width, height })
 const same = (a: Rect, b: Rect) =>
   a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height
@@ -48,8 +58,6 @@ function RenameField({ title, onDone }: { title: string; onDone: (title: string 
 }
 
 type Props = {
-  /** `areas` goes under the frames, `labels` over them, so a neighbouring frame never hides a label. */
-  part: 'areas' | 'labels'
   hovered: string | null
   onHover: (id: string | null) => void
   sections: PlacedSection[]
@@ -68,12 +76,13 @@ type Props = {
 }
 
 /**
- * The section areas under the frames: a tinted rectangle with a border and a label strip at
- * constant screen size. Only the label takes the pointer. A click selects the member boards, Shift
- * adds them, a drag moves them all with one commit, and a double click renames the section.
+ * The sections, in one layer under the frames: a tinted rectangle with a border, and a label pill
+ * above its top left corner at constant screen size, so a member frame never covers the label.
+ * Parents come before their sub-sections. Only the label takes the pointer. A click selects the
+ * member boards, Shift adds them, a drag moves them all with one commit, and a double click renames
+ * the section.
  */
 export const SectionLayer = memo(function SectionLayer({
-  part,
   hovered,
   onHover,
   sections,
@@ -159,95 +168,85 @@ export const SectionLayer = memo(function SectionLayer({
   return (
     <>
       {sections.map((placed) => {
-        const { section, members, bounds } = placed
+        const { section, members, bounds, depth } = placed
         const active = hovered === section.id || members.every((name) => selected.includes(name))
         const variants = section.variantOf !== undefined
+        const tone = TONES[placed.color ?? 'gray']
+        // A sub-section with no color of its own reads on top of its parent's tint.
+        const area = placed.color === null && depth > 0 ? 'var(--card)' : tone.area
         return (
           <div
             key={section.id}
             data-section={section.id}
-            className={`pointer-events-none absolute ${
-              part === 'areas' ? 'border-solid bg-secondary' : ''
-            }`}
+            className="pointer-events-none absolute border-solid"
             style={{
               borderRadius: 'calc(var(--inv, 1) * 12px)',
               left: bounds.x,
               top: bounds.y,
               width: bounds.width,
               height: bounds.height,
-              ...(part === 'areas'
-                ? {
-                    borderWidth: 'calc(var(--inv, 1) * 1px)',
-                    borderColor: active ? 'var(--ring)' : 'var(--border-strong)',
-                  }
-                : {}),
+              background: area,
+              borderWidth: 'calc(var(--inv, 1) * 1px)',
+              borderColor: active ? 'var(--ring)' : 'var(--border-strong)',
             }}
           >
-            {part === 'labels' ? (
-              <div
-                className="absolute flex origin-top-left items-center gap-3 rounded-t-[11px] bg-secondary px-4"
-                style={{
-                  insetInlineStart: 'calc(var(--inv, 1) * 1px)',
-                  top: 'calc(var(--inv, 1) * 1px)',
-                  width: `calc(var(--k, 1) * ${bounds.width}px - 2px)`,
-                  height: SECTION_LABEL,
-                  transform: 'scale(var(--inv, 1))',
-                }}
-              >
-                {renaming === section.id ? (
-                  <RenameField
-                    title={section.title}
-                    onDone={(title) => onRename(section.id, title)}
-                  />
-                ) : (
-                  <span
-                    data-section-label=""
-                    className={`pointer-events-auto flex min-w-0 items-center gap-3 ${
-                      movable ? 'cursor-move' : 'cursor-grab'
-                    }`}
-                    onPointerDown={(event) => press(event, placed)}
-                    onPointerEnter={() => onHover(section.id)}
-                    onPointerLeave={() => onHover(null)}
-                    onDoubleClick={() => movable && onRenameStart(section.id)}
-                  >
-                    <span
-                      dir="auto"
-                      className="truncate text-[13px] font-semibold whitespace-nowrap text-foreground"
-                    >
-                      {section.title}
-                    </span>
-                    <span className="shrink-0 text-xs whitespace-nowrap text-muted-foreground">
-                      {members.length} {members.length === 1 ? 'board' : 'boards'}
-                    </span>
+            <div
+              className="absolute flex origin-bottom-left items-center gap-2"
+              style={{
+                insetInlineStart: 0,
+                bottom: 'calc(100% + var(--inv, 1) * 6px)',
+                maxWidth: `calc(var(--k, 1) * ${bounds.width}px)`,
+                height: SECTION_LABEL,
+                transform: 'scale(var(--inv, 1))',
+              }}
+            >
+              {renaming === section.id ? (
+                <RenameField title={section.title} onDone={(title) => onRename(section.id, title)} />
+              ) : (
+                <span
+                  data-section-label=""
+                  className={`pointer-events-auto flex h-full min-w-0 items-center gap-2 rounded-[8px] px-2.5 ${
+                    movable ? 'cursor-move' : 'cursor-grab'
+                  }`}
+                  style={{ background: tone.pill, color: tone.text }}
+                  onPointerDown={(event) => press(event, placed)}
+                  onPointerEnter={() => onHover(section.id)}
+                  onPointerLeave={() => onHover(null)}
+                  onDoubleClick={() => movable && onRenameStart(section.id)}
+                >
+                  <span dir="auto" className="truncate text-[13px] font-semibold whitespace-nowrap">
+                    {section.title}
                   </span>
-                )}
-                <span className="flex-1" />
-                {variants ? (
-                  <Link
-                    href={`/p/${encodeURIComponent(pageId)}/compare/${encodeURIComponent(section.variantOf ?? '')}`}
-                    onPointerDown={(event) => event.stopPropagation()}
-                    className="pointer-events-auto inline-flex h-[26px] shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-[8px] border border-border-strong bg-card px-2.5 text-xs font-medium text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+                  <span className="shrink-0 text-xs whitespace-nowrap opacity-70">
+                    {members.length} {members.length === 1 ? 'board' : 'boards'}
+                  </span>
+                </span>
+              )}
+              {variants ? (
+                <Link
+                  href={`/p/${encodeURIComponent(pageId)}/compare/${encodeURIComponent(section.variantOf ?? '')}`}
+                  onPointerDown={(event) => event.stopPropagation()}
+                  className="pointer-events-auto inline-flex h-[26px] shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-[8px] border border-border-strong bg-card px-2.5 text-xs font-medium text-foreground focus-visible:outline-2 focus-visible:outline-ring"
+                >
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
                   >
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3" />
-                      <path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3" />
-                      <path d="M12 2v20" />
-                    </svg>
-                    Compare
-                  </Link>
-                ) : null}
-              </div>
-            ) : null}
+                    <path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3" />
+                    <path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3" />
+                    <path d="M12 2v20" />
+                  </svg>
+                  Compare
+                </Link>
+              ) : null}
+            </div>
           </div>
         )
       })}

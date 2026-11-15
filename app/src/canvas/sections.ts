@@ -1,49 +1,97 @@
-import type { CanvasEdit } from '../lib/canvas-layout'
+import { type CanvasEdit, MAX_SECTION_DEPTH } from '../lib/canvas-layout'
 import { boardRegion, boundsOf, type Rect } from './geometry'
 import type { CanvasSection } from './types'
 
 export const SECTION_PAD = 64
-export const SECTION_LABEL = 40
-const MIN_LABEL_SCALE = 0.25
+/** The label pill is 26 screen pixels high and sits outside the area, above its top left corner. */
+export const SECTION_LABEL = 26
 
 type Member = Rect & { name: string; section?: string | undefined }
 
 export type SectionState = { sections: CanvasSection[]; sectionOf: Record<string, string> }
 
-export type PlacedSection = { section: CanvasSection; members: string[]; bounds: Rect }
+export type PlacedSection = {
+  section: CanvasSection
+  /** Every board in the section and in its sub-sections. */
+  members: string[]
+  bounds: Rect
+  /** 0 for a top level section. */
+  depth: number
+  /** The color the area takes, the nearest ancestor's when the section has none. */
+  color: NonNullable<CanvasSection['color']> | null
+}
 
-export const membersOf = (id: string, boards: Member[]): string[] =>
-  boards.filter((board) => board.section === id).map((board) => board.name)
+/** `id` and every section below it. */
+export const subtreeOf = (id: string, sections: CanvasSection[]): string[] => {
+  const ids = [id]
+  for (const next of ids) {
+    for (const section of sections) {
+      if (section.parent === next && !ids.includes(section.id)) ids.push(section.id)
+    }
+  }
+  return ids
+}
+
+export const membersOf = (id: string, boards: Member[], sections: CanvasSection[] = []): string[] => {
+  const ids = new Set(subtreeOf(id, sections))
+  return boards.filter((board) => board.section && ids.has(board.section)).map((board) => board.name)
+}
 
 /**
- * The member boards with their frame titles, `SECTION_PAD` out on every side and the label strip
- * more above. The label is 40 screen pixels high, so the strip is 40 world units at zoom 1 and
- * grows as the zoom falls, down to a zoom of 0.25. `null` for a section with no boards.
+ * The member boards with their frame titles and the areas of the sub-sections, `SECTION_PAD` out
+ * on every side. The label is outside the area, so nothing is added for it. A sub-section is
+ * padded the same, so a parent area always holds the child area with a margin. `null` for a section
+ * with nothing in it.
  */
-export function sectionBounds(section: CanvasSection, boards: Member[], k = 1): Rect | null {
-  const bounds = boundsOf(boards.filter((board) => board.section === section.id).map(boardRegion))
+export function sectionBounds(
+  section: CanvasSection,
+  boards: Member[],
+  sections: CanvasSection[] = [section],
+  seen: ReadonlySet<string> = new Set(),
+): Rect | null {
+  if (seen.has(section.id)) return null
+  const path = new Set(seen).add(section.id)
+  const parts: Rect[] = boards.filter((board) => board.section === section.id).map(boardRegion)
+  for (const child of sections) {
+    if (child.parent !== section.id) continue
+    const area = sectionBounds(child, boards, sections, path)
+    if (area) parts.push(area)
+  }
+  const bounds = boundsOf(parts)
   if (!bounds) return null
-  const strip = SECTION_LABEL / Math.min(1, Math.max(k, MIN_LABEL_SCALE))
   return {
     x: bounds.x - SECTION_PAD,
-    y: bounds.y - SECTION_PAD - strip,
+    y: bounds.y - SECTION_PAD,
     width: bounds.width + SECTION_PAD * 2,
-    height: bounds.height + SECTION_PAD * 2 + strip,
+    height: bounds.height + SECTION_PAD * 2,
   }
 }
 
-/** The sections that have boards, in section order. A section without boards is not drawn. */
-export function placedSections(
-  sections: CanvasSection[],
-  boards: Member[],
-  k = 1,
-): PlacedSection[] {
+const depthOf = (section: CanvasSection, sections: CanvasSection[]) =>
+  ancestorsOf(section.id, sections).length
+
+/**
+ * The sections that have something in them, parents before children so a child draws on top of
+ * its parent. A section with nothing in it is not drawn.
+ */
+export function placedSections(sections: CanvasSection[], boards: Member[]): PlacedSection[] {
   const placed: PlacedSection[] = []
   for (const section of sections) {
-    const bounds = sectionBounds(section, boards, k)
-    if (bounds) placed.push({ section, members: membersOf(section.id, boards), bounds })
+    const bounds = sectionBounds(section, boards, sections)
+    if (!bounds) continue
+    const color =
+      [section.id, ...ancestorsOf(section.id, sections)]
+        .map((id) => sections.find((candidate) => candidate.id === id)?.color)
+        .find((value) => value !== undefined) ?? null
+    placed.push({
+      section,
+      members: membersOf(section.id, boards, sections),
+      bounds,
+      depth: depthOf(section, sections),
+      color,
+    })
   }
-  return placed
+  return placed.sort((a, b) => a.depth - b.depth)
 }
 
 export function newSectionId(existing: string[]): string {
@@ -153,9 +201,16 @@ export function createSectionEdits(
   boards: Member[],
   sections: CanvasSection[],
 ): { section: CanvasSection; before: CanvasEdit; after: CanvasEdit } {
-  const section = {
+  // Boards that all sit in one section make a sub-section of it, unless that is the third level.
+  const shared = sharedSection(names, boards)
+  const parent =
+    typeof shared === 'string' && ancestorsOf(shared, sections).length + 1 < MAX_SECTION_DEPTH
+      ? shared
+      : undefined
+  const section: CanvasSection = {
     id: newSectionId(sections.map((candidate) => candidate.id)),
     title: defaultTitle(sections),
+    ...(parent ? { parent } : {}),
   }
   return {
     section,
@@ -194,11 +249,17 @@ export function assignEdits(
 export function deleteSectionEdits(
   section: CanvasSection,
   boards: Member[],
+  sections: CanvasSection[] = [],
 ): { before: CanvasEdit; after: CanvasEdit } {
+  const children = sections.filter((candidate) => candidate.parent === section.id)
   return {
     before: {
-      sections: { set: [section] },
-      boards: membersOf(section.id, boards).map((name) => ({ name, section: section.id })),
+      sections: {
+        set: [section, ...children.map(({ id }) => ({ id, title: children.find((child) => child.id === id)?.title ?? id, parent: section.id }))],
+      },
+      boards: boards
+        .filter((board) => board.section === section.id)
+        .map((board) => ({ name: board.name, section: section.id })),
     },
     after: { sections: { remove: [section.id] } },
   }

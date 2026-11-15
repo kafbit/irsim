@@ -56,6 +56,7 @@ body {
   --destructive: #ff8f80;
   --destructive-foreground: #14161a;
   --destructive-solid: #d92d20;
+  --destructive-tint: #3b1814;
   --success: #15301f;
   --success-foreground: #86d6a6;
   --warning: #3b2a14;

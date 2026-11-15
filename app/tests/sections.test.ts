@@ -25,18 +25,13 @@ const board = (name: string, x: number, y: number, section?: string) => ({
 
 describe('sectionBounds', () => {
   const boards = [board('A', 100, 200, 's'), board('B', 500, 300, 's'), board('C', 0, 0)]
-  it('pads the member bounds and leaves room for the label', () => {
+  it('pads the member bounds and adds nothing for the label', () => {
     expect(sectionBounds({ id: 's', title: 'S' }, boards)).toEqual({
       x: 100 - 64,
-      y: 200 - 48 - 64 - 40,
+      y: 200 - 48 - 64,
       width: 700 + 128,
-      height: 348 + 128 + 40,
+      height: 348 + 128,
     })
-  })
-  it('grows the label strip as the zoom falls and stops at 0.25', () => {
-    const at = (k: number) => sectionBounds({ id: 's', title: 'S' }, boards, k)!
-    expect(at(0.5).height - at(1).height).toBe(40)
-    expect(at(0.1).height).toBe(at(0.25).height)
   })
   it('is null and not drawn without members', () => {
     expect(sectionBounds({ id: 'x', title: 'X' }, boards)).toBeNull()
@@ -49,6 +44,39 @@ describe('sectionBounds', () => {
         boards,
       ),
     ).toHaveLength(1)
+  })
+})
+
+describe('nested sections', () => {
+  const sections = [
+    { id: 'child', title: 'Child', parent: 'top' },
+    { id: 'top', title: 'Top', color: 'blue' as const },
+  ]
+  const boards = [board('A', 0, 0, 'child'), board('B', 1000, 0, 'top')]
+  it('holds the child area with a margin and draws parents first', () => {
+    const placed = placedSections(sections, boards)
+    expect(placed.map((item) => item.section.id)).toEqual(['top', 'child'])
+    const [top, child] = placed
+    expect(top!.bounds.x).toBeLessThan(child!.bounds.x)
+    expect(top!.bounds.x + top!.bounds.width).toBeGreaterThan(child!.bounds.x + child!.bounds.width)
+    expect(top!.members).toEqual(['A', 'B'])
+    expect(child!.members).toEqual(['A'])
+  })
+  it('gives a sub-section its parent color', () => {
+    expect(placedSections(sections, boards).map((item) => item.color)).toEqual(['blue', 'blue'])
+  })
+  it('makes a sub-section when the boards share a section', () => {
+    const made = createSectionEdits(['A'], boards, sections)
+    expect(made.section.parent).toBe('child')
+    expect(createSectionEdits(['A', 'B'], boards, sections).section.parent).toBeUndefined()
+  })
+  it('stops at three levels', () => {
+    const deep = [
+      { id: 'a', title: 'A' },
+      { id: 'b', title: 'B', parent: 'a' },
+      { id: 'c', title: 'C', parent: 'b' },
+    ]
+    expect(createSectionEdits(['X'], [board('X', 0, 0, 'c')], deep).section.parent).toBeUndefined()
   })
 })
 
