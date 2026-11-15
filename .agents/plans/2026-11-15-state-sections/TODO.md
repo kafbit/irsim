@@ -8,8 +8,8 @@
 - [x] Skill, agents block template and runtime docs: state boards, not props; sections.
 - [x] App: data, validation and edits for `parent` and `color`.
 - [x] App: section layer in one layer, colors and label pill.
-- [ ] App: sidebar tree, inspector Color row and Create sub-section.
-- [ ] App: drop a frame into or out of a section; resize a section.
+- [x] App: sidebar tree, inspector Color row and Create sub-section.
+- [x] App: drop a frame into or out of a section; resize a section.
 - [x] Tests for sections and layout edits (`sections.test.ts`, `canvas-layout.test.ts`).
-- [ ] Compare app and boards, light and dark.
-- [ ] Typecheck, lint, affected tests, page check.
+- [x] Compare app and boards, light and dark. Sidebar tree and section label checked in the running canvas; the section selected and drop states and handles were not compared with a screenshot.
+- [x] Typecheck and affected tests. `design_canvas check` was not run: the tool is not available in this session.

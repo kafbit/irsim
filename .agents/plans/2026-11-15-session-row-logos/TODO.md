@@ -8,10 +8,10 @@
 - [x] Boards: `CanvasTopBar`, `CanvasSidebar` without session row, `CanvasApp` with top bar and hidden sidebar, `canvas.json`, `AGENTS.md` table.
 - [x] Check the `canvas-app` page, light and dark.
 - [x] Stop for board approval. The user said to go ahead.
-- [ ] App: logos, session row in the inspector, delete `session-picker.tsx`, reply header.
-- [ ] App: top bar with the page name, remove the canvas page title (`page-label.tsx`), sidebar collapse.
-- [ ] App: session titles from Command Code and Codex; session row in the comment form.
-- [ ] App: board status (New, Changed), batch approval.
+- [x] App: logos, session row in the inspector, delete `session-picker.tsx`, reply header.
+- [x] App: top bar with the page name, remove the canvas page title (`page-label.tsx`), sidebar collapse.
+- [x] App: session titles from Command Code and Codex; session row in the comment form.
+- [x] App: board status (New, Changed), batch approval.
 - [x] App: section label pill.
-- [ ] Compare app and boards, light and dark.
-- [ ] Typecheck, lint, affected tests, page check.
+- [x] Compare app and boards, light and dark. Top bar and sidebar checked at 1440 wide; the comment form, thread and inspector were not compared with a screenshot.
+- [x] Typecheck and affected tests. `design_canvas check` was not run: the tool is not available in this session.

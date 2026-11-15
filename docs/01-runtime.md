@@ -119,6 +119,8 @@ Each section has an `id` and a `title`.
 An optional `parent` names the `id` of another section, and sections nest at most 3 levels.
 An optional `color` is one of `gray` (the default), `blue`, `green`, `amber`, `purple` and `red`.
 A board's `section` names its innermost section.
+A section can also store its area as `x`, `y`, `width` and `height` (all four, in canvas units), which the canvas writes when the user resizes or moves it.
+Without them the section fits its boards. The drawn area always holds its boards and sub-sections, so a stored area can only be larger than that fit.
 
 ## Play
 
