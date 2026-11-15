@@ -4,8 +4,10 @@ import { Button, IconButton, Select } from '../ui'
 import { Check, ChevronDown, CopyIcon, Play } from '../ui/icons'
 import Link from 'next/link'
 import { useState } from 'react'
-import { sharedSection } from './sections'
+import { canNest, sharedSection } from './sections'
 import type { CanvasSection, ManifestBoard, PageSummary } from './types'
+
+type SectionColor = NonNullable<CanvasSection['color']>
 import { playHref } from './use-play-links'
 import { VariantsBox } from './variants/variants-box'
 
@@ -65,6 +67,44 @@ function SectionField({
   )
 }
 
+const SWATCHES: { color: SectionColor; label: string; fill: string }[] = [
+  { color: 'gray', label: 'Gray', fill: 'var(--secondary)' },
+  { color: 'blue', label: 'Blue', fill: 'var(--info)' },
+  { color: 'green', label: 'Green', fill: 'var(--success)' },
+  { color: 'amber', label: 'Amber', fill: 'var(--warning)' },
+  { color: 'purple', label: 'Purple', fill: 'var(--rented)' },
+  { color: 'red', label: 'Red', fill: 'var(--destructive-tint)' },
+]
+
+/** Six swatches, one per section color; gray is the default and stores no color. */
+function ColorRow({
+  color,
+  onPick,
+}: {
+  color: SectionColor | undefined
+  onPick: (color: SectionColor | null) => void
+}) {
+  const current = color ?? 'gray'
+  return (
+    <div className="flex flex-col gap-2">
+      <h3 className="m-0 text-xs font-normal text-muted-foreground">Color</h3>
+      <div role="group" aria-label="Section color" className="flex items-center gap-2 p-0.5">
+        {SWATCHES.map((swatch) => (
+          <button
+            key={swatch.color}
+            type="button"
+            aria-label={swatch.label}
+            aria-pressed={current === swatch.color}
+            onClick={() => onPick(swatch.color === 'gray' ? null : swatch.color)}
+            className="m-0 box-border size-5 cursor-pointer rounded-full border border-border-strong p-0 outline-offset-2 aria-pressed:outline-2 aria-pressed:outline-ring"
+            style={{ background: swatch.fill }}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 /** Several boards selected: the count, their names, the shared Section field and the section actions. */
 export function InspectorMulti({
   names,
@@ -73,13 +113,16 @@ export function InspectorMulti({
   onSection,
   onCreateSection,
   onDeleteSection,
+  onColor,
 }: {
   names: string[]
   boards: { name: string; title: string; section?: string | undefined }[]
   sections: CanvasSection[]
   onSection: (names: string[], id: string | null) => void
-  onCreateSection: (names: string[]) => void
+  /** `nested`: make the section a sub-section of the one the boards share. */
+  onCreateSection: (names: string[], nested?: boolean) => void
   onDeleteSection: (id: string) => void
+  onColor: (id: string, color: SectionColor | null) => void
 }) {
   const shared = sharedSection(names, boards)
   const common =
@@ -100,7 +143,11 @@ export function InspectorMulti({
         <SectionField names={names} boards={boards} sections={sections} onSection={onSection} />
       </dl>
       <section aria-label="Section actions" className="flex flex-col gap-2">
-        <Button size="sm" className="justify-between" onClick={() => onCreateSection(names)}>
+        <Button
+          size="sm"
+          className="justify-between"
+          onClick={() => onCreateSection(names, false)}
+        >
           <span>Create section</span>
           <kbd className="rounded-md border border-primary-foreground/40 px-1.5 py-px font-sans text-[11px] font-medium">
             Shift+S
@@ -115,9 +162,17 @@ export function InspectorMulti({
           Remove from section
         </Button>
         {common ? (
-          <Button variant="secondary" size="sm" onClick={() => onDeleteSection(common.id)}>
-            Delete section
-          </Button>
+          <>
+            <ColorRow color={common.color} onPick={(color) => onColor(common.id, color)} />
+            {canNest(common.id, sections) ? (
+              <Button variant="secondary" size="sm" onClick={() => onCreateSection(names, true)}>
+                Create sub-section
+              </Button>
+            ) : null}
+            <Button variant="secondary" size="sm" onClick={() => onDeleteSection(common.id)}>
+              Delete section
+            </Button>
+          </>
         ) : null}
       </section>
     </aside>

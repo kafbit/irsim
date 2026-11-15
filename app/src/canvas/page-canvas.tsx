@@ -29,6 +29,7 @@ import { PlayView } from './play-view'
 import { NO_SELECTION, reduceSelection, type Selection } from './selection'
 import {
   assignEdits,
+  colorEdits,
   createSectionEdits,
   deleteSectionEdits,
   placedSections,
@@ -272,10 +273,15 @@ export function PageCanvas({
     latestEdit.current = { boards, sections }
   })
   const createSection = useCallback(
-    (names: string[]) => {
+    (names: string[], nested = true) => {
       if (names.length === 0) return
       const current = latestEdit.current
-      const { section, before, after } = createSectionEdits(names, current.boards, current.sections)
+      const { section, before, after } = createSectionEdits(
+        names,
+        current.boards,
+        current.sections,
+        nested,
+      )
       editSections('new section', before, after)
       setRenaming(section.id)
     },
@@ -300,6 +306,15 @@ export function PageCanvas({
       if (!section) return
       const { before, after } = deleteSectionEdits(section, current.boards, current.sections)
       editSections(`delete of ${section.title}`, before, after)
+    },
+    [editSections],
+  )
+  const colorSection = useCallback(
+    (id: string, color: 'gray' | 'blue' | 'green' | 'amber' | 'purple' | 'red' | null) => {
+      const section = latestEdit.current.sections.find((candidate) => candidate.id === id)
+      if (!section || (section.color ?? null) === color) return
+      const { before, after } = colorEdits(section, color)
+      editSections(`color of ${section.title}`, before, after)
     },
     [editSections],
   )
@@ -696,6 +711,7 @@ export function PageCanvas({
             onSection: assignSection,
             onCreateSection: createSection,
             onDeleteSection: deleteSection,
+            onColor: colorSection,
           }}
           onFocusBoard={focusBoard}
         >

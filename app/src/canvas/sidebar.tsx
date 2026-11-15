@@ -4,8 +4,9 @@ import { formatNumber } from '../lib/format-number'
 import { Input } from '../ui'
 import { ChevronDown, Play } from '../ui/icons'
 import Link from 'next/link'
-import { Fragment, type Ref, useCallback, useState } from 'react'
+import { Fragment, type ReactNode, type Ref, useCallback, useState } from 'react'
 import { CHROME_FORMAT } from './chrome-format'
+import { colorOf, membersOf } from './sections'
 import type { CanvasSection, ManifestBoard, PageSummary } from './types'
 import { UpdateNotice } from './update-notice'
 import { playHref } from './use-play-links'
@@ -17,12 +18,13 @@ function BoardRow({
   board,
   pageId,
   selected,
-  indent = false,
+  indent = 0,
   onFocusBoard,
 }: {
   board: ManifestBoard
   pageId: string
-  indent?: boolean
+  /** Levels of sections the board sits in; each indents it by 12 px. */
+  indent?: number
   selected: boolean
   onFocusBoard: (name: string) => void
 }) {
@@ -36,7 +38,8 @@ function BoardRow({
     <li
       ref={scrollIntoView}
       aria-current={selected ? 'true' : undefined}
-      className={`flex items-center gap-1 rounded-lg hover:bg-accent ${indent ? 'ms-3' : ''} ${selected ? 'bg-secondary' : ''}`}
+      style={{ marginInlineStart: indent * 12 }}
+      className={`flex items-center gap-1 rounded-lg hover:bg-accent ${selected ? 'bg-secondary' : ''}`}
     >
       <button
         type="button"
@@ -60,17 +63,31 @@ function BoardRow({
   )
 }
 
+/** The dot of a section: its color, tokens only. */
+const DOTS = {
+  gray: 'var(--border-strong)',
+  blue: 'var(--info-foreground)',
+  green: 'var(--success-foreground)',
+  amber: 'var(--warning-foreground)',
+  purple: 'var(--rented-foreground)',
+  red: 'var(--destructive)',
+} as const
+
 function SectionHeader({
   title,
   count,
+  color,
+  depth,
   onSelect,
 }: {
   title: string
   count: number
+  color: keyof typeof DOTS
+  depth: number
   onSelect: () => void
 }) {
   return (
-    <li className="mt-2">
+    <li className="mt-2" style={{ marginInlineStart: depth * 12 }}>
       <button
         type="button"
         onClick={onSelect}
@@ -79,6 +96,12 @@ function SectionHeader({
         <span className="inline-flex shrink-0 text-muted-foreground">
           <ChevronDown className="size-3.5" />
         </span>
+        <span
+          aria-hidden="true"
+          data-color={color}
+          className="size-2 shrink-0 rounded-full"
+          style={{ background: DOTS[color] }}
+        />
         <span dir="auto" className="min-w-0 flex-1 truncate text-[13px] font-semibold">
           {title}
         </span>
@@ -119,13 +142,7 @@ export function Sidebar({
 
   const known = new Set(sections.map((section) => section.id))
   const loose = shown.filter((board) => !board.section || !known.has(board.section))
-  const groups = sections
-    .map((section) => ({
-      section,
-      members: shown.filter((board) => board.section === section.id),
-    }))
-    .filter((group) => group.members.length > 0)
-  const renderBoard = (board: ManifestBoard, indent: boolean) => (
+  const renderBoard = (board: ManifestBoard, indent: number) => (
     <BoardRow
       key={board.name}
       board={board}
@@ -135,6 +152,31 @@ export function Sidebar({
       onFocusBoard={onFocusBoard}
     />
   )
+  // A section, its own boards, then its sub-sections, one level further in. A section with nothing
+  // to show under the search is left out.
+  const renderSection = (section: CanvasSection, depth: number, path: string[]): ReactNode => {
+    if (path.includes(section.id)) return null
+    const own = shown.filter((board) => board.section === section.id)
+    const subtree = membersOf(section.id, shown, sections)
+    if (subtree.length === 0) return null
+    return (
+      <Fragment key={section.id}>
+        <SectionHeader
+          title={section.title}
+          count={subtree.length}
+          color={colorOf(section, sections) ?? 'gray'}
+          depth={depth}
+          onSelect={() => onSelectBoards(subtree)}
+        />
+        {own.map((board) => renderBoard(board, depth + 1))}
+        {sections
+          .filter((child) => child.parent === section.id)
+          .map((child) => renderSection(child, depth + 1, [...path, section.id]))}
+      </Fragment>
+    )
+  }
+  // A section whose parent is missing is shown at the top level, as a section with no parent.
+  const roots = sections.filter((section) => !section.parent || !known.has(section.parent))
 
   return (
     <aside className="flex w-72 shrink-0 flex-col gap-3 border-e border-border bg-card p-3">
@@ -172,17 +214,8 @@ export function Sidebar({
         {shown.length} {shown.length === 1 ? 'board' : 'boards'}
       </p>
       <ul className="-mx-1 flex min-h-0 flex-1 flex-col overflow-y-auto">
-        {loose.map((board) => renderBoard(board, false))}
-        {groups.map(({ section, members }) => (
-          <Fragment key={section.id}>
-            <SectionHeader
-              title={section.title}
-              count={members.length}
-              onSelect={() => onSelectBoards(members.map((board) => board.name))}
-            />
-            {members.map((board) => renderBoard(board, true))}
-          </Fragment>
-        ))}
+        {loose.map((board) => renderBoard(board, 0))}
+        {roots.map((section) => renderSection(section, 0, []))}
         {shown.length === 0 ? (
           <li className="px-2 py-6 text-center text-sm text-muted-foreground">No boards match</li>
         ) : null}

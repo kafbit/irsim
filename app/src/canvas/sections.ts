@@ -67,6 +67,15 @@ export function sectionBounds(
   }
 }
 
+/** The color a section shows: its own, else the nearest ancestor's, else `null` for gray. */
+export const colorOf = (
+  section: CanvasSection,
+  sections: CanvasSection[],
+): NonNullable<CanvasSection['color']> | null =>
+  [section.id, ...ancestorsOf(section.id, sections)]
+    .map((id) => sections.find((candidate) => candidate.id === id)?.color)
+    .find((value) => value !== undefined) ?? null
+
 const depthOf = (section: CanvasSection, sections: CanvasSection[]) =>
   ancestorsOf(section.id, sections).length
 
@@ -79,10 +88,7 @@ export function placedSections(sections: CanvasSection[], boards: Member[]): Pla
   for (const section of sections) {
     const bounds = sectionBounds(section, boards, sections)
     if (!bounds) continue
-    const color =
-      [section.id, ...ancestorsOf(section.id, sections)]
-        .map((id) => sections.find((candidate) => candidate.id === id)?.color)
-        .find((value) => value !== undefined) ?? null
+    const color = colorOf(section, sections)
     placed.push({
       section,
       members: membersOf(section.id, boards, sections),
@@ -200,11 +206,12 @@ export function createSectionEdits(
   names: string[],
   boards: Member[],
   sections: CanvasSection[],
+  nested = true,
 ): { section: CanvasSection; before: CanvasEdit; after: CanvasEdit } {
   // Boards that all sit in one section make a sub-section of it, unless that is the third level.
   const shared = sharedSection(names, boards)
   const parent =
-    typeof shared === 'string' && ancestorsOf(shared, sections).length + 1 < MAX_SECTION_DEPTH
+    nested && typeof shared === 'string' && ancestorsOf(shared, sections).length + 1 < MAX_SECTION_DEPTH
       ? shared
       : undefined
   const section: CanvasSection = {
@@ -286,3 +293,18 @@ export function sharedSection(
   if (ids.size !== 1) return undefined
   return [...ids][0] ?? null
 }
+
+/** The edits that give `section` a color (`null` for the default gray) and put its old one back. */
+export function colorEdits(
+  section: CanvasSection,
+  color: NonNullable<CanvasSection['color']> | null,
+): { before: CanvasEdit; after: CanvasEdit } {
+  return {
+    before: { sections: { set: [{ id: section.id, title: section.title, color: section.color ?? null }] } },
+    after: { sections: { set: [{ id: section.id, title: section.title, color }] } },
+  }
+}
+
+/** The depth of a new sub-section of `id`: whether another level fits under the limit. */
+export const canNest = (id: string, sections: CanvasSection[]): boolean =>
+  ancestorsOf(id, sections).length + 2 <= MAX_SECTION_DEPTH
