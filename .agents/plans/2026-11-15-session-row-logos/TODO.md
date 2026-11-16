@@ -1,0 +1,32 @@
+# Top bar, agent logos, New and Changed frames, section labels
+
+- [x] Fix zoom after a frame move (`use-camera.ts`, `camera.ts`).
+- [x] Fix Ctrl+K during full screen Play (`page-canvas.tsx`).
+- [x] Fix thumbnails missing after zooming out from a frame link (`frame.tsx`).
+- [x] Boards: logos and empty state (`CanvasSession`, `CanvasThread`, `CanvasThreadSessions`).
+- [x] Boards: `CanvasFrame` New, `CanvasSection` label pill, `CanvasInspector` Approval only when pending.
+- [x] Boards: `CanvasTopBar`, `CanvasSidebar` without session row, `CanvasApp` with top bar and hidden sidebar, `canvas.json`, `AGENTS.md` table.
+- [x] Check the `canvas-app` page, light and dark.
+- [x] Stop for board approval. The user said to go ahead.
+- [x] App: logos, session row in the inspector, delete `session-picker.tsx`, reply header.
+- [x] App: top bar with the page name, remove the canvas page title (`page-label.tsx`), sidebar collapse.
+- [x] App: session titles from Command Code and Codex; session row in the comment form.
+- [x] App: board status (New, Changed), batch approval.
+- [x] App: section label pill.
+- [x] Compare app and boards, light and dark. Top bar and sidebar checked at 1440 wide; the thread reply logo, the comment form session row and the session listbox were checked in the running canvas.
+- [x] Typecheck and affected tests. `design_canvas check` was not run: the tool is not available in this session.
+- [x] Board: thread Approve and build split button with Resolve in its menu (`CanvasThread`, `CanvasThreadResolveMenu`).
+- [x] Board: Send button on a draft comment, disabled with no session (`CanvasThread`, `CanvasThreadNoSession`).
+- [x] Board: session picker on a sent comment, Approve and build disabled without a session (`CanvasThread`, `CanvasThreadNoTarget`). Approved.
+- [x] Stop for approval of the thread boards. The user approved them.
+- [x] App: thread Approve and build, which approves, resolves and sends the build turn; Resolve in its menu.
+- [x] App: Send one draft comment to the active session.
+- [x] App: session picker on a sent comment; Approve and build disabled without a session. A comment whose session ended counts as no session.
+- [x] Compare the thread with its boards, light and dark (Playwright, mocked comments and sessions). Fixed: the session picker arrow.
+- [x] `design_canvas check` on `canvas-app`: 96 boards, no errors, no warnings.
+- [x] Board: `CanvasApp` canvas height so the zoom bar is not cut off; narrower Reports section so the minimap does not cover it.
+- [x] Board: `CanvasInspector` prop `swatches` (solid|tint); solid uses the foreground colors.
+- [x] Board: `CanvasCompare` prop `confirm` (none|choose|keep), state board `CanvasCompareConfirm`.
+- [x] Stop for approval of the swatch and Choose confirmation boards. The user approved them.
+- [x] App: solid swatches in `inspector.tsx`. Compared with the board, light and dark.
+- [x] App: Choose and Keep original confirmation in `compare-view.tsx`. Compared with `CanvasCompareConfirm`, light and dark.

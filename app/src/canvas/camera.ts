@@ -140,7 +140,6 @@ export class Camera {
     window.clearTimeout(this.settleTimer)
     window.clearTimeout(this.coolTimer)
     this.viewport = null
-    this.world = null
   }
 
   private cancelFlight() {

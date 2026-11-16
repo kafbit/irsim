@@ -10,19 +10,24 @@
 <helmet>
 <style>
 body{margin:0}
-.cv-root{--pick:#14161a;--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted:#efefeb;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a;--play:#2563eb;--mock-bg:#f6f6f3;--mock-ink:#14161a;--mock-card:#ffffff;--mock-line:#e4e4e0;--mock-bar:#d6d7d2}
-.cv-root.dark{--pick:#14161a;--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8;--play:#60a5fa}
+.cv-root{--pick:#14161a;--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted:#efefeb;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--destructive-tint:#fbe9e6;--rented:#f1ecfa;--rented-foreground:#4f2d8a;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a;--play:#2563eb;--mock-bg:#f6f6f3;--mock-ink:#14161a;--mock-card:#ffffff;--mock-line:#e4e4e0;--mock-bar:#d6d7d2}
+.cv-root.dark{--pick:#14161a;--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--destructive-tint:#3b1814;--rented:#281f3b;--rented-foreground:#bda7ec;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8;--play:#60a5fa}
 </style>
 </helmet>
-<div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="position: relative; display: flex; width: 100%; min-height: 100vh; overflow: hidden; background: var(--surface); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
+<div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="position: relative; display: flex; flex-direction: column; width: 100%; height: 100vh; overflow: hidden; background: var(--surface); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
+<div style="flex-shrink: 0; height: 48px; --cv-h: 48px; --cv-bg: transparent;">
+<dc-import name="CanvasTopBar" theme="{{theme}}" page="Components" sessions="one" pending="3" menu="closed" sidebar="{{sidebar}}" hint-size="1440px,48px"></dc-import>
+</div>
+<div style="position: relative; display: flex; flex: 1; min-height: 0; align-self: stretch;">
+<sc-if value="{{showSidebar}}" hint-placeholder-val="{{true}}">
 <div style="display: flex; flex-shrink: 0; align-self: stretch; width: 288px; overflow: hidden;">
 <dc-import name="CanvasSidebar" theme="{{theme}}" page="Components" selected="{{sidebarSelected}}" update="{{update}}" sections="{{sidebarSections}}" hint-size="288px,820px"></dc-import>
 </div>
+</sc-if>
 <div role="application" aria-label="Design canvas" style="position: relative; flex: 1; min-width: 0; align-self: stretch; overflow: hidden; background-color: var(--surface); background-image: radial-gradient(circle, color-mix(in srgb, var(--border-strong) 100%, transparent) 1px, transparent 1.5px); background-size: {{gridSize}}px {{gridSize}}px; background-position: {{gridPos}};">
-<h2 dir="auto" style="position: absolute; left: {{label.x}}px; top: {{label.y}}px; margin: 0; font-size: {{label.size}}px; line-height: 1; font-weight: 600; white-space: nowrap; color: var(--foreground);">Components</h2>
 <sc-for list="{{sections}}" as="sec">
-<div style="position: absolute; left: {{sec.x}}px; top: {{sec.y}}px; width: {{sec.w}}px; height: {{sec.h}}px; box-sizing: border-box; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--secondary);">
-<div style="display: flex; align-items: center; gap: 8px; height: 36px; box-sizing: border-box; padding: 0 16px; font-size: 13px;"><span style="font-weight: 600;">{{sec.title}}</span><span style="font-size: 12px; color: var(--muted-foreground);">{{sec.count}}</span></div>
+<div style="position: absolute; left: {{sec.x}}px; top: {{sec.y}}px; width: {{sec.w}}px; height: {{sec.h}}px; box-sizing: border-box; border: 1px solid var(--border-strong); border-radius: {{sec.r}}px; background: {{sec.bg}};">
+<div style="position: absolute; left: 0; bottom: 100%; display: flex; align-items: center; max-width: 100%; margin-bottom: 6px;"><span style="display: inline-flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; height: 26px; box-sizing: border-box; padding: 0 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); white-space: nowrap;"><span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 13px; font-weight: 600; color: {{sec.pillText}};">{{sec.title}}</span><span style="flex-shrink: 0; font-size: 12px; color: var(--muted-foreground);">{{sec.count}}</span></span></div>
 </div>
 </sc-for>
 <sc-for list="{{frames}}" as="f">
@@ -111,11 +116,12 @@ body{margin:0}
 </div>
 </sc-if>
 </div>
+</div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"overview","options":["overview","selected","zoomedOut","thumbnailsLoading","playing","commenting","toast","emptyPage","marquee","multi","undoToast","search","sections","settings"]},"update":{"editor":"enum","default":"none","options":["none","available"]},"$preview":{"width":1440,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"overview","options":["overview","selected","zoomedOut","thumbnailsLoading","playing","commenting","toast","emptyPage","marquee","multi","undoToast","search","sections","settings"]},"update":{"editor":"enum","default":"none","options":["none","available"]},"sidebar":{"editor":"enum","default":"shown","options":["shown","hidden"]},"$preview":{"width":1440,"height":948}}'>
 class Component extends DCLogic {
   renderVals() {
-    const { theme, state, update } = this.props
+    const { theme, state, update, sidebar } = this.props
     const zoomedOut = state === 'zoomedOut' || state === 'thumbnailsLoading'
     const frame = (x, y, w, h, title, name, mode, prototype, table) => ({
       x, y, w, h, title, name,
@@ -138,7 +144,6 @@ class Component extends DCLogic {
     let frames = []
     let sections = []
     const ox = ['selected', 'commenting', 'marquee', 'multi'].includes(state) ? 40 : 96
-    let label = { x: ox, y: 34, size: 40 }
     let grid = { size: 24, pos: '-12px -12px' }
     if (zoomedOut) {
       const names = [
@@ -162,21 +167,20 @@ class Component extends DCLogic {
         const mode = state === 'thumbnailsLoading' && pending.includes(index) ? 'pending' : 'thumbnail'
         return frame(210 + col * 124, 360 + row * 126, 96, 64, title, name, mode, false, false)
       })
-      label = { x: 210, y: 314, size: 16 }
       grid = { size: 19.2, pos: '-9.6px -9.6px' }
     } else if (state === 'sections') {
-      label = { x: 40, y: 34, size: 40 }
       sections = [
-        { x: 400, y: 110, w: 576, h: 272, title: 'Checkout flow', count: 2 },
-        { x: 400, y: 440, w: 576, h: 252, title: 'Reports', count: 2 },
+        { x: 400, y: 110, w: 624, h: 328, title: 'Checkout flow', count: '2 boards', r: 12, bg: 'var(--secondary)', pillText: 'var(--foreground)' },
+        { x: 704, y: 158, w: 288, h: 248, title: 'Details', count: '1 board', r: 10, bg: 'var(--info)', pillText: 'var(--info-foreground)' },
+        { x: 400, y: 486, w: 480, h: 248, title: 'Reports', count: '2 boards', r: 12, bg: 'var(--success)', pillText: 'var(--success-foreground)' },
       ]
       frames = [
         frame(40, 190, 240, 140, 'Button', 'Button', 'live', false, false),
         frame(40, 390, 320, 300, 'Data table', 'Table', 'live', false, true),
-        frame(432, 190, 240, 140, 'Confirmation dialog', 'Dialog', 'live', true, false),
-        frame(704, 190, 240, 140, 'Profile card', 'Card', 'live', false, false),
-        frame(432, 520, 240, 140, 'Status badge', 'Badge', 'live', false, false),
-        frame(704, 520, 240, 140, 'Tab bar', 'Tabs', 'live', false, false),
+        frame(432, 186, 240, 140, 'Confirmation dialog', 'Dialog', 'live', true, false),
+        frame(728, 234, 240, 140, 'Profile card', 'Card', 'live', false, false),
+        frame(432, 562, 192, 140, 'Status badge', 'Badge', 'live', false, false),
+        frame(656, 562, 192, 140, 'Tab bar', 'Tabs', 'live', false, false),
       ]
     } else if (state !== 'emptyPage') {
       const dialogMode = { selected: 'selected', playing: 'playing', commenting: 'commenting', marquee: 'selectedMany', multi: 'selectedMany' }[state] || 'live'
@@ -201,10 +205,11 @@ class Component extends DCLogic {
       themeClass: theme === 'dark' ? 'dark' : '',
       theme,
       update,
+      sidebar: sidebar === 'hidden' ? 'hidden' : 'shown',
+      showSidebar: sidebar !== 'hidden',
       sidebarSelected: state === 'selected' ? 'Dialog' : 'none',
       gridSize: grid.size,
       gridPos: grid.pos,
-      label,
       frames,
       sections,
       marquee: state === 'marquee',

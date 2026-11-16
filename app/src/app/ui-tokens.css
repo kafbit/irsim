@@ -18,6 +18,7 @@
   --destructive: #9a2a1a;
   --destructive-foreground: #ffffff;
   --destructive-solid: #d92d20;
+  --destructive-tint: #fbe9e6;
   --success: #e3f1e8;
   --success-foreground: #1b6b3a;
   --warning: #fdf0e2;
@@ -67,6 +68,7 @@
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-destructive-solid: var(--destructive-solid);
+  --color-destructive-tint: var(--destructive-tint);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);

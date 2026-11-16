@@ -5,12 +5,12 @@ import { Button, Textarea } from '../../ui'
 import { LayoutGrid } from 'lucide-react'
 import { useState } from 'react'
 import { ImageStrip } from './image-strip'
-import type { PickedElement } from './types'
+import { SessionRow } from './session-row'
+import type { PickedElement, Session } from './types'
 import { usePastedImages } from './use-pasted-images'
 
 const focusOnMount = (element: HTMLTextAreaElement | null) => element?.focus()
 
-const NO_SESSION = 'No Claude session. Run /irsim in Claude Code.'
 
 const TOGGLE_ON = 'Back to a plain comment'
 const TOGGLE_OFF = 'Generate variants from this note'
@@ -26,12 +26,22 @@ export function CommentForm({
   onSave,
   onGenerate,
   canGenerate = true,
+  session,
   onCancel,
 }: {
   pick: PickedElement
   onSave: (body: string, images: string[]) => Promise<void>
   onGenerate?: ((note: string, count: number, images: string[]) => Promise<void>) | undefined
   canGenerate?: boolean
+  /** The agent sessions the variants go to. Generate waits until one is picked. */
+  session?:
+    | {
+        sessions: Session[]
+        loaded: boolean
+        sessionId: string | null
+        onPick: (id: string) => void
+      }
+    | undefined
   onCancel: () => void
 }) {
   const [body, setBody] = useState('')
@@ -129,10 +139,18 @@ export function CommentForm({
             </div>
           </div>
           <p className="m-0 text-xs leading-4 text-muted-foreground">
-            {canGenerate
-              ? `Claude makes ${count} different takes on your note as copies next to the board. Compare them and keep one. Ctrl+Enter generates.`
-              : NO_SESSION}
+            The agent makes {count} different takes on your note as copies next to the board. Compare
+            them and keep one. Ctrl+Enter generates.
           </p>
+          {session ? (
+            <SessionRow
+              compact={session.sessions.length > 0}
+              sessions={session.sessions}
+              loaded={session.loaded}
+              sessionId={session.sessionId}
+              onPick={session.onPick}
+            />
+          ) : null}
         </section>
       ) : null}
       {error ? <p className="m-0 text-xs text-destructive">{error}</p> : null}

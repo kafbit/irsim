@@ -4,6 +4,7 @@ import { type PointerEvent as ReactPointerEvent, useCallback } from 'react'
 import type { Camera } from './camera'
 import { type Handle, type Move, moveRect, resizeRect } from './frame-edit'
 import type { PlacedBoard, Rect } from './geometry'
+import { type PlacedSection, sectionAt } from './sections'
 
 const DRAG_THRESHOLD = 3
 const CLICK_GUARD_MS = 50
@@ -15,7 +16,11 @@ type Options = {
   selected: string[]
   onSelect: (name: string) => void
   onPreview: (rects: Record<string, Rect> | null) => void
-  onCommit: (moves: Move[], kind: 'move' | 'resize') => void
+  onCommit: (moves: Move[], kind: 'move' | 'resize', drop?: { section: string | null }) => void
+  /** The sections as they were when a drag started, to find the one a frame is dropped into. */
+  dropAreas?: () => PlacedSection[]
+  /** The section a dragged frame is over, `null` for none; `null` again when the drag ends. */
+  onTarget?: (id: string | null) => void
 }
 
 type Gesture = {
@@ -24,6 +29,8 @@ type Gesture = {
   kind: 'move' | 'resize'
   items: { name: string; start: Rect }[]
   selects: string | null
+  /** The frame whose center decides the section it is dropped into; only a title drag has one. */
+  drops: string | null
   threshold: number
   apply: (start: Rect, dx: number, dy: number) => Rect
 }
@@ -59,10 +66,14 @@ export function useFrameEdit({
   onSelect,
   onPreview,
   onCommit,
+  dropAreas,
+  onTarget,
 }: Options) {
   const run = useCallback(
-    ({ element, event, kind, items, selects, threshold, apply }: Gesture) => {
+    ({ element, event, kind, items, selects, drops, threshold, apply }: Gesture) => {
       const k = camera.view.k || 1
+      const areas = drops !== null ? (dropAreas?.() ?? []) : []
+      let target: string | null = null
       let dragging = threshold === 0
       let current: Move[] = items.map(({ name, start }) => ({ name, rect: start, before: start }))
       let frame = 0
@@ -78,9 +89,12 @@ export function useFrameEdit({
           element.releasePointerCapture(event.pointerId)
         if (!dragging) return
         if (threshold > 0) swallowClick()
+        onTarget?.(null)
         const moved = current.filter(({ rect, before }) => !same(rect, before))
-        if (keep && moved.length > 0) onCommit(moved, kind)
-        else onPreview(null)
+        if (keep && moved.length > 0) {
+          if (drops !== null && dropAreas) onCommit(moved, kind, { section: target })
+          else onCommit(moved, kind)
+        } else onPreview(null)
       }
       const move = (next: PointerEvent) => {
         if (next.pointerId !== event.pointerId) return
@@ -97,6 +111,14 @@ export function useFrameEdit({
           rect: apply(start, dx / k, dy / k),
           before: start,
         }))
+        const lead = current.find((item) => item.name === drops)
+        if (lead && dropAreas) {
+          const next = sectionAt(lead.rect, areas)
+          if (next !== target) {
+            target = next
+            onTarget?.(next)
+          }
+        }
         if (!frame) {
           frame = requestAnimationFrame(() => {
             frame = 0
@@ -119,7 +141,7 @@ export function useFrameEdit({
       element.addEventListener('lostpointercapture', cancel)
       window.addEventListener('keydown', key, true)
     },
-    [camera, onCommit, onPreview, onSelect],
+    [camera, dropAreas, onCommit, onPreview, onSelect, onTarget],
   )
 
   /** `pointerdown` on the world layer: starts a move when it lands on a frame title in the Move tool. */
@@ -141,6 +163,7 @@ export function useFrameEdit({
         kind: 'move',
         items: moving.map((candidate) => ({ name: candidate.name, start: rectOf(candidate) })),
         selects: selected.includes(board.name) ? null : board.name,
+        drops: board.name,
         threshold: DRAG_THRESHOLD,
         apply: (start, dx, dy) => moveRect(start, dx, dy),
       })
@@ -161,6 +184,7 @@ export function useFrameEdit({
         kind: 'resize',
         items: [{ name, start: rectOf(board) }],
         selects: null,
+        drops: null,
         threshold: 0,
         apply: (start, dx, dy) => resizeRect(start, handle, dx, dy),
       })

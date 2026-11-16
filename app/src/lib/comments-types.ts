@@ -61,7 +61,12 @@ export type BoardApproval = {
 }
 
 /** What a page's Approve buttons need: the boards' content hashes and their latest approvals. */
-export type PageApprovals = { hashes: Record<string, string>; approvals: BoardApproval[] }
+export type PageApprovals = {
+  hashes: Record<string, string>
+  approvals: BoardApproval[]
+  /** New, Changed, Approved or none, per board. Computed on every request, never stored. */
+  status?: Record<string, 'new' | 'changed' | 'approved' | 'none'>
+}
 
 export type Approval = {
   id: string
@@ -70,6 +75,8 @@ export type Approval = {
   hash: string
   note: string
   sessionId: string
+  /** Approvals made together share a batch and go out as one turn. */
+  batch?: string
   status: 'queued' | 'delivered'
   createdAt: string
 }

@@ -194,12 +194,15 @@ export const updateComment = async (
     body?: string | undefined
     images?: string[] | undefined
     status?: 'resolved' | undefined
+    sessionId?: string | undefined
   },
 ): Promise<Change<Comment>> => {
   let dropped: string[] = []
   const result = await mutateOne(id, (comment) => {
     const editing = patch.body !== undefined || patch.images !== undefined
     if (editing && comment.status !== 'draft') return 'not_draft'
+    // A draft gets its session when it is sent; only a sent comment can move to another session.
+    if (patch.sessionId !== undefined && comment.status === 'draft') return 'is_draft'
     const images = patch.images ?? comment.images
     dropped = comment.images.filter((image) => !images.includes(image))
     return {
@@ -207,6 +210,7 @@ export const updateComment = async (
       body: patch.body ?? comment.body,
       images,
       status: patch.status ?? comment.status,
+      sessionId: patch.sessionId ?? comment.sessionId,
     }
   })
   if (result.ok) await removeImages(dropped)
@@ -262,16 +266,20 @@ export const deleteComment = (id: string): Promise<Change<string>> =>
     return { ok: true, value: id }
   })
 
+/** Sends the drafts of `page` (all pages when absent), or only those in `ids`, to one session. */
 export const sendDrafts = (input: {
   sessionId: string
   page?: string | undefined
+  ids?: string[] | undefined
 }): Promise<{ batch: string | null; count: number }> =>
   enqueue(async () => {
     const all = await readComments()
     const ids: string[] = []
     const batch = newId('b')
+    const wanted = input.ids ? new Set(input.ids) : null
     const next = all.map((comment): Comment => {
       if (comment.status !== 'draft' || (input.page && comment.page !== input.page)) return comment
+      if (wanted && !wanted.has(comment.id)) return comment
       ids.push(comment.id)
       return { ...comment, status: 'queued', sessionId: input.sessionId, batch }
     })
@@ -307,6 +315,40 @@ export const listApprovals = async (boards: string[]): Promise<PageApprovals> =>
 }
 
 export type ApprovalRefusal = 'stale' | 'no_session'
+
+/**
+ * Queues one approval per board, all in one batch, so the session gets a single turn. Fails as a
+ * whole when the session is not live or any hash is stale, so nothing is half approved.
+ */
+export const createApprovals = (
+  input: { page: string; boards: { board: string; hash: string }[]; note: string; sessionId: string },
+  now = Date.now(),
+): Promise<Approval[] | ApprovalRefusal> =>
+  enqueue(async () => {
+    const live = (await readList<Session>('sessions.json')).some(
+      (session) =>
+        session.id === input.sessionId && now - Date.parse(session.lastSeen) <= SESSION_TTL_MS,
+    )
+    if (!live) return 'no_session'
+    for (const { board, hash } of input.boards) {
+      if ((await closureOf(board)).content !== hash) return 'stale'
+    }
+    const batch = newId('b')
+    const made: Approval[] = input.boards.map(({ board, hash }) => ({
+      id: newId('a'),
+      page: input.page,
+      board,
+      note: input.note,
+      sessionId: input.sessionId,
+      hash,
+      batch,
+      status: 'queued',
+      createdAt: new Date(now).toISOString(),
+    }))
+    await writeList('approvals.json', [...(await readList<Approval>('approvals.json')), ...made])
+    approvalsChanged(made.map((approval) => approval.id))
+    return made
+  })
 
 /**
  * Queues an approval for a live session; its next claim delivers it. `hash` is the content hash

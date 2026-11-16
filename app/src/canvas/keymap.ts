@@ -10,6 +10,7 @@ export type Command =
   | 'escape'
   | 'search'
   | 'global-search'
+  | 'toggle-sidebar'
   | 'undo'
   | 'redo'
   | 'select-all'
@@ -63,7 +64,7 @@ export type ChordInput = {
 }
 
 /**
- * Ctrl or Cmd chords: Z undo, Shift+Z and Ctrl+Y redo, A select all, K global search. Alt turns
+ * Ctrl or Cmd chords: Z undo, Shift+Z and Ctrl+Y redo, A select all, K global search, backslash toggle the sidebar. Alt turns
  * them off. Cmd+Y is not redo, because it opens the history in Safari and Firefox.
  */
 export function modChord({ key, ctrlKey, metaKey, altKey, shiftKey }: ChordInput): Command | null {
@@ -77,6 +78,8 @@ export function modChord({ key, ctrlKey, metaKey, altKey, shiftKey }: ChordInput
       return shiftKey ? null : 'select-all'
     case 'k':
       return shiftKey ? null : 'global-search'
+    case '\\':
+      return shiftKey ? null : 'toggle-sidebar'
     default:
       return null
   }

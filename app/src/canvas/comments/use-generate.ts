@@ -13,9 +13,9 @@ export function useGenerate({
   pick: PickedElement
   onSent: (count: number) => void
 }) {
-  const { sessionId, loaded } = useSession()
+  const { sessions, sessionId, loaded, pick: pickSession } = useSession()
   const generate = async (note: string, count: number, images: string[] = []) => {
-    if (!sessionId) throw new Error('No Claude session. Run /irsim in Claude Code.')
+    if (!sessionId) throw new Error('No agent session. Run /irsim in your coding agent.')
     const response = await fetch('/api/variants', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -33,5 +33,9 @@ export function useGenerate({
     if (response.status !== 201) throw new Error(body.error ?? `HTTP ${response.status}`)
     onSent(body.boards?.length ?? count)
   }
-  return { canGenerate: !loaded || Boolean(sessionId), generate }
+  return {
+    canGenerate: !loaded || Boolean(sessionId),
+    generate,
+    session: { sessions, loaded, sessionId, onPick: pickSession },
+  }
 }

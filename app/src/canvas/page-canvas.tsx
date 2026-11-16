@@ -6,10 +6,10 @@
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { ApproveBox } from './approvals/approve-box'
-import { approvalStateOf, useApprovals } from './approvals/use-approvals'
+import { useApprovals } from './approvals/use-approvals'
 import { CommentLayer } from './comments/comment-layer'
 import { Composer } from './comments/composer'
-import { boardPick, numberComments, placedRect } from './comments/model'
+import { boardPick, buildNote, numberComments, placedRect } from './comments/model'
 import { ThreadPanel } from './comments/thread-panel'
 import type { Comment, CommentView, PickedElement } from './comments/types'
 import { useBoardReloads } from './comments/use-board-reloads'
@@ -18,6 +18,7 @@ import { useComments } from './comments/use-comments'
 import { useEvents } from './comments/use-events'
 import { Frame } from './frame'
 import { GlobalSearch } from './global-search'
+import { editsOf, type Move } from './frame-edit'
 import { boardsInRect, buildPageLayout, type Rect } from './geometry'
 import { Inspector, InspectorMulti } from './inspector'
 import { Marquee } from './marquee'
@@ -25,13 +26,15 @@ import { noticeFor } from './history'
 import { isVisible } from './mount-policy'
 import { adjacentBoard, readingOrder } from './navigation'
 import { Overlay } from './overlay'
-import { PageLabel } from './page-label'
 import { PlayView } from './play-view'
 import { NO_SELECTION, reduceSelection, type Selection } from './selection'
 import {
   assignEdits,
+  colorEdits,
   createSectionEdits,
   deleteSectionEdits,
+  moveSectionEdits,
+  resizeSectionEdits,
   placedSections,
   renameEdits,
   withMembership,
@@ -39,6 +42,7 @@ import {
 import { SectionLayer } from './section-layer'
 import { SettingsDialog } from './settings-dialog'
 import { Sidebar } from './sidebar'
+import { pendingOf, TopBar } from './top-bar'
 import { FocusBar } from './focus-bar'
 import { Toast, useNotice } from './toast'
 import { type Tool, Toolbar } from './toolbar'
@@ -58,7 +62,7 @@ import {
 import { type CommandHandlers, useShortcuts } from './use-shortcuts'
 import { useViewport } from './use-viewport'
 import { ViewControls } from './view-controls'
-import { readMinimap, writeMinimap } from './view-storage'
+import { readMinimap, writeMinimap, readSidebar, writeSidebar} from './view-storage'
 
 const GRID_STYLE = {
   backgroundColor: 'var(--surface)',
@@ -127,6 +131,7 @@ export function PageCanvas({
   const [panelOpen, setPanelOpen] = useState(false)
   const [activeComment, setActiveComment] = useState<string | null>(null)
   const [minimap, setMinimap] = useState(readMinimap)
+  const [sidebarShown, setSidebarShown] = useState(readSidebar)
   const [searchOpen, setSearchOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [renaming, setRenaming] = useState<string | null>(null)
@@ -240,6 +245,16 @@ export function PageCanvas({
     [],
   )
   const moving = tool === 'move'
+  const [dropTarget, setDropTarget] = useState<string | null>(null)
+  // The sections as they were when a drag started: read through a ref so the callback is stable.
+  const dragState = useRef({ boards: edit.boards, sections: edit.sections })
+  useEffect(() => {
+    dragState.current = { boards: edit.boards, sections: edit.sections }
+  })
+  const dropAreas = useCallback(
+    () => placedSections(dragState.current.sections, dragState.current.boards),
+    [],
+  )
   const { placedLayout, selectedRect, frameEdit, actions, nudges } = useBoardEditing({
     camera,
     cameraActions,
@@ -247,6 +262,8 @@ export function PageCanvas({
     selection,
     moving,
     onSelect: select,
+    dropAreas,
+    onTarget: setDropTarget,
   })
   const focusBoard = useCallback(
     (name: string) => {
@@ -257,18 +274,29 @@ export function PageCanvas({
   )
   const { sections, sectionOf, editSections } = edit
   const placedSectionList = useMemo(
-    () => placedSections(sections, boards, view.k),
-    [sections, boards, view.k],
+    () => placedSections(sections, boards),
+    [sections, boards],
   )
+  const toggleSidebar = useCallback(() => {
+    setSidebarShown((shown) => {
+      writeSidebar(!shown)
+      return !shown
+    })
+  }, [])
   const latestEdit = useRef({ boards, sections })
   useEffect(() => {
     latestEdit.current = { boards, sections }
   })
   const createSection = useCallback(
-    (names: string[]) => {
+    (names: string[], nested = true) => {
       if (names.length === 0) return
       const current = latestEdit.current
-      const { section, before, after } = createSectionEdits(names, current.boards, current.sections)
+      const { section, before, after } = createSectionEdits(
+        names,
+        current.boards,
+        current.sections,
+        nested,
+      )
       editSections('new section', before, after)
       setRenaming(section.id)
     },
@@ -291,10 +319,52 @@ export function PageCanvas({
       const current = latestEdit.current
       const section = current.sections.find((candidate) => candidate.id === id)
       if (!section) return
-      const { before, after } = deleteSectionEdits(section, current.boards)
+      const { before, after } = deleteSectionEdits(section, current.boards, current.sections)
       editSections(`delete of ${section.title}`, before, after)
     },
     [editSections],
+  )
+  const colorSection = useCallback(
+    (id: string, color: 'gray' | 'blue' | 'green' | 'amber' | 'purple' | 'red' | null) => {
+      const section = latestEdit.current.sections.find((candidate) => candidate.id === id)
+      if (!section || (section.color ?? null) === color) return
+      const { before, after } = colorEdits(section, color)
+      editSections(`color of ${section.title}`, before, after)
+    },
+    [editSections],
+  )
+  const [selectedSection, setSelectedSection] = useState<string | null>(null)
+  const resizeSection = useCallback(
+    (id: string, rect: Rect) => {
+      const section = latestEdit.current.sections.find((candidate) => candidate.id === id)
+      if (!section) return
+      const { before, after } = resizeSectionEdits(section, rect)
+      editSections(`resize of ${section.title}`, before, after)
+    },
+    [editSections],
+  )
+  const moveSection = useCallback(
+    (id: string, moves: Move[], label: string) => {
+      const [first] = moves
+      const stored = first
+        ? moveSectionEdits(
+            id,
+            latestEdit.current.sections,
+            first.rect.x - first.before.x,
+            first.rect.y - first.before.y,
+          )
+        : null
+      if (!stored) return edit.commit(moves, 'move', label)
+      // The boards and the stored areas move together, so one undo puts both back.
+      const { before, after } = editsOf(moves)
+      edit.preview(null)
+      editSections(
+        label,
+        { ...before, ...stored.before },
+        { ...after, ...stored.after },
+      )
+    },
+    [edit, editSections],
   )
   const assignSection = useCallback(
     (names: string[], id: string | null) => {
@@ -313,6 +383,8 @@ export function PageCanvas({
     (names: string[]) => {
       const known = names.filter((name) => onPage.has(name))
       if (known.length === 0) return
+      setFullPlay(null)
+      setPlayStart(null)
       dispatch({ type: 'set', names: known })
       actions.focusBoards(known)
     },
@@ -420,8 +492,12 @@ export function PageCanvas({
         if (only) dispatch({ type: 'interact' })
       },
       escape: () => (commenting ? changeTool('move') : dispatch({ type: 'escape' })),
-      search: () => searchRef.current?.focus(),
+      search: () => {
+        if (searchRef.current) searchRef.current.focus()
+        else setSearchOpen(true)
+      },
       'global-search': () => setSearchOpen(true),
+      'toggle-sidebar': () => toggleSidebar(),
       undo: () => walk(edit.undo),
       redo: () => walk(edit.redo),
       'select-all': () => {
@@ -452,6 +528,7 @@ export function PageCanvas({
     selection.interacting,
     selection.names,
     setNotice,
+    toggleSidebar,
   ])
   // Boards with the flags read again after a change; the same objects when nothing changed.
   const shown = useMemo(
@@ -495,18 +572,75 @@ export function PageCanvas({
   // page shows no view, so the canvas keeps its shortcuts.
   useShortcuts(fullBoard ? playCommands : commands, setSpace)
 
+  // A section is selected while exactly its boards are: any other selection puts it away.
+  const sectionSelected = useMemo(() => {
+    const placed = placedSectionList.find((item) => item.section.id === selectedSection)
+    if (!placed) return null
+    const names = new Set(selection.names)
+    return placed.members.length === names.size && placed.members.every((name) => names.has(name))
+      ? placed.section.id
+      : null
+  }, [placedSectionList, selectedSection, selection.names])
+  const pending = useMemo(
+    () =>
+      pendingOf(
+        boards.map((board) => board.name),
+        approvals.stateOf,
+      ),
+    [boards, approvals.stateOf],
+  )
+  const approveBoards = useCallback(
+    async ({ boards: names, sessionId }: { boards: string[]; sessionId: string }) => {
+      await approvals.approveMany({ boards: names, sessionId, note: '' })
+      setNotice(`Sent ${names.length} ${names.length === 1 ? 'board' : 'boards'} to the agent`, 'info')
+    },
+    [approvals, setNotice],
+  )
+  /** Approve and build on a comment: one approval with a note, then the comment is resolved. */
+  const approveAndBuild = useCallback(
+    async (comment: Comment) => {
+      if (!comment.sessionId) return
+      try {
+        await approvals.approve({
+          board: comment.board,
+          sessionId: comment.sessionId,
+          note: buildNote(comment),
+        })
+      } catch (failure) {
+        setNotice(String((failure as Error)?.message ?? failure), 'error')
+        throw failure
+      }
+      await comments.resolve(comment.id)
+      setNotice(`Sent ${comment.board} to the agent to build`, 'info')
+    },
+    [approvals, comments, setNotice],
+  )
+
   return (
-    <div className="flex h-screen">
-      <Sidebar
-        pages={pages}
-        pageId={manifest.id}
-        boards={sidebarBoards}
-        sections={sections}
-        selected={selection.names}
-        searchRef={searchRef}
-        onFocusBoard={focusBoard}
-        onSelectBoards={selectBoards}
+    <div className="flex h-screen flex-col">
+      <TopBar
+        pageTitle={manifest.title}
+        boards={boards.map((board) => board.name)}
+        pending={pending}
+        sidebarShown={sidebarShown}
+        onToggleSidebar={toggleSidebar}
+        onSearch={() => setSearchOpen(true)}
+        onSettings={() => setSettingsOpen(true)}
+        onApprove={approveBoards}
       />
+      <div className="flex min-h-0 flex-1">
+      {sidebarShown ? (
+        <Sidebar
+          pages={pages}
+          pageId={manifest.id}
+          boards={sidebarBoards}
+          sections={sections}
+          selected={selection.names}
+          searchRef={searchRef}
+          onFocusBoard={focusBoard}
+          onSelectBoards={selectBoards}
+        />
+      ) : null}
       <div
         ref={viewportRef}
         tabIndex={0}
@@ -526,23 +660,24 @@ export function PageCanvas({
           onPointerOver={(event) => event.buttons === 0 && setHovered(boardOf(event.target))}
           onPointerLeave={() => setHovered(null)}
         >
-          <PageLabel title={manifest.title} k={view.k} />
           <SectionLayer
-            part="areas"
             hovered={hoveredSection}
+            dropTarget={dropTarget}
             onHover={setHoveredSection}
             sections={placedSectionList}
             boards={boards}
             pageId={manifest.id}
             camera={camera}
-            selected={selection.names}
             renaming={renaming}
             movable={tool === 'move'}
             onSelect={selectBoards}
             onRenameStart={setRenaming}
             onRename={renameSection}
             onPreview={edit.preview}
-            onCommit={edit.commit}
+            selectedSection={sectionSelected}
+            onSelectSection={setSelectedSection}
+            onMoveSection={moveSection}
+            onResizeSection={resizeSection}
           />
           {shown.map((board) => {
             const entry = mounts.state.entries[board.name]
@@ -556,7 +691,7 @@ export function PageCanvas({
                 interacting={selection.interacting && only === board.name}
                 commenting={commenting}
                 reload={reloads.counters[board.name] ?? 0}
-                approval={approvalStateOf(approvals.approvals.get(board.name))}
+                approval={approvals.stateOf(board.name)}
                 thumb={thumbs[board.name]}
                 onSelect={clickFrame}
                 onComment={commentOnBoard}
@@ -565,23 +700,6 @@ export function PageCanvas({
               />
             )
           })}
-          <SectionLayer
-            part="labels"
-            hovered={hoveredSection}
-            onHover={setHoveredSection}
-            sections={placedSectionList}
-            boards={boards}
-            pageId={manifest.id}
-            camera={camera}
-            selected={selection.names}
-            renaming={renaming}
-            movable={tool === 'move'}
-            onSelect={selectBoards}
-            onRenameStart={setRenaming}
-            onRename={renameSection}
-            onPreview={edit.preview}
-            onCommit={edit.commit}
-          />
           <CommentLayer
             boards={boards}
             comments={comments.comments}
@@ -656,6 +774,9 @@ export function PageCanvas({
           onResolve={comments.resolve}
           onReply={comments.reply}
           onSend={comments.send}
+          onSendOne={comments.sendOne}
+          onRetarget={comments.retarget}
+          onApproveAndBuild={approveAndBuild}
         />
       ) : selection.names.length > 0 ? (
         <InspectorHost
@@ -672,19 +793,23 @@ export function PageCanvas({
             onSection: assignSection,
             onCreateSection: createSection,
             onDeleteSection: deleteSection,
+            onColor: colorSection,
           }}
           onFocusBoard={focusBoard}
         >
-          {selectedBoard ? (
+          {selectedBoard && approvals.stateOf(selectedBoard.name) !== undefined &&
+          approvals.stateOf(selectedBoard.name) !== 'approved' ? (
             <ApproveBox
               key={selectedBoard.name}
               board={selectedBoard.name}
+              state={approvals.stateOf(selectedBoard.name)}
               approval={approvals.approvals.get(selectedBoard.name)}
               onApprove={approvals.approve}
             />
           ) : null}
         </InspectorHost>
       ) : null}
+      </div>
       <GlobalSearch
         open={searchOpen}
         onOpenChange={setSearchOpen}
@@ -703,6 +828,7 @@ export function PageCanvas({
           numbers={numbers}
           start={playStart}
           canVary={!manifest.boards.find((board) => board.name === fullBoard.name)?.variantOf}
+          onApproveAndBuild={approveAndBuild}
         />
       ) : null}
     </div>

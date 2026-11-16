@@ -51,10 +51,86 @@ export type BoardEdit = {
   height?: number
   section?: string | null
 }
-export type SectionEntry = { id: string; title: string; variantOf?: string }
+export const SECTION_COLORS = ['gray', 'blue', 'green', 'amber', 'purple', 'red'] as const
+export type SectionColor = (typeof SECTION_COLORS)[number]
+export const MAX_SECTION_DEPTH = 3
+export type SectionEntry = {
+  id: string
+  title: string
+  variantOf?: string
+  /** The id of the section this one sits in. `null` in an edit takes it out of its parent. */
+  parent?: string | null
+  color?: SectionColor | null
+  /** A stored area. Without it the section fits its boards. `null` clears a stored field. */
+  x?: number | null
+  y?: number | null
+  width?: number | null
+  height?: number | null
+}
 export type CanvasEdit = {
   boards?: BoardEdit[]
   sections?: { set?: SectionEntry[]; remove?: string[] }
+}
+
+const withParent = (entry: SectionEntry, parent: string | null): SectionEntry => ({
+  ...entry,
+  parent,
+})
+
+/** Drops a `null` parent or color, which an edit uses to clear the field. */
+const clean = (entry: SectionEntry): SectionEntry => {
+  const { parent, color, x, y, width, height, ...rest } = entry
+  const stored = [x, y, width, height].every((value) => Number.isFinite(value))
+  return {
+    ...rest,
+    ...(parent ? { parent } : {}),
+    ...(color && color !== 'gray' ? { color } : {}),
+    ...(stored
+      ? {
+          x: Math.round(x as number),
+          y: Math.round(y as number),
+          width: Math.round(width as number),
+          height: Math.round(height as number),
+        }
+      : {}),
+  }
+}
+
+/** The first problem in `sections`: a bad color, a missing parent, a cycle or more than 3 levels. */
+export function validateSections(sections: SectionEntry[]): string | null {
+  const byId = new Map(sections.map((entry) => [entry.id, entry]))
+  for (const entry of sections) {
+    if (entry.color != null && !(SECTION_COLORS as readonly string[]).includes(entry.color)) {
+      return `section ${entry.id} has an unknown color ${String(entry.color)}`
+    }
+    const given = [entry.x, entry.y, entry.width, entry.height].filter(
+      (value) => value !== undefined && value !== null,
+    )
+    if (given.length > 0 && given.length < 4) {
+      return `section ${entry.id} needs x, y, width and height together`
+    }
+    if (given.some((value) => !Number.isFinite(value))) {
+      return `the area of section ${entry.id} must be finite numbers`
+    }
+    if (given.length === 4 && ((entry.width as number) <= 0 || (entry.height as number) <= 0)) {
+      return `section ${entry.id} needs a positive width and height`
+    }
+    let depth = 1
+    const seen = new Set([entry.id])
+    let parent = entry.parent ?? null
+    while (parent !== null) {
+      const next = byId.get(parent)
+      if (!next) return `section ${entry.id} has no parent named ${parent}`
+      if (seen.has(parent)) return `section ${entry.id} is its own ancestor`
+      seen.add(parent)
+      depth += 1
+      if (depth > MAX_SECTION_DEPTH) {
+        return `sections nest at most ${MAX_SECTION_DEPTH} levels, ${entry.id} is deeper`
+      }
+      parent = next.parent ?? null
+    }
+  }
+  return null
 }
 
 const GEOMETRY = ['x', 'y', 'width', 'height'] as const
@@ -83,7 +159,18 @@ export function applyEdit(canvas: CanvasFile, page: string, edit: CanvasEdit): P
     removed.delete(entry.id)
   }
   const sectionsTouched = edit.sections !== undefined
-  sections = sections.filter((candidate) => !removed.has(candidate.id))
+  // Children of a removed section move up to its parent.
+  const parentOf = new Map(sections.map((candidate) => [candidate.id, candidate.parent ?? null]))
+  sections = sections
+    .filter((candidate) => !removed.has(candidate.id))
+    .map((candidate) => {
+      let parent = candidate.parent ?? null
+      while (parent !== null && removed.has(parent)) parent = parentOf.get(parent) ?? null
+      return parent === (candidate.parent ?? null) ? candidate : withParent(candidate, parent)
+    })
+  const invalid = validateSections(sections)
+  if (invalid) return { error: invalid, status: 400 }
+  sections = sections.map(clean)
   const sectionIds = new Set(sections.map((candidate) => candidate.id))
 
   const edits = new Map<string, BoardEdit>()
@@ -109,9 +196,12 @@ export function applyEdit(canvas: CanvasFile, page: string, edit: CanvasEdit): P
         patch[key] = Math.round(value)
       }
       next = { ...board, ...patch }
+      // The minimum applies to a size the edit sets; moving a board that is already smaller (a
+      // 48 px bar, say) is allowed and keeps its size.
+      const sizing = 'width' in patch || 'height' in patch
       if (
-        (next.width as number) < MIN_BOARD_WIDTH ||
-        (next.height as number) < MIN_BOARD_HEIGHT
+        sizing &&
+        ((next.width as number) < MIN_BOARD_WIDTH || (next.height as number) < MIN_BOARD_HEIGHT)
       ) {
         return {
           error: `a board is at least ${MIN_BOARD_WIDTH} wide and ${MIN_BOARD_HEIGHT} high`,

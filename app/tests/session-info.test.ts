@@ -88,3 +88,54 @@ describe('session info', () => {
     }
   })
 })
+
+describe('session titles of other agents', () => {
+  const homes = ['COMMANDCODE_HOME', 'CODEX_HOME'] as const
+  const saved = Object.fromEntries(homes.map((name) => [name, process.env[name]]))
+  let dir: string
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'agent-dir-'))
+    process.env.COMMANDCODE_HOME = join(dir, 'cc')
+    process.env.CODEX_HOME = join(dir, 'codex')
+    resetSessionInfoCache()
+  })
+  afterEach(() => {
+    for (const name of homes) {
+      if (saved[name] === undefined) delete process.env[name]
+      else process.env[name] = saved[name]
+    }
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('reads the Command Code title and follows a rename', async () => {
+    const meta = join(dir, 'cc', 'projects', 'some-project')
+    mkdirSync(meta, { recursive: true })
+    writeFileSync(join(meta, 'c1.meta.json'), JSON.stringify({ title: 'First name' }))
+    const session = { id: 'c1', label: 'fallback', cwd: '/nowhere', agent: 'command-code' as const }
+    expect((await sessionInfo(session)).title).toBe('First name')
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    writeFileSync(join(meta, 'c1.meta.json'), JSON.stringify({ title: 'Renamed' }))
+    expect((await sessionInfo(session)).title).toBe('Renamed')
+  })
+
+  it('reads the newest Codex thread name', async () => {
+    mkdirSync(join(dir, 'codex'), { recursive: true })
+    writeFileSync(
+      join(dir, 'codex', 'session_index.jsonl'),
+      [
+        { id: 'x1', thread_name: 'Old name' },
+        { id: 'other', thread_name: 'Not mine' },
+        { id: 'x1', thread_name: 'New name' },
+      ]
+        .map((entry) => JSON.stringify(entry))
+        .join('\n') + '\n',
+    )
+    const session = { id: 'x1', label: 'fallback', cwd: '/nowhere', agent: 'codex' as const }
+    expect((await sessionInfo(session)).title).toBe('New name')
+  })
+
+  it('keeps the label for an agent with no known store', async () => {
+    const session = { id: 'p1', label: 'My label', cwd: '/nowhere', agent: 'pi' as const }
+    expect((await sessionInfo(session)).title).toBe('My label')
+  })
+})

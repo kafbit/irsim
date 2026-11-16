@@ -10,8 +10,8 @@
 <helmet>
 <style>
 body{margin:0}
-.cv-root{--pick:#14161a;--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted:#efefeb;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a}
-.cv-root.dark{--pick:#14161a;--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8}
+.cv-root{--pick:#14161a;--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted:#efefeb;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--destructive-tint:#fbe9e6;--rented:#f1ecfa;--rented-foreground:#4f2d8a;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a}
+.cv-root.dark{--pick:#14161a;--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--destructive-tint:#3b1814;--rented:#281f3b;--rented-foreground:#bda7ec;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8}
 </style>
 </helmet>
 <div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="display: flex; width: 100%; min-height: 100vh; background: var(--card); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
@@ -25,7 +25,7 @@ body{margin:0}
 <ul style="display: flex; flex-direction: column; flex: 1; min-height: 0; margin: 0 -4px; padding: 0; list-style: none;">
 <sc-for list="{{rows}}" as="row">
 <sc-if value="{{row.isHeader}}" hint-placeholder-val="{{false}}">
-<li style="display: flex; align-items: center; gap: 4px; margin-top: 8px; padding: 6px 8px; border-radius: 10px;"><span style="display: inline-flex; flex-shrink: 0; color: var(--muted-foreground); transform: rotate({{row.rotate}}deg);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span><span style="min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 600;">{{row.title}}</span><span style="font-size: 12px; color: var(--muted-foreground);">{{row.count}}</span></li>
+<li style="display: flex; align-items: center; gap: 4px; margin-top: 8px; margin-left: {{row.indent}}px; padding: 6px 8px; border-radius: 10px;"><span style="display: inline-flex; flex-shrink: 0; color: var(--muted-foreground); transform: rotate({{row.rotate}}deg);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span><span aria-hidden="true" style="width: 8px; height: 8px; flex-shrink: 0; border-radius: 50%; background: {{row.dot}};"></span><span style="min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; font-weight: 600;">{{row.title}}</span><span style="font-size: 12px; color: var(--muted-foreground);">{{row.count}}</span></li>
 </sc-if>
 <sc-if value="{{row.isBoard}}" hint-placeholder-val="{{true}}">
 <li style="display: flex; align-items: center; gap: 4px; margin-left: {{row.indent}}px; border-radius: 10px; background: {{row.bg}};"><div style="min-width: 0; flex: 1; padding: 6px 8px;"><span style="display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; color: var(--foreground);">{{row.title}}</span><span style="display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted-foreground);">{{row.name}}</span></div><span style="display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; padding: 4px 8px; border-radius: 8px; font-size: 12px; color: var(--muted-foreground);"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"/></svg>Play</span></li>
@@ -50,16 +50,13 @@ body{margin:0}
 </div>
 </section>
 </sc-if>
-<div style="margin: auto -12px -12px; padding: 12px; border-top: 1px solid var(--border); --cv-h: 0px; --cv-pad: 0px; --cv-bg: transparent;">
-<dc-import name="CanvasSession" theme="{{theme}}" state="{{session}}" hint-size="264px,52px"></dc-import>
-</div>
 </aside>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"page":{"editor":"enum","default":"Components","options":["Components","Home"]},"selected":{"editor":"enum","default":"Button","options":["Button","none"]},"search":{"editor":"text","default":""},"update":{"editor":"enum","default":"none","options":["none","available"]},"session":{"editor":"enum","default":"one","options":["one","several","none"]},"sections":{"editor":"enum","default":"no","options":["no","yes"]},"$preview":{"width":288,"height":820}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"page":{"editor":"enum","default":"Components","options":["Components","Home"]},"selected":{"editor":"enum","default":"Button","options":["Button","none"]},"search":{"editor":"text","default":""},"update":{"editor":"enum","default":"none","options":["none","available"]},"sections":{"editor":"enum","default":"no","options":["no","yes"]},"$preview":{"width":288,"height":820}}'>
 class Component extends DCLogic {
   renderVals() {
-    const { page, selected, search, update, theme, sections, session } = this.props
+    const { page, selected, search, update, theme, sections } = this.props
     const grouped = sections === 'yes'
     const pages = [
       { title: 'Home', boards: [{ name: 'Home', title: 'Home' }] },
@@ -69,7 +66,7 @@ class Component extends DCLogic {
           ? [
               { name: 'Button', title: 'Button' },
               { name: 'Dialog', title: 'Confirmation dialog', section: 'Checkout flow' },
-              { name: 'Card', title: 'Profile card', section: 'Checkout flow' },
+              { name: 'Card', title: 'Profile card', section: 'Checkout flow', sub: 'Details' },
               { name: 'Table', title: 'Data table' },
               { name: 'Badge', title: 'Status badge', section: 'Reports' },
               { name: 'Tabs', title: 'Tab bar', section: 'Reports' },
@@ -99,18 +96,25 @@ class Component extends DCLogic {
         bg: item.name === active ? 'var(--secondary)' : 'transparent',
       })
       if (!withSections) return boards.map((item) => board(item, 0))
+      const dots = { 'Checkout flow': 'var(--muted-foreground)', Details: 'var(--info-foreground)', Reports: 'var(--success-foreground)' }
+      const header = (title, count, indent) => ({ isHeader: true, isBoard: false, title, count, rotate: 0, indent, dot: dots[title] })
       const rows = boards.filter((item) => !item.section).map((item) => board(item, 0))
       const titles = [...new Set(boards.filter((item) => item.section).map((item) => item.section))]
       for (const title of titles) {
         const members = boards.filter((item) => item.section === title)
-        rows.push({ isHeader: true, isBoard: false, title, count: members.length, rotate: 0 })
-        rows.push(...members.map((item) => board(item, 12)))
+        rows.push(header(title, members.length, 0))
+        rows.push(...members.filter((item) => !item.sub).map((item) => board(item, 12)))
+        const subs = [...new Set(members.filter((item) => item.sub).map((item) => item.sub))]
+        for (const sub of subs) {
+          const inner = members.filter((item) => item.sub === sub)
+          rows.push(header(sub, inner.length, 12))
+          rows.push(...inner.map((item) => board(item, 24)))
+        }
       }
       return rows
     }
     return {
       themeClass: theme === 'dark' ? 'dark' : '',
-      theme: theme === 'dark' ? 'dark' : 'light',
       pages: pages.map((item) => ({
         title: item.title,
         count: item.boards.length,
@@ -123,7 +127,6 @@ class Component extends DCLogic {
       rows: rowsFor(shown, selected, grouped),
       empty: shown.length === 0,
       showUpdate: update === 'available',
-      session: session || 'one',
     }
   }
 }

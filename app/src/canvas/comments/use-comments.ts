@@ -95,6 +95,10 @@ export function useComments(pageId: string) {
       write('POST', `/api/comments/${id}/reply`, { author: 'user', body }),
     remove: (id: string) => write('DELETE', `/api/comments/${id}`),
     send: (sessionId: string) => write('POST', '/api/comments/send', { sessionId, page: pageId }),
+    sendOne: (id: string, sessionId: string) =>
+      write('POST', '/api/comments/send', { sessionId, page: pageId, ids: [id] }),
+    retarget: (id: string, sessionId: string) =>
+      write('PATCH', `/api/comments/${id}`, { sessionId }),
   }
 
   return { comments, error, refetch, uploadImage, ...actions }

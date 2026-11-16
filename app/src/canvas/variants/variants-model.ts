@@ -38,3 +38,35 @@ export const isNarrow = (choice: CompareWidth): boolean => choice === '390'
 
 /** How many columns may mount now: the first ones at once, then one more per column that settled. */
 export const mountLimit = (settled: number): number => MAX_CONCURRENT_MOUNTS + settled
+
+const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`
+
+/**
+ * The confirmation for Choose (`pick` is a variant) or Keep original (`pick` is the base): what the
+ * pick replaces, and what is deleted. `variants` counts the base's variants. `null` when Keep
+ * original has no variant to delete, so there is nothing to confirm.
+ */
+export const confirmText = (input: {
+  base: string
+  pick: string
+  label: string
+  variants: number
+}): { title: string; text: string; action: string } | null => {
+  if (input.pick === input.base) {
+    if (input.variants === 0) return null
+    return {
+      title: 'Keep the original?',
+      text: `The ${plural(input.variants, 'variant')} ${input.variants === 1 ? 'is' : 'are'} deleted.`,
+      action: 'Keep original',
+    }
+  }
+  const others = input.variants - 1
+  return {
+    title: `Replace ${input.base} with ${input.label}?`,
+    text:
+      others === 0
+        ? 'The original is deleted.'
+        : `The original and the other ${others === 1 ? 'variant are' : `${others} variants are`} deleted.`,
+    action: 'Replace',
+  }
+}

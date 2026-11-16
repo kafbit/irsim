@@ -92,6 +92,27 @@ describe('comments store', () => {
     })
   })
 
+  it('sends only the drafts named in ids', async () => {
+    const first = await createComment(input({ body: 'first' }))
+    const second = await createComment(input({ body: 'second' }))
+    expect((await sendDrafts({ sessionId: 's1', page: 'sales', ids: [second.id] })).count).toBe(1)
+    expect((await listComments({ status: 'draft' })).map((c) => c.id)).toEqual([first.id])
+    expect((await listComments({ status: 'queued' })).map((c) => c.id)).toEqual([second.id])
+  })
+
+  it('moves a sent comment to another session, which then claims it', async () => {
+    const comment = await createComment(input())
+    expect(await updateComment(comment.id, { sessionId: 's2' })).toEqual({
+      ok: false,
+      reason: 'is_draft',
+    })
+    await sendDrafts({ sessionId: 's1' })
+    const moved = await updateComment(comment.id, { sessionId: 's2' })
+    expect(moved.ok && moved.value.sessionId).toBe('s2')
+    expect((await claim('s1')).count).toBe(0)
+    expect((await claim('s2')).count).toBe(1)
+  })
+
   it('claim only takes the comments queued for that session', async () => {
     await createComment(input())
     await sendDrafts({ sessionId: 's1' })

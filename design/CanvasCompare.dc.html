@@ -10,8 +10,8 @@
 <helmet>
 <style>
 body{margin:0}
-.cv-root{--pick:#14161a;--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted:#efefeb;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a;--play:#2563eb;--mock-bg:#f6f6f3;--mock-ink:#14161a;--mock-card:#ffffff;--mock-line:#e4e4e0;--mock-bar:#d6d7d2}
-.cv-root.dark{--pick:#14161a;--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8;--play:#60a5fa}
+.cv-root{--pick:#14161a;--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted:#efefeb;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--destructive-tint:#fbe9e6;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a;--play:#2563eb;--mock-bg:#f6f6f3;--mock-ink:#14161a;--mock-card:#ffffff;--mock-line:#e4e4e0;--mock-bar:#d6d7d2}
+.cv-root.dark{--pick:#14161a;--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--destructive-tint:#3b1814;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8;--play:#60a5fa}
 </style>
 </helmet>
 <div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="display: flex; flex-direction: column; width: 100%; height: 100vh; overflow: hidden; background: var(--shell); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
@@ -34,16 +34,24 @@ body{margin:0}
 <dc-import name="CanvasInspector" theme="{{theme}}" approval="none" imports="{{col.imports}}" hint-size="288px,680px"></dc-import>
 </div>
 </div>
+<sc-if value="{{col.plain}}" hint-placeholder-val="{{true}}">
 <button type="button" style="display: inline-flex; align-items: center; justify-content: center; height: 34px; margin: 0; padding: 0 12px; border: 1px solid {{col.border}}; border-radius: 10px; background: {{col.bg}}; color: {{col.fg}}; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;">{{col.button}}</button>
+</sc-if>
+<sc-if value="{{col.confirming}}" hint-placeholder-val="{{false}}">
+<div role="alertdialog" aria-label="Confirm the choice" style="display: flex; flex-direction: column; gap: 10px; box-sizing: border-box; padding: 12px; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--card);">
+<p style="margin: 0; font-size: 13px; line-height: 18px;"><span style="font-weight: 600;">{{col.confirmTitle}}</span><br><span style="color: var(--muted-foreground);">{{col.confirmText}}</span></p>
+<div style="display: flex; justify-content: flex-end; gap: 8px;"><button type="button" style="display: inline-flex; align-items: center; justify-content: center; height: 34px; margin: 0; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--card); color: var(--foreground); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Cancel</button><button type="button" style="display: inline-flex; align-items: center; justify-content: center; height: 34px; margin: 0; padding: 0 12px; border: 1px solid var(--primary); border-radius: 10px; background: var(--primary); color: var(--primary-foreground); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;">{{col.confirmButton}}</button></div>
+</div>
+</sc-if>
 </section>
 </sc-for>
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"width":{"editor":"enum","default":"board","options":["board","1280","768","390"]},"error":{"editor":"enum","default":"no","options":["no","yes"]},"unchanged":{"editor":"enum","default":"no","options":["no","yes"]},"$preview":{"width":1440,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"width":{"editor":"enum","default":"board","options":["board","1280","768","390"]},"error":{"editor":"enum","default":"no","options":["no","yes"]},"unchanged":{"editor":"enum","default":"no","options":["no","yes"]},"confirm":{"editor":"enum","default":"none","options":["none","choose","keep"]},"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
-    const { theme, width, error, unchanged } = this.props
+    const { theme, width, error, unchanged, confirm } = this.props
     const widths = [
       { id: 'board', label: 'Board width' },
       { id: '1280', label: '1280' },
@@ -64,6 +72,15 @@ class Component extends DCLogic {
       { label: 'Simpler', name: 'CanvasInspectorVariantSimpler', imports: '0', button: 'Choose', unchanged: false, ...primary },
       { label: 'Clearer', name: 'CanvasInspectorVariantClearer', imports: '3', button: 'Choose', unchanged: unchanged === 'yes', ...primary },
     ]
+    // `confirm`: none acts at once (today); choose and keep show the confirmation in that column.
+    const confirmFor = { choose: 'Simpler', keep: 'Original' }[confirm]
+    for (const col of columns) {
+      col.confirming = col.label === confirmFor
+      col.plain = !col.confirming
+      col.confirmTitle = col.label === 'Original' ? 'Keep the original?' : `Replace CanvasInspector with ${col.label}?`
+      col.confirmText = col.label === 'Original' ? 'The 2 variants are deleted.' : 'The original and the other variant are deleted.'
+      col.confirmButton = col.label === 'Original' ? 'Keep original' : 'Replace'
+    }
     const narrow = width === '390'
     return {
       themeClass: theme === 'dark' ? 'dark' : '',

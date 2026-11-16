@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useRef, useState } from 'react'
 import { CommentForm } from './comment-form'
 import { PANEL, PANEL_CLASS } from './composer'
 import { useGenerate } from './use-generate'
@@ -30,7 +31,16 @@ export function FrameComposer({
   onCancel: () => void
 }) {
   const variants = useGenerate({ page, pick, onSent })
-  const at = placePanel(pick.rect, size, PANEL)
+  const dialog = useRef<HTMLDivElement>(null)
+  const [height, setHeight] = useState(PANEL.height)
+  useEffect(() => {
+    const element = dialog.current
+    if (!element) return
+    const observer = new ResizeObserver(() => setHeight(element.offsetHeight || PANEL.height))
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
+  const at = placePanel(pick.rect, size, { width: PANEL.width, height })
   return (
     <>
       <div
@@ -43,6 +53,7 @@ export function FrameComposer({
         }}
       />
       <div
+        ref={dialog}
         role="dialog"
         aria-label="New comment"
         className={PANEL_CLASS}
@@ -53,6 +64,7 @@ export function FrameComposer({
           onSave={onSave}
           onGenerate={canVary ? variants.generate : undefined}
           canGenerate={variants.canGenerate}
+          session={variants.session}
           onCancel={onCancel}
         />
       </div>

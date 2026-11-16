@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { PRESETS } from '../../lib/variant-presets'
 import { Button, Textarea } from '../../ui'
-import { SessionPicker } from '../comments/session-picker'
+import { SessionRow } from '../comments/session-row'
 import { useSession } from '../comments/use-session'
 import type { ManifestBoard, PageManifest } from '../types'
 import { useApi } from '../use-api'
@@ -152,7 +152,7 @@ function BaseBoardBox({ board, page }: { board: ManifestBoard; page: string }) {
         value={note}
         onChange={(event) => setNote(event.target.value)}
       />
-      <SessionPicker sessions={sessions} loaded={loaded} sessionId={sessionId} onPick={pick} />
+      <SessionRow sessions={sessions} loaded={loaded} sessionId={sessionId} onPick={pick} />
       <Button
         size="sm"
         icon={<SplitIcon />}

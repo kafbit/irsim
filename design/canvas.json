@@ -11,7 +11,7 @@
           "x": 0,
           "y": 0,
           "width": 1440,
-          "height": 900
+          "height": 948
         },
         {
           "name": "CanvasAppSelected",
@@ -19,7 +19,7 @@
           "x": 1520,
           "y": 0,
           "width": 1440,
-          "height": 900
+          "height": 948
         },
         {
           "name": "CanvasAppZoomedOut",
@@ -27,7 +27,7 @@
           "x": 3040,
           "y": 0,
           "width": 1440,
-          "height": 900
+          "height": 948
         },
         {
           "name": "CanvasAppThumbnailsLoading",
@@ -35,7 +35,7 @@
           "x": 4560,
           "y": 0,
           "width": 1440,
-          "height": 900
+          "height": 948
         },
         {
           "name": "CanvasAppPlaying",
@@ -43,7 +43,7 @@
           "x": 0,
           "y": 980,
           "width": 1440,
-          "height": 900
+          "height": 948
         },
         {
           "name": "CanvasAppCommenting",
@@ -51,7 +51,7 @@
           "x": 1520,
           "y": 980,
           "width": 1440,
-          "height": 900
+          "height": 948
         },
         {
           "name": "CanvasAppToast",
@@ -59,7 +59,7 @@
           "x": 3040,
           "y": 980,
           "width": 1440,
-          "height": 900
+          "height": 948
         },
         {
           "name": "CanvasAppEmptyPage",
@@ -67,7 +67,7 @@
           "x": 4560,
           "y": 980,
           "width": 1440,
-          "height": 900
+          "height": 948
         },
         {
           "name": "CanvasFrame",
@@ -265,7 +265,7 @@
           "name": "UpdateNotice",
           "title": "Update notice",
           "x": 0,
-          "y": 4776,
+          "y": 4896,
           "width": 720,
           "height": 560
         },
@@ -273,7 +273,7 @@
           "name": "UpdateNoticeRestart",
           "title": "Update notice: restart",
           "x": 800,
-          "y": 4776,
+          "y": 4896,
           "width": 720,
           "height": 560
         },
@@ -281,7 +281,7 @@
           "name": "UpdateNoticeUpdating",
           "title": "Update notice: updating",
           "x": 1600,
-          "y": 4776,
+          "y": 4896,
           "width": 720,
           "height": 560
         },
@@ -289,7 +289,7 @@
           "name": "UpdateNoticeRestarting",
           "title": "Update notice: restarting",
           "x": 2400,
-          "y": 4776,
+          "y": 4896,
           "width": 720,
           "height": 560
         },
@@ -297,7 +297,7 @@
           "name": "UpdateNoticeFailed",
           "title": "Update notice: failed",
           "x": 3200,
-          "y": 4776,
+          "y": 4896,
           "width": 720,
           "height": 560
         },
@@ -305,7 +305,7 @@
           "name": "UpdateNoticeNotBack",
           "title": "Update notice: canvas did not come back",
           "x": 4000,
-          "y": 4776,
+          "y": 4896,
           "width": 720,
           "height": 560
         },
@@ -318,10 +318,34 @@
           "height": 820
         },
         {
+          "name": "CanvasThreadResolveMenu",
+          "title": "Thread: Approve and build menu with Resolve",
+          "x": 2336,
+          "y": 2736,
+          "width": 320,
+          "height": 820
+        },
+        {
+          "name": "CanvasThreadNoSession",
+          "title": "Thread: no session, Send disabled",
+          "x": 2736,
+          "y": 2736,
+          "width": 320,
+          "height": 820
+        },
+        {
+          "name": "CanvasThreadNoTarget",
+          "title": "Thread: sent comment without a session, Approve and build disabled",
+          "x": 3136,
+          "y": 2736,
+          "width": 320,
+          "height": 820
+        },
+        {
           "name": "CanvasPlayView",
           "title": "Play view",
           "x": 0,
-          "y": 5416,
+          "y": 5536,
           "width": 1440,
           "height": 900
         },
@@ -329,7 +353,7 @@
           "name": "CanvasPlayViewFit",
           "title": "Play view: fit window",
           "x": 1520,
-          "y": 5416,
+          "y": 5536,
           "width": 1440,
           "height": 900
         },
@@ -337,7 +361,7 @@
           "name": "CanvasPlayViewMenu",
           "title": "Play view: preset menu",
           "x": 3040,
-          "y": 5416,
+          "y": 5536,
           "width": 1440,
           "height": 900
         },
@@ -345,7 +369,7 @@
           "name": "CanvasPlayViewResponsive",
           "title": "Play view: responsive",
           "x": 0,
-          "y": 6396,
+          "y": 6516,
           "width": 1440,
           "height": 900
         },
@@ -353,7 +377,7 @@
           "name": "CanvasPlayViewCommenting",
           "title": "Play view: commenting at a phone viewport",
           "x": 1520,
-          "y": 6396,
+          "y": 6516,
           "width": 1440,
           "height": 900
         },
@@ -361,7 +385,7 @@
           "name": "CanvasPlayViewZoomMenu",
           "title": "Play view: zoom menu",
           "x": 0,
-          "y": 7376,
+          "y": 7496,
           "width": 1440,
           "height": 900
         },
@@ -369,7 +393,7 @@
           "name": "CanvasPlayViewTall",
           "title": "Play view: tall board at normal zoom",
           "x": 1520,
-          "y": 7376,
+          "y": 7496,
           "width": 1440,
           "height": 900
         },
@@ -377,7 +401,7 @@
           "name": "CanvasPlayViewContain",
           "title": "Play view: tall board contained",
           "x": 3040,
-          "y": 7376,
+          "y": 7496,
           "width": 1440,
           "height": 900
         },
@@ -385,7 +409,7 @@
           "name": "CanvasFrameThumbnailStale",
           "title": "Frame: outdated thumbnail",
           "x": 0,
-          "y": 8356,
+          "y": 8476,
           "width": 400,
           "height": 308
         },
@@ -393,7 +417,7 @@
           "name": "CanvasFrameGenerating",
           "title": "Frame: variant not changed yet",
           "x": 480,
-          "y": 8356,
+          "y": 8476,
           "width": 400,
           "height": 308
         },
@@ -401,7 +425,7 @@
           "name": "CanvasSearch",
           "title": "Canvas search",
           "x": 960,
-          "y": 8356,
+          "y": 8476,
           "width": 640,
           "height": 520
         },
@@ -409,7 +433,7 @@
           "name": "CanvasSearchRecent",
           "title": "Canvas search: recent",
           "x": 1680,
-          "y": 8356,
+          "y": 8476,
           "width": 640,
           "height": 520
         },
@@ -417,7 +441,7 @@
           "name": "CanvasSearchEmpty",
           "title": "Canvas search: no results",
           "x": 2400,
-          "y": 8356,
+          "y": 8476,
           "width": 640,
           "height": 520
         },
@@ -425,7 +449,7 @@
           "name": "CanvasSidebarSections",
           "title": "Canvas sidebar: sections",
           "x": 3120,
-          "y": 8356,
+          "y": 8476,
           "width": 288,
           "height": 820
         },
@@ -433,7 +457,7 @@
           "name": "CanvasInspectorMulti",
           "title": "Canvas inspector: several boards",
           "x": 3488,
-          "y": 8356,
+          "y": 8476,
           "width": 288,
           "height": 820
         },
@@ -441,7 +465,7 @@
           "name": "CanvasInspectorVariants",
           "title": "Canvas inspector: variants",
           "x": 3856,
-          "y": 8356,
+          "y": 8476,
           "width": 288,
           "height": 960
         },
@@ -449,7 +473,7 @@
           "name": "CanvasInspectorVariantSent",
           "title": "Canvas inspector: variants sent",
           "x": 4224,
-          "y": 8356,
+          "y": 8476,
           "width": 288,
           "height": 960
         },
@@ -457,47 +481,71 @@
           "name": "CanvasSection",
           "title": "Canvas section",
           "x": 4592,
-          "y": 8356,
+          "y": 8476,
           "width": 900,
-          "height": 560
+          "height": 640
         },
         {
           "name": "CanvasSectionHover",
           "title": "Canvas section: hover",
           "x": 5572,
-          "y": 8356,
+          "y": 8476,
           "width": 900,
-          "height": 560
+          "height": 640
         },
         {
           "name": "CanvasSectionRenaming",
           "title": "Canvas section: renaming",
           "x": 6552,
-          "y": 8356,
+          "y": 8476,
           "width": 900,
-          "height": 560
+          "height": 640
         },
         {
           "name": "CanvasSectionVariants",
           "title": "Canvas section: variants",
           "x": 7532,
-          "y": 8356,
+          "y": 8476,
           "width": 900,
-          "height": 560
+          "height": 640
+        },
+        {
+          "name": "CanvasSectionNested",
+          "title": "Canvas section: sub-sections",
+          "x": 8512,
+          "y": 8476,
+          "width": 900,
+          "height": 640
+        },
+        {
+          "name": "CanvasSectionSelected",
+          "title": "Canvas section: selected",
+          "x": 9492,
+          "y": 8476,
+          "width": 900,
+          "height": 640
+        },
+        {
+          "name": "CanvasSectionDrop",
+          "title": "Canvas section: frame dropped in",
+          "x": 10472,
+          "y": 8476,
+          "width": 900,
+          "height": 640
         },
         {
           "name": "CanvasCompare",
           "title": "Canvas compare",
-          "x": 8512,
-          "y": 8356,
+          "x": 11452,
+          "y": 8476,
           "width": 1440,
           "height": 900
         },
         {
           "name": "CanvasCompareNarrow",
           "title": "Canvas compare: 390 width",
-          "x": 10032,
-          "y": 8356,
+          "x": 12972,
+          "y": 8476,
           "width": 1440,
           "height": 900
         },
@@ -505,47 +553,47 @@
           "name": "CanvasAppMarquee",
           "title": "Canvas app: selection rectangle",
           "x": 0,
-          "y": 9396,
+          "y": 9516,
           "width": 1440,
-          "height": 900
+          "height": 948
         },
         {
           "name": "CanvasAppMultiSelected",
           "title": "Canvas app: several boards selected",
           "x": 1520,
-          "y": 9396,
+          "y": 9516,
           "width": 1440,
-          "height": 900
+          "height": 948
         },
         {
           "name": "CanvasAppUndoToast",
           "title": "Canvas app: undo toast",
           "x": 3040,
-          "y": 9396,
+          "y": 9516,
           "width": 1440,
-          "height": 900
+          "height": 948
         },
         {
           "name": "CanvasAppSearch",
           "title": "Canvas app: search",
           "x": 4560,
-          "y": 9396,
+          "y": 9516,
           "width": 1440,
-          "height": 900
+          "height": 948
         },
         {
           "name": "CanvasAppSections",
           "title": "Canvas app: sections",
           "x": 6080,
-          "y": 9396,
+          "y": 9516,
           "width": 1440,
-          "height": 900
+          "height": 948
         },
         {
           "name": "CanvasInspectorVariant",
           "title": "Canvas inspector: variant board",
           "x": 0,
-          "y": 10376,
+          "y": 10496,
           "width": 288,
           "height": 960
         },
@@ -553,7 +601,15 @@
           "name": "CanvasCompareError",
           "title": "Canvas compare: error",
           "x": 368,
-          "y": 10376,
+          "y": 10496,
+          "width": 1440,
+          "height": 900
+        },
+        {
+          "name": "CanvasCompareConfirm",
+          "title": "Canvas compare: confirm Choose",
+          "x": 1856,
+          "y": 10496,
           "width": 1440,
           "height": 900
         },
@@ -561,7 +617,7 @@
           "name": "CanvasInspectorMultiShared",
           "title": "Canvas inspector: several boards in one section",
           "x": 0,
-          "y": 11416,
+          "y": 11536,
           "width": 288,
           "height": 820
         },
@@ -569,7 +625,7 @@
           "name": "CanvasSettings",
           "title": "Canvas settings",
           "x": 368,
-          "y": 11416,
+          "y": 11536,
           "width": 600,
           "height": 740
         },
@@ -577,7 +633,7 @@
           "name": "CanvasSettingsIdle",
           "title": "Canvas settings: idle",
           "x": 1048,
-          "y": 11416,
+          "y": 11536,
           "width": 600,
           "height": 740
         },
@@ -585,7 +641,7 @@
           "name": "CanvasSettingsChecking",
           "title": "Canvas settings: checking",
           "x": 1728,
-          "y": 11416,
+          "y": 11536,
           "width": 600,
           "height": 740
         },
@@ -593,7 +649,7 @@
           "name": "CanvasSettingsUnavailable",
           "title": "Canvas settings: no launcher",
           "x": 2408,
-          "y": 11416,
+          "y": 11536,
           "width": 600,
           "height": 740
         },
@@ -601,7 +657,7 @@
           "name": "CanvasSettingsUpdate",
           "title": "Canvas settings: update available",
           "x": 3088,
-          "y": 11416,
+          "y": 11536,
           "width": 600,
           "height": 740
         },
@@ -609,15 +665,15 @@
           "name": "CanvasAppSettings",
           "title": "Canvas app: settings",
           "x": 3768,
-          "y": 11416,
+          "y": 11536,
           "width": 1440,
-          "height": 900
+          "height": 948
         },
         {
           "name": "CanvasSession",
           "title": "Canvas session",
           "x": 0,
-          "y": 12436,
+          "y": 12556,
           "width": 288,
           "height": 200
         },
@@ -625,15 +681,15 @@
           "name": "CanvasSessionSeveral",
           "title": "Session: two sessions, menu open",
           "x": 368,
-          "y": 12436,
+          "y": 12556,
           "width": 288,
-          "height": 220
+          "height": 260
         },
         {
           "name": "CanvasSessionNone",
           "title": "Session: none listening",
           "x": 736,
-          "y": 12436,
+          "y": 12556,
           "width": 288,
           "height": 90
         },
@@ -641,7 +697,7 @@
           "name": "CanvasSessionPick",
           "title": "Session: pick one of several",
           "x": 736,
-          "y": 12606,
+          "y": 12726,
           "width": 288,
           "height": 90
         },
@@ -649,7 +705,7 @@
           "name": "CanvasCommentForm",
           "title": "Canvas comment form",
           "x": 1104,
-          "y": 12436,
+          "y": 12556,
           "width": 368,
           "height": 360
         },
@@ -657,15 +713,15 @@
           "name": "CanvasCommentFormVariants",
           "title": "Comment form: generating variants",
           "x": 1552,
-          "y": 12436,
+          "y": 12556,
           "width": 368,
-          "height": 420
+          "height": 460
         },
         {
           "name": "CanvasInspectorImports",
           "title": "Inspector: ten imports, first three shown",
           "x": 2000,
-          "y": 12436,
+          "y": 12556,
           "width": 288,
           "height": 820
         },
@@ -673,7 +729,7 @@
           "name": "CanvasInspectorImportsExpanded",
           "title": "Inspector: ten imports, all shown",
           "x": 2368,
-          "y": 12436,
+          "y": 12556,
           "width": 288,
           "height": 820
         },
@@ -681,9 +737,49 @@
           "name": "CanvasThreadSessions",
           "title": "Thread: two sessions, replies name their session",
           "x": 2736,
-          "y": 12436,
+          "y": 12556,
           "width": 320,
-          "height": 820
+          "height": 900
+        },
+        {
+          "name": "CanvasTopBar",
+          "title": "Top bar",
+          "x": 0,
+          "y": 13556,
+          "width": 1440,
+          "height": 48
+        },
+        {
+          "name": "CanvasTopBarMenu",
+          "title": "Top bar: approve menu open",
+          "x": 1520,
+          "y": 13556,
+          "width": 1440,
+          "height": 220
+        },
+        {
+          "name": "CanvasTopBarIdle",
+          "title": "Top bar: no session, nothing to approve",
+          "x": 3040,
+          "y": 13556,
+          "width": 1440,
+          "height": 48
+        },
+        {
+          "name": "CanvasFrameNew",
+          "title": "Frame: New badge",
+          "x": 4560,
+          "y": 13556,
+          "width": 640,
+          "height": 308
+        },
+        {
+          "name": "CanvasAppSidebarHidden",
+          "title": "Canvas app: sidebar hidden",
+          "x": 0,
+          "y": 13856,
+          "width": 1440,
+          "height": 948
         }
       ]
     }
