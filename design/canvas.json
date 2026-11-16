@@ -318,6 +318,22 @@
           "height": 820
         },
         {
+          "name": "CanvasThreadResolveMenu",
+          "title": "Thread: Approve and build menu with Resolve",
+          "x": 2336,
+          "y": 2736,
+          "width": 320,
+          "height": 820
+        },
+        {
+          "name": "CanvasThreadNoSession",
+          "title": "Thread: no session, Send disabled",
+          "x": 2736,
+          "y": 2736,
+          "width": 320,
+          "height": 820
+        },
+        {
           "name": "CanvasPlayView",
           "title": "Play view",
           "x": 0,

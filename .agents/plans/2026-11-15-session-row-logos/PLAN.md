@@ -77,3 +77,18 @@ Brand colors are the one place a board uses a literal color, because a logo keep
 
 - The app disabled Generate with "No Claude session. Run /irsim in Claude Code." both when no session listened and when several listened with none picked.
 - `CanvasCommentForm` prop `session` (one|several|none): the variants panel shows the session row (compact; regular with the /irsim hint when none), and Generate is disabled until a session is picked.
+
+## Thread Approve and build
+
+- The Resolve button on a sent comment becomes a split button. The main part is `Approve and build`, and its menu holds `Approve and build` and `Resolve`.
+- Approve and build approves the commented board, resolves the comment, and sends one turn to the comment's session: the user accepted the board change for this comment; implement it in the app.
+- Resolve only resolves the comment, as the button does today.
+- Board: `CanvasThread` prop `resolve` (closed|open), state board `CanvasThreadResolveMenu`.
+- App: `comments/comment-card.tsx` split button and menu; an `onApproveAndBuild` action in `thread-panel.tsx` that calls the approval route, resolves the comment, and sends the build turn.
+
+## Send one draft
+
+- A draft comment card gets a small primary Send icon button at the bottom left, before Edit and Delete. It sends only that draft to the active session.
+- It is disabled with the title "No agent session listening" when no session is active (none listening, or several with none picked). The footer Send button is disabled the same way.
+- Board: `CanvasThread` prop `sessions` adds `none`, state board `CanvasThreadNoSession`.
+- App: `comments/comment-card.tsx` Send button on a draft; `thread-panel.tsx` sends one comment id through the existing send route.

@@ -15,3 +15,9 @@
 - [x] App: section label pill.
 - [x] Compare app and boards, light and dark. Top bar and sidebar checked at 1440 wide; the thread reply logo, the comment form session row and the session listbox were checked in the running canvas.
 - [x] Typecheck and affected tests. `design_canvas check` was not run: the tool is not available in this session.
+- [x] Board: thread Approve and build split button with Resolve in its menu (`CanvasThread`, `CanvasThreadResolveMenu`).
+- [x] Board: Send button on a draft comment, disabled with no session (`CanvasThread`, `CanvasThreadNoSession`).
+- [ ] Stop for approval of the thread boards.
+- [ ] App: thread Approve and build, which approves, resolves and sends the build turn; Resolve in its menu.
+- [ ] App: Send one draft comment to the active session.
+- [ ] Compare the thread with its boards, light and dark.
