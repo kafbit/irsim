@@ -9,7 +9,7 @@ import { ApproveBox } from './approvals/approve-box'
 import { useApprovals } from './approvals/use-approvals'
 import { CommentLayer } from './comments/comment-layer'
 import { Composer } from './comments/composer'
-import { boardPick, numberComments, placedRect } from './comments/model'
+import { boardPick, buildNote, numberComments, placedRect } from './comments/model'
 import { ThreadPanel } from './comments/thread-panel'
 import type { Comment, CommentView, PickedElement } from './comments/types'
 import { useBoardReloads } from './comments/use-board-reloads'
@@ -596,6 +596,25 @@ export function PageCanvas({
     },
     [approvals, setNotice],
   )
+  /** Approve and build on a comment: one approval with a note, then the comment is resolved. */
+  const approveAndBuild = useCallback(
+    async (comment: Comment) => {
+      if (!comment.sessionId) return
+      try {
+        await approvals.approve({
+          board: comment.board,
+          sessionId: comment.sessionId,
+          note: buildNote(comment),
+        })
+      } catch (failure) {
+        setNotice(String((failure as Error)?.message ?? failure), 'error')
+        throw failure
+      }
+      await comments.resolve(comment.id)
+      setNotice(`Sent ${comment.board} to the agent to build`, 'info')
+    },
+    [approvals, comments, setNotice],
+  )
 
   return (
     <div className="flex h-screen flex-col">
@@ -755,6 +774,9 @@ export function PageCanvas({
           onResolve={comments.resolve}
           onReply={comments.reply}
           onSend={comments.send}
+          onSendOne={comments.sendOne}
+          onRetarget={comments.retarget}
+          onApproveAndBuild={approveAndBuild}
         />
       ) : selection.names.length > 0 ? (
         <InspectorHost
@@ -806,6 +828,7 @@ export function PageCanvas({
           numbers={numbers}
           start={playStart}
           canVary={!manifest.boards.find((board) => board.name === fullBoard.name)?.variantOf}
+          onApproveAndBuild={approveAndBuild}
         />
       ) : null}
     </div>

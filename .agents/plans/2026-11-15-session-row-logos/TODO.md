@@ -19,7 +19,8 @@
 - [x] Board: Send button on a draft comment, disabled with no session (`CanvasThread`, `CanvasThreadNoSession`).
 - [x] Board: session picker on a sent comment, Approve and build disabled without a session (`CanvasThread`, `CanvasThreadNoTarget`). Approved.
 - [x] Stop for approval of the thread boards. The user approved them.
-- [ ] App: thread Approve and build, which approves, resolves and sends the build turn; Resolve in its menu.
-- [ ] App: Send one draft comment to the active session.
-- [ ] App: session picker on a sent comment; Approve and build disabled without a session.
-- [ ] Compare the thread with its boards, light and dark.
+- [x] App: thread Approve and build, which approves, resolves and sends the build turn; Resolve in its menu.
+- [x] App: Send one draft comment to the active session.
+- [x] App: session picker on a sent comment; Approve and build disabled without a session. A comment whose session ended counts as no session.
+- [x] Compare the thread with its boards, light and dark (Playwright, mocked comments and sessions). Fixed: the session picker arrow.
+- [x] `design_canvas check` on `canvas-app`: 96 boards, no errors, no warnings.

@@ -21,6 +21,9 @@ type Props = {
   onResolve: (id: string) => Promise<void>
   onReply: (id: string, body: string) => Promise<void>
   onSend: (sessionId: string) => Promise<void>
+  onSendOne?: ((id: string, sessionId: string) => Promise<void>) | undefined
+  onRetarget?: ((id: string, sessionId: string) => Promise<void>) | undefined
+  onApproveAndBuild?: ((comment: Comment) => Promise<void>) | undefined
   viewport?: { width: number; height: number } | null
 }
 
@@ -59,6 +62,10 @@ export function ThreadPanel({
       onDelete={actions.onDelete}
       onResolve={actions.onResolve}
       onReply={actions.onReply}
+      onSendOne={actions.onSendOne}
+      onRetarget={actions.onRetarget}
+      onApproveAndBuild={actions.onApproveAndBuild}
+      activeSessionId={session.sessionId}
       sessions={session.sessions}
       viewing={
         comment.view !== undefined &&

@@ -7,9 +7,10 @@ import { AgentLogo } from '../../ui/agent-logo'
 import { Badge, Button, IconButton, Textarea } from '../../ui'
 import { placeText, targetName } from '../../lib/place-text'
 import { viewLabel } from '../../lib/view-label'
-import { Check, DeleteIcon, EditIcon, Monitor, Smartphone, Tablet } from '../../ui/icons'
+import { DeleteIcon, EditIcon, Monitor, Send, Smartphone, Tablet } from '../../ui/icons'
 import { useState } from 'react'
 import { ClampedText } from './clamped-text'
+import { ApproveSplit, CommentSession, NO_SESSION } from './comment-actions'
 import { ImageStrip, imageUrl } from './image-strip'
 import type { Comment, CommentView, Session } from './types'
 import { usePastedImages } from './use-pasted-images'
@@ -53,6 +54,14 @@ type Props = {
   onDelete: (id: string) => Promise<void>
   onResolve: (id: string) => Promise<void>
   onReply: (id: string, body: string) => Promise<void>
+  /** Sends this draft alone to the active session. */
+  onSendOne?: ((id: string, sessionId: string) => Promise<void>) | undefined
+  /** Approves the commented board, resolves the comment and sends one build turn to its session. */
+  onApproveAndBuild?: ((comment: Comment) => Promise<void>) | undefined
+  /** Moves a sent comment to another session. */
+  onRetarget?: ((id: string, sessionId: string) => Promise<void>) | undefined
+  /** The session the footer Send goes to; `null` when none is listening or none is picked. */
+  activeSessionId?: string | null
   sessionEnded?: boolean
   sessions?: Session[]
   viewing?: boolean
@@ -68,6 +77,10 @@ export function CommentCard({
   onDelete,
   onResolve,
   onReply,
+  onSendOne,
+  onApproveAndBuild,
+  onRetarget,
+  activeSessionId = null,
   sessionEnded = false,
   sessions = [],
   viewing = false,
@@ -77,6 +90,9 @@ export function CommentCard({
   const [busy, setBusy] = useState(false)
   const [replyDraft, setReplyDraft] = useState('')
   const pasted = usePastedImages(comment.images)
+  const open = comment.status === 'queued' || comment.status === 'delivered'
+  /** The comment's session is live, so its replies and a build go somewhere now. */
+  const target = sessions.some((live) => live.id === comment.sessionId)
   const replier = (id: string | undefined) =>
     sessions.length > 1 ? sessions.find((live) => live.id === id)?.title : undefined
 
@@ -233,7 +249,20 @@ export function CommentCard({
         </ul>
       ) : null}
       {comment.status === 'draft' && !editing ? (
-        <div className="flex justify-end gap-1">
+        <div className="flex items-center gap-1">
+          {onSendOne ? (
+            <IconButton
+              label={activeSessionId ? 'Send this comment' : NO_SESSION}
+              variant="default"
+              icon={<Send className="size-3.5" />}
+              disabled={busy || !activeSessionId}
+              onClick={() => {
+                if (activeSessionId) void run(() => onSendOne(comment.id, activeSessionId))
+              }}
+              className="size-7 rounded-lg"
+            />
+          ) : null}
+          <span className="flex-1" />
           <IconButton
             label="Edit"
             icon={<EditIcon className="size-4" />}
@@ -254,6 +283,14 @@ export function CommentCard({
       ) : null}
       {comment.status !== 'draft' ? (
         <div className="flex flex-col gap-2">
+          {open && onRetarget ? (
+            <CommentSession
+              sessions={sessions}
+              sessionId={target ? comment.sessionId : null}
+              disabled={busy}
+              onPick={(id) => void run(() => onRetarget(comment.id, id))}
+            />
+          ) : null}
           {sessionEnded ? (
             <p className="m-0 text-xs text-muted-foreground">
               The session has ended. A reply waits until it returns.
@@ -282,16 +319,15 @@ export function CommentCard({
           </div>
         </div>
       ) : null}
-      {comment.status === 'queued' || comment.status === 'delivered' ? (
-        <Button
-          variant="secondary"
-          size="sm"
-          icon={<Check className="size-4" />}
-          pending={busy}
-          onClick={() => void run(() => onResolve(comment.id))}
-        >
-          Resolve
-        </Button>
+      {open ? (
+        <ApproveSplit
+          canBuild={target && onApproveAndBuild !== undefined}
+          busy={busy}
+          onApproveAndBuild={() => {
+            if (onApproveAndBuild) void run(() => onApproveAndBuild(comment))
+          }}
+          onResolve={() => void run(() => onResolve(comment.id))}
+        />
       ) : null}
     </li>
   )

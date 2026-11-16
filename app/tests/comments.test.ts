@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   boardsToReload,
+  buildNote,
   chooseSession,
   groupComments,
   numberComments,
@@ -173,6 +174,12 @@ describe('comment lists', () => {
   it('the send label counts and pluralises', () => {
     expect(sendLabel(1)).toBe('Send 1 comment')
     expect(sendLabel(3)).toBe('Send 3 comments')
+  })
+
+  it('the Approve and build note names the comment and asks for the app change', () => {
+    expect(buildNote({ id: 'c_1', body: 'Say Delete' })).toBe(
+      'The user accepted the board change for comment c_1: "Say Delete". Implement it in the app.',
+    )
   })
 })
 

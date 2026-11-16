@@ -151,3 +151,7 @@ export function boardsToReload(
   }
   return names
 }
+
+/** The approval note for Approve and build on a comment: the agent builds the change it asked for. */
+export const buildNote = (comment: Pick<Comment, 'id' | 'body'>): string =>
+  `The user accepted the board change for comment ${comment.id}: "${comment.body}". Implement it in the app.`

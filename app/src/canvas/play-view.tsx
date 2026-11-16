@@ -121,6 +121,7 @@ export function PlayView({
   numbers,
   start = null,
   canVary = true,
+  onApproveAndBuild,
 }: {
   board: PlacedBoard
   reload: number
@@ -130,6 +131,7 @@ export function PlayView({
   numbers: ReadonlyMap<string, number>
   start?: { view: CommentView; commentId: string } | null
   canVary?: boolean
+  onApproveAndBuild?: ((comment: Comment) => Promise<void>) | undefined
 }) {
   const [space, setSpace] = useState<Size | null>(null)
   const [state, setState] = useState<ViewportState>(() =>
@@ -545,6 +547,9 @@ export function PlayView({
             onResolve={thread.resolve}
             onReply={thread.reply}
             onSend={thread.send}
+            onSendOne={thread.sendOne}
+            onRetarget={thread.retarget}
+            onApproveAndBuild={onApproveAndBuild}
           />
         ) : null}
       </div>
