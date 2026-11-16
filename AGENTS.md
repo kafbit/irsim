@@ -23,7 +23,7 @@ A change to one updates the other in the same pull request.
 | `canvas/search-dialog.tsx` | `CanvasSearch`, `CanvasSearchRecent`, `CanvasSearchEmpty` |
 | `canvas/search-dialog.tsx` (its search field in the top bar) | `CanvasTopBar` |
 | `canvas/section-layer.tsx` | `CanvasSection`, `CanvasSectionHover`, `CanvasSectionRenaming`, `CanvasSectionNested`, `CanvasSectionSelected`, `CanvasSectionDrop`, `CanvasSectionVariants` |
-| `canvas/compare-view.tsx` | `CanvasCompare` (prop `error` for the Choose failure banner), `CanvasCompareNarrow`, `CanvasCompareError` |
+| `canvas/compare-view.tsx` | `CanvasCompare` (prop `error` for the Choose failure banner, prop `confirm` for the Choose and Keep original confirmation), `CanvasCompareNarrow`, `CanvasCompareError`, `CanvasCompareConfirm` |
 | `canvas/marquee.tsx`, `canvas/history.ts` | `CanvasAppMarquee`, `CanvasAppMultiSelected`, `CanvasAppUndoToast` |
 | `canvas/comments/thread-panel.tsx`, `canvas/comments/comment-card.tsx`, `canvas/comments/comment-actions.tsx` | `CanvasThread`, `CanvasThreadResolved`, `CanvasThreadEmpty`, `CanvasThreadViewing`, `CanvasThreadSessions`, `CanvasThreadResolveMenu` (the Approve and build split button with Resolve in its menu), `CanvasThreadNoSession` (Send and the draft send button disabled), `CanvasThreadNoTarget` (the comment session picker with no session, Approve and build disabled) |
 | `canvas/comments/comment-form.tsx` | `CanvasCommentForm`, `CanvasCommentFormVariants` |

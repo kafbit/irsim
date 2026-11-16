@@ -606,6 +606,14 @@
           "height": 900
         },
         {
+          "name": "CanvasCompareConfirm",
+          "title": "Canvas compare: confirm Choose",
+          "x": 1856,
+          "y": 10496,
+          "width": 1440,
+          "height": 900
+        },
+        {
           "name": "CanvasInspectorMultiShared",
           "title": "Canvas inspector: several boards in one section",
           "x": 0,

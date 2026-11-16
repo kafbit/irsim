@@ -14,7 +14,7 @@ body{margin:0}
 .cv-root.dark{--pick:#14161a;--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--destructive-tint:#3b1814;--rented:#281f3b;--rented-foreground:#bda7ec;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8;--play:#60a5fa}
 </style>
 </helmet>
-<div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="position: relative; display: flex; flex-direction: column; width: 100%; min-height: 100vh; overflow: hidden; background: var(--surface); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
+<div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="position: relative; display: flex; flex-direction: column; width: 100%; height: 100vh; overflow: hidden; background: var(--surface); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
 <div style="flex-shrink: 0; height: 48px; --cv-h: 48px; --cv-bg: transparent;">
 <dc-import name="CanvasTopBar" theme="{{theme}}" page="Components" sessions="one" pending="3" menu="closed" sidebar="{{sidebar}}" hint-size="1440px,48px"></dc-import>
 </div>
@@ -172,15 +172,15 @@ class Component extends DCLogic {
       sections = [
         { x: 400, y: 110, w: 624, h: 328, title: 'Checkout flow', count: '2 boards', r: 12, bg: 'var(--secondary)', pillText: 'var(--foreground)' },
         { x: 704, y: 158, w: 288, h: 248, title: 'Details', count: '1 board', r: 10, bg: 'var(--info)', pillText: 'var(--info-foreground)' },
-        { x: 400, y: 486, w: 576, h: 248, title: 'Reports', count: '2 boards', r: 12, bg: 'var(--success)', pillText: 'var(--success-foreground)' },
+        { x: 400, y: 486, w: 480, h: 248, title: 'Reports', count: '2 boards', r: 12, bg: 'var(--success)', pillText: 'var(--success-foreground)' },
       ]
       frames = [
         frame(40, 190, 240, 140, 'Button', 'Button', 'live', false, false),
         frame(40, 390, 320, 300, 'Data table', 'Table', 'live', false, true),
         frame(432, 186, 240, 140, 'Confirmation dialog', 'Dialog', 'live', true, false),
         frame(728, 234, 240, 140, 'Profile card', 'Card', 'live', false, false),
-        frame(432, 562, 240, 140, 'Status badge', 'Badge', 'live', false, false),
-        frame(704, 562, 240, 140, 'Tab bar', 'Tabs', 'live', false, false),
+        frame(432, 562, 192, 140, 'Status badge', 'Badge', 'live', false, false),
+        frame(656, 562, 192, 140, 'Tab bar', 'Tabs', 'live', false, false),
       ]
     } else if (state !== 'emptyPage') {
       const dialogMode = { selected: 'selected', playing: 'playing', commenting: 'commenting', marquee: 'selectedMany', multi: 'selectedMany' }[state] || 'live'

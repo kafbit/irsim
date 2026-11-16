@@ -24,3 +24,9 @@
 - [x] App: session picker on a sent comment; Approve and build disabled without a session. A comment whose session ended counts as no session.
 - [x] Compare the thread with its boards, light and dark (Playwright, mocked comments and sessions). Fixed: the session picker arrow.
 - [x] `design_canvas check` on `canvas-app`: 96 boards, no errors, no warnings.
+- [x] Board: `CanvasApp` canvas height so the zoom bar is not cut off; narrower Reports section so the minimap does not cover it.
+- [x] Board: `CanvasInspector` prop `swatches` (solid|tint); solid uses the foreground colors.
+- [x] Board: `CanvasCompare` prop `confirm` (none|choose|keep), state board `CanvasCompareConfirm`.
+- [ ] Stop for approval of the swatch and Choose confirmation boards.
+- [ ] App: solid swatches in `inspector.tsx`.
+- [ ] App: Choose and Keep original confirmation in `compare-view.tsx`.
