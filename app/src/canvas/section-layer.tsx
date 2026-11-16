@@ -8,19 +8,11 @@ import { type KeyboardEvent, memo, type PointerEvent, useCallback, useRef, useSt
 import type { Camera } from './camera'
 import { type Handle, moveRect, type Move, resizeRect } from './frame-edit'
 import { boundsOf, type PlacedBoard, type Rect } from './geometry'
+import { SECTION_TONES } from './section-colors'
 import { type PlacedSection, SECTION_LABEL } from './sections'
 
 const DRAG_THRESHOLD = 3
 
-/** Tokens only: the area tint and the pill text per color name. The pill itself is always `--card`. */
-const TONES = {
-  gray: { area: 'var(--secondary)', text: 'var(--foreground)' },
-  blue: { area: 'var(--info)', text: 'var(--info-foreground)' },
-  green: { area: 'var(--success)', text: 'var(--success-foreground)' },
-  amber: { area: 'var(--warning)', text: 'var(--warning-foreground)' },
-  purple: { area: 'var(--rented)', text: 'var(--rented-foreground)' },
-  red: { area: 'var(--destructive-tint)', text: 'var(--destructive)' },
-} as const
 
 const rectOf = ({ x, y, width, height }: Rect): Rect => ({ x, y, width, height })
 const same = (a: Rect, b: Rect) =>
@@ -251,7 +243,7 @@ export const SectionLayer = memo(function SectionLayer({
         const plain = placed.color === null && depth > 0
         const tone = plain
           ? { area: 'var(--card)', text: 'var(--foreground)' }
-          : TONES[placed.color ?? 'gray']
+          : SECTION_TONES[placed.color ?? 'gray']
         const area = tone.area
         const subs = sections.filter((candidate) => candidate.section.parent === section.id).length
         const count =

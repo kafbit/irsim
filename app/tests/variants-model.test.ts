@@ -62,10 +62,10 @@ describe('confirmText', () => {
       text: 'The original and the other variant are deleted.',
       action: 'Replace',
     })
-    expect(confirmText({ base: 'B', pick: 'V1', label: 'A', variants: 3 }).text).toBe(
+    expect(confirmText({ base: 'B', pick: 'V1', label: 'A', variants: 3 })?.text).toBe(
       'The original and the other 2 variants are deleted.',
     )
-    expect(confirmText({ base: 'B', pick: 'V1', label: 'A', variants: 1 }).text).toBe(
+    expect(confirmText({ base: 'B', pick: 'V1', label: 'A', variants: 1 })?.text).toBe(
       'The original is deleted.',
     )
   })
@@ -76,8 +76,9 @@ describe('confirmText', () => {
       text: 'The 2 variants are deleted.',
       action: 'Keep original',
     })
-    expect(confirmText({ base: 'B', pick: 'B', label: 'Original', variants: 1 }).text).toBe(
+    expect(confirmText({ base: 'B', pick: 'B', label: 'Original', variants: 1 })?.text).toBe(
       'The 1 variant is deleted.',
     )
+    expect(confirmText({ base: 'B', pick: 'B', label: 'Original', variants: 0 })).toBeNull()
   })
 })

@@ -96,7 +96,7 @@ class Component extends DCLogic {
         bg: item.name === active ? 'var(--secondary)' : 'transparent',
       })
       if (!withSections) return boards.map((item) => board(item, 0))
-      const dots = { 'Checkout flow': 'var(--border-strong)', Details: 'var(--info-foreground)', Reports: 'var(--success-foreground)' }
+      const dots = { 'Checkout flow': 'var(--muted-foreground)', Details: 'var(--info-foreground)', Reports: 'var(--success-foreground)' }
       const header = (title, count, indent) => ({ isHeader: true, isBoard: false, title, count, rotate: 0, indent, dot: dots[title] })
       const rows = boards.filter((item) => !item.section).map((item) => board(item, 0))
       const titles = [...new Set(boards.filter((item) => item.section).map((item) => item.section))]

@@ -43,15 +43,17 @@ const plural = (count: number, word: string) => `${count} ${word}${count === 1 ?
 
 /**
  * The confirmation for Choose (`pick` is a variant) or Keep original (`pick` is the base): what the
- * pick replaces, and what is deleted. `variants` counts the base's variants.
+ * pick replaces, and what is deleted. `variants` counts the base's variants. `null` when Keep
+ * original has no variant to delete, so there is nothing to confirm.
  */
 export const confirmText = (input: {
   base: string
   pick: string
   label: string
   variants: number
-}): { title: string; text: string; action: string } => {
+}): { title: string; text: string; action: string } | null => {
   if (input.pick === input.base) {
+    if (input.variants === 0) return null
     return {
       title: 'Keep the original?',
       text: `The ${plural(input.variants, 'variant')} ${input.variants === 1 ? 'is' : 'are'} deleted.`,

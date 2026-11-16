@@ -4,6 +4,7 @@ import { Button, IconButton, Select } from '../ui'
 import { Check, ChevronDown, CopyIcon, Play } from '../ui/icons'
 import Link from 'next/link'
 import { useState } from 'react'
+import { SECTION_TONES } from './section-colors'
 import { canNest, sharedSection } from './sections'
 import type { CanvasSection, ManifestBoard, PageSummary } from './types'
 
@@ -67,13 +68,13 @@ function SectionField({
   )
 }
 
-const SWATCHES: { color: SectionColor; label: string; fill: string }[] = [
-  { color: 'gray', label: 'Gray', fill: 'var(--muted-foreground)' },
-  { color: 'blue', label: 'Blue', fill: 'var(--info-foreground)' },
-  { color: 'green', label: 'Green', fill: 'var(--success-foreground)' },
-  { color: 'amber', label: 'Amber', fill: 'var(--warning-foreground)' },
-  { color: 'purple', label: 'Purple', fill: 'var(--rented-foreground)' },
-  { color: 'red', label: 'Red', fill: 'var(--destructive)' },
+const SWATCHES: { color: SectionColor; label: string }[] = [
+  { color: 'gray', label: 'Gray' },
+  { color: 'blue', label: 'Blue' },
+  { color: 'green', label: 'Green' },
+  { color: 'amber', label: 'Amber' },
+  { color: 'purple', label: 'Purple' },
+  { color: 'red', label: 'Red' },
 ]
 
 /** Six swatches, one per section color; gray is the default and stores no color. */
@@ -97,7 +98,7 @@ function ColorRow({
             aria-pressed={current === swatch.color}
             onClick={() => onPick(swatch.color === 'gray' ? null : swatch.color)}
             className="m-0 box-border size-5 cursor-pointer rounded-full border border-border-strong p-0 outline-offset-2 aria-pressed:outline-2 aria-pressed:outline-ring"
-            style={{ background: swatch.fill }}
+            style={{ background: SECTION_TONES[swatch.color].dot }}
           />
         ))}
       </div>

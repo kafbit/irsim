@@ -1,11 +1,13 @@
 'use client'
 
+import type { SectionColor } from '../lib/canvas-layout'
 import { formatNumber } from '../lib/format-number'
 import { Input } from '../ui'
 import { ChevronDown, Play } from '../ui/icons'
 import Link from 'next/link'
 import { Fragment, type ReactNode, type Ref, useCallback, useState } from 'react'
 import { CHROME_FORMAT } from './chrome-format'
+import { SECTION_TONES } from './section-colors'
 import { membersOf } from './sections'
 import type { CanvasSection, ManifestBoard, PageSummary } from './types'
 import { UpdateNotice } from './update-notice'
@@ -63,15 +65,6 @@ function BoardRow({
   )
 }
 
-/** The dot of a section: its color, tokens only. */
-const DOTS = {
-  gray: 'var(--border-strong)',
-  blue: 'var(--info-foreground)',
-  green: 'var(--success-foreground)',
-  amber: 'var(--warning-foreground)',
-  purple: 'var(--rented-foreground)',
-  red: 'var(--destructive)',
-} as const
 
 function SectionHeader({
   title,
@@ -82,7 +75,7 @@ function SectionHeader({
 }: {
   title: string
   count: number
-  color: keyof typeof DOTS
+  color: SectionColor
   depth: number
   onSelect: () => void
 }) {
@@ -100,7 +93,7 @@ function SectionHeader({
           aria-hidden="true"
           data-color={color}
           className="size-2 shrink-0 rounded-full"
-          style={{ background: DOTS[color] }}
+          style={{ background: SECTION_TONES[color].dot }}
         />
         <span dir="auto" className="min-w-0 flex-1 truncate text-[13px] font-semibold">
           {title}

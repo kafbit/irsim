@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { Button } from '../ui'
 import { ChevronLeft } from '../ui/icons'
 import { Shell, Status } from './canvas'
@@ -100,6 +100,21 @@ function Column({
   const [box, setBox] = useState({ width: 0, height: 0 })
   const frame = useRef<HTMLIFrameElement>(null)
   const settled = useRef(false)
+  const confirmId = useId()
+  /** After Cancel or Escape, focus goes back to the button that opened the confirmation. */
+  const refocus = useRef(false)
+  const cancel = () => {
+    refocus.current = true
+    onCancel()
+  }
+  // The safe choice gets focus when the confirmation opens, so a keyboard user lands inside it.
+  const focusCancel = useCallback((element: HTMLButtonElement | null) => element?.focus(), [])
+  const focusAgain = useCallback((element: HTMLButtonElement | null) => {
+    if (element && refocus.current) {
+      refocus.current = false
+      element.focus()
+    }
+  }, [])
 
   const settle = useCallback(() => {
     if (settled.current) return
@@ -172,16 +187,33 @@ function Column({
       {confirm ? (
         <div
           role="alertdialog"
-          aria-label="Confirm the choice"
+          aria-labelledby={`${confirmId}-title`}
+          aria-describedby={`${confirmId}-text`}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape' && !disabled) {
+              event.preventDefault()
+              cancel()
+            }
+          }}
           className="flex flex-col gap-2.5 rounded-xl border border-border-strong bg-card p-3"
         >
           <p className="m-0 text-[13px] leading-[18px]">
-            <span className="font-semibold">{confirm.title}</span>
+            <span id={`${confirmId}-title`} className="font-semibold">
+              {confirm.title}
+            </span>
             <br />
-            <span className="text-muted-foreground">{confirm.text}</span>
+            <span id={`${confirmId}-text`} className="text-muted-foreground">
+              {confirm.text}
+            </span>
           </p>
           <div className="flex justify-end gap-2">
-            <Button variant="secondary" size="sm" disabled={disabled} onClick={onCancel}>
+            <Button
+              ref={focusCancel}
+              variant="secondary"
+              size="sm"
+              disabled={disabled}
+              onClick={cancel}
+            >
               Cancel
             </Button>
             <Button size="sm" pending={disabled} onClick={onChoose}>
@@ -191,6 +223,7 @@ function Column({
         </div>
       ) : (
         <Button
+          ref={focusAgain}
           variant={base ? 'secondary' : 'primary'}
           size="sm"
           disabled={disabled}
@@ -250,6 +283,13 @@ function Compare({ manifest, base }: { manifest: PageManifest; base: ManifestBoa
   }
 
   const limit = mountLimit(settled)
+  const confirmOf = (board: ManifestBoard) =>
+    confirmText({
+      base: base.name,
+      pick: board.name,
+      label: board.variantLabel ?? board.name,
+      variants: boards.length - 1,
+    })
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-shell">
@@ -286,7 +326,7 @@ function Compare({ manifest, base }: { manifest: PageManifest; base: ManifestBoa
           size="sm"
           className="text-destructive"
           disabled={pending}
-          onClick={() => void choose(base.name)}
+          onClick={() => (confirmOf(base) ? setAsking(base.name) : void choose(base.name))}
         >
           Discard variants
         </Button>
@@ -310,17 +350,8 @@ function Compare({ manifest, base }: { manifest: PageManifest; base: ManifestBoa
             mount={index < limit}
             onSettled={onSettled}
             disabled={pending}
-            confirm={
-              asking === board.name
-                ? confirmText({
-                    base: base.name,
-                    pick: board.name,
-                    label: board.variantLabel ?? board.name,
-                    variants: boards.length - 1,
-                  })
-                : null
-            }
-            onAsk={() => setAsking(board.name)}
+            confirm={asking === board.name ? confirmOf(board) : null}
+            onAsk={() => (confirmOf(board) ? setAsking(board.name) : void choose(board.name))}
             onCancel={() => setAsking(null)}
             onChoose={() => void choose(board.name)}
           />
