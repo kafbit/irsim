@@ -12,10 +12,11 @@ export type ReleaseDeps = {
   run?: () => Promise<string>
   cacheFile?: string
   now?: () => number
+  fresh?: boolean
 }
 
 const REPO = 'kafbit/irsim'
-const SUCCESS_TTL_MS = 6 * 60 * 60 * 1000
+const SUCCESS_TTL_MS = 15 * 60 * 1000
 const FAILURE_TTL_MS = 60 * 60 * 1000
 const TIMEOUT_MS = 10_000
 
@@ -75,7 +76,7 @@ const check = async (deps: ReleaseDeps): Promise<Release | null> => {
   const file = deps.cacheFile ?? join(cacheRoot(), 'latest-release.json')
   const now = deps.now ?? Date.now
   const cached = await readCache(file)
-  if (cached && fresh(cached, now())) return cached.release
+  if (!deps.fresh && cached && fresh(cached, now())) return cached.release
   let release: Release | null = null
   try {
     release = parseRelease(await (deps.run ?? runGh)())
@@ -83,7 +84,7 @@ const check = async (deps: ReleaseDeps): Promise<Release | null> => {
     release = null
   }
   if (release === null && cached?.release) {
-    await writeCache(file, { checkedAt: now() - (SUCCESS_TTL_MS - FAILURE_TTL_MS), release: cached.release })
+    await writeCache(file, { checkedAt: now(), release: cached.release })
     return cached.release
   }
   await writeCache(file, { checkedAt: now(), release })

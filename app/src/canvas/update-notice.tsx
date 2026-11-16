@@ -9,7 +9,7 @@ import { useUpdate } from './use-update'
 const COMMAND = 'irsim update'
 
 export function UpdateNotice({ className }: { className?: string }) {
-  const { notice, phase, error, restartFailed, running, dismiss, start } = useUpdate()
+  const { notice, phase, progress, error, restartFailed, running, dismiss, start } = useUpdate()
   const [copied, setCopied] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   useMountEffect(() => () => clearTimeout(timer.current))
@@ -51,7 +51,15 @@ export function UpdateNotice({ className }: { className?: string }) {
           ? `You have ${running ?? 'an older version'}.`
           : `This canvas still runs ${running ?? 'an older version'}. Restart it to use ${version}.`
 
-  const busyLabel = phase === 'updating' ? `Downloading ${version}…` : 'Restarting the canvas…'
+  const busyLabel =
+    phase !== 'updating'
+      ? 'Restarting the canvas…'
+      : progress?.stage === 'install'
+        ? `Installing ${version}…`
+        : `Downloading ${version}…`
+  const download = phase === 'updating' && progress?.stage === 'download' && progress.total > 0 ? progress : null
+  const percent = download ? Math.min(100, Math.floor((download.received * 100) / download.total)) : 0
+  const megabytes = (bytes: number) => `${(bytes / 1_000_000).toFixed(1)} MB`
 
   return (
     <section
@@ -84,7 +92,27 @@ export function UpdateNotice({ className }: { className?: string }) {
           </Button>
         )}
       </div>
-      {busy ? (
+      {download ? (
+        <div
+          role="progressbar"
+          aria-label={`Downloading ${version}`}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={percent}
+          className="flex flex-col gap-1.5"
+        >
+          <div className="flex items-center gap-2 text-xs">
+            <span className="flex-1 text-info-foreground">{`Downloading ${version}…`}</span>
+            <span className="font-semibold tabular-nums">{percent}%</span>
+          </div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
+            <div className="h-full bg-info-foreground" style={{ width: `${percent}%` }} />
+          </div>
+          <div className="text-[11px] tabular-nums text-muted-foreground">
+            {`${megabytes(download.received)} of ${megabytes(download.total)}`}
+          </div>
+        </div>
+      ) : busy ? (
         <div role="status" className="flex items-center gap-2 text-xs text-info-foreground">
           <Spinner className="size-3" />
           <span>{busyLabel}</span>

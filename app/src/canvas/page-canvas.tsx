@@ -106,7 +106,7 @@ export function PageCanvas({
   manifest: PageManifest
   pages: PageSummary[]
   focus: string | null
-  /** Runs when `canvas.json` changed on the server; the parent fetches the manifest again. Must be stable. */
+  /** Runs when `canvas.json` or a board file changed on the server; the parent fetches the manifest again. Must be stable. */
   onCanvasChange?: () => void
   /** From `?play=`: start with `focus` playing on the canvas or full screen. */
   play?: PlayMode | null
@@ -195,14 +195,16 @@ export function PageCanvas({
   const { refresh: refreshFlags } = playFlags
   const { refetch: refetchApprovals } = approvals
   // A changed board may gain or lose its handlers and links, so its Play chip is read again, and
-  // an approval of it may no longer hold.
+  // an approval of it may no longer hold. The manifest carries the render hash of each board and of
+  // every board that imports it, and the thumbnail URL is keyed on that hash.
   const onBoardChange = useCallback(
     (name: string) => {
       reloadBoard(name)
       refreshFlags()
       void refetchApprovals()
+      onCanvasChange?.()
     },
-    [reloadBoard, refreshFlags, refetchApprovals],
+    [reloadBoard, refreshFlags, refetchApprovals, onCanvasChange],
   )
   const [thumbs, setThumbs] = useState<Record<string, { rev: number; ok: boolean }>>({})
   const onThumb = useCallback((name: string, ok: boolean) => {
@@ -423,6 +425,11 @@ export function PageCanvas({
   const playing = fullPlay ?? (selection.interacting ? only : null)
   useEffect(() => {
     playRun.current += 1
+    if (playing) return
+    const url = new URL(window.location.href)
+    if (!url.searchParams.has('play')) return
+    url.searchParams.delete('play')
+    window.history.replaceState(null, '', url)
   }, [playing])
   // A link in a played board moves Play to its target: in place on this page, else on its page.
   usePlayLinks((from, target) => {

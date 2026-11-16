@@ -21,7 +21,7 @@ export const unseenUserReplies = (comment: Comment): Reply[] =>
 
 const WAS_RESOLVED = ' (was resolved, resolve it again if the new reply is handled)'
 
-const replyLines = (reply: Reply, fresh: boolean): string => {
+const replyLines = (reply: Reply, fresh: boolean, imagePaths: Record<string, string>): string => {
   const who =
     reply.author !== 'claude'
       ? 'You'
@@ -30,7 +30,11 @@ const replyLines = (reply: Reply, fresh: boolean): string => {
         : 'Claude'
   const [first = '', ...rest] = reply.body.split('\n')
   const label = `   ${fresh ? 'NEW ' : ''}${who}: `
-  return [`${label}${first}`, ...rest.map((line) => `      ${line}`)].join('\n')
+  const images = (reply.images ?? []).flatMap((id) => {
+    const path = imagePaths[id]
+    return path ? [`      image: ${path}`] : []
+  })
+  return [`${label}${first}`, ...rest.map((line) => `      ${line}`), ...images].join('\n')
 }
 
 const item = (
@@ -53,7 +57,7 @@ const item = (
     return path ? [`   image: ${path}`] : []
   })
   const replies =
-    fresh.length > 0 ? comment.replies.map((reply) => replyLines(reply, fresh.includes(reply))) : []
+    fresh.length > 0 ? comment.replies.map((reply) => replyLines(reply, fresh.includes(reply), imagePaths)) : []
   return [
     `${index + 1}. ${place} · ${target}${board}${followUp}`,
     indent(comment.body),

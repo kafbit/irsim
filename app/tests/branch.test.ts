@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { currentBranch } from '../src/lib/branch'
+import { currentBranch, projectName } from '../src/lib/branch'
 
 const roots: string[] = []
 
@@ -41,5 +41,12 @@ describe('currentBranch', () => {
     mkdirSync(join(root, 'design'))
     process.env.IRSIM_DESIGN_DIR = join(root, 'design')
     expect(await currentBranch()).toBe(basename(root))
+  })
+})
+
+describe('projectName', () => {
+  it('names the worktree folder that holds the design folder', () => {
+    const root = repo('main')
+    expect(projectName()).toBe(basename(root))
   })
 })

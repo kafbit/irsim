@@ -34,8 +34,7 @@ export function FramePlay({
 }) {
   return (
     <div
-      className="absolute end-0 bottom-full flex origin-bottom-right items-center pb-1 in-data-labels-off:invisible"
-      style={{ transform: 'scale(var(--inv, 1))' }}
+      className="pointer-events-auto ms-auto flex shrink-0 items-center pb-1 in-data-labels-off:invisible"
       onPointerDown={keep}
     >
       {playing ? (
@@ -55,9 +54,9 @@ export function FramePlay({
               size="xs"
               aria-label={`Play prototype ${title || name}`}
               icon={<Play className="size-3 fill-current" />}
-              className="text-blue-600 hover:bg-blue-600/10 hover:text-blue-700 aria-expanded:bg-blue-600/10 dark:text-blue-400"
+              className="text-blue-600 hover:bg-blue-600/10 hover:text-blue-700 aria-expanded:bg-blue-600/10 @max-[200px]:pe-1.5 dark:text-blue-400"
             >
-              Play
+              <span className="@max-[200px]:hidden">Play</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent lang="en" align="end" className="min-w-40" onPointerDown={keep}>

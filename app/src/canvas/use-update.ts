@@ -1,13 +1,15 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import type { UpdateProgress } from '../lib/update-progress'
 import { type Notice, noticeOf, type VersionInfo } from '../lib/version-info'
 import { useMountEffect } from './use-mount-effect'
 
 export type UpdatePhase = 'idle' | 'updating' | 'restarting' | 'failed'
 
 export const DISMISSED_KEY = 'irsim.update.dismissed'
-const CHECK_EVERY_MS = 60 * 60 * 1000
+const CHECK_EVERY_MS = 15 * 60 * 1000
+const PROGRESS_EVERY_MS = 500
 const POLL_EVERY_MS = 1000
 const WATCH_EVERY_MS = 5000
 const GIVE_UP_AFTER_MS = 60 * 1000
@@ -68,8 +70,12 @@ const writeDismissed = (key: string) => {
   } catch {}
 }
 
-const readInfo = async ({ probe }: { probe: boolean }): Promise<VersionInfo | null> => {
-  const response = await fetch(probe ? '/api/version?latest=0' : '/api/version', {
+const readInfo = async ({
+  probe,
+  fresh = false,
+}: { probe: boolean; fresh?: boolean }): Promise<VersionInfo | null> => {
+  const url = probe ? '/api/version?latest=0' : fresh ? '/api/version?fresh=1' : '/api/version'
+  const response = await fetch(url, {
     cache: 'no-store',
     signal: AbortSignal.timeout(probe ? 2000 : 15000),
   })
@@ -89,7 +95,8 @@ export function useUpdate() {
   const baseline = useRef<string | null>(null)
   const phaseRef = useRef<UpdatePhase>('idle')
   phaseRef.current = phase
-  const recheck = useRef<(() => Promise<void>) | null>(null)
+  const [progress, setProgress] = useState<UpdateProgress | null>(null)
+  const recheck = useRef<((fresh: boolean) => Promise<void>) | null>(null)
 
   useMountEffect(() => {
     mounted.current = true
@@ -106,8 +113,8 @@ export function useUpdate() {
         })
         .catch(() => {})
     }
-    const check = () => {
-      const run = readInfo({ probe: false })
+    const check = (fresh = false) => {
+      const run = readInfo({ probe: false, fresh })
         .then((next) => {
           if (next !== null && baseline.current === null) baseline.current = next.running
           if (!mounted.current || next === null) return
@@ -119,14 +126,40 @@ export function useUpdate() {
     }
     recheck.current = check
     void check()
-    const timer = setInterval(check, CHECK_EVERY_MS)
+    const timer = setInterval(() => void check(), CHECK_EVERY_MS)
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void check()
+    }
+    document.addEventListener('visibilitychange', onVisible)
     return () => {
+      document.removeEventListener('visibilitychange', onVisible)
       mounted.current = false
       recheck.current = null
       clearInterval(timer)
       release?.()
     }
   })
+
+  useEffect(() => {
+    if (phase !== 'updating') {
+      setProgress(null)
+      return
+    }
+    let stopped = false
+    const poll = async () => {
+      try {
+        const response = await fetch('/api/update/progress', { cache: 'no-store' })
+        if (!response.ok || stopped) return
+        const next = (await response.json()) as UpdateProgress | null
+        if (!stopped) setProgress(next)
+      } catch {}
+    }
+    const timer = setInterval(() => void poll(), PROGRESS_EVERY_MS)
+    return () => {
+      stopped = true
+      clearInterval(timer)
+    }
+  }, [phase])
 
   const fail = (message: string, didNotComeBack = false) => {
     if (!mounted.current) return
@@ -189,12 +222,13 @@ export function useUpdate() {
   return {
     notice,
     phase,
+    progress,
     error,
     restartFailed,
     info,
     running: info?.running ?? null,
-    /** Asks the release feed now, over the hourly poll. */
-    check: () => recheck.current?.(),
+    /** Asks the release feed now, over the 15 minute poll. */
+    check: () => recheck.current?.(true),
     dismiss,
     start,
   }

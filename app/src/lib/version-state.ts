@@ -8,7 +8,7 @@ export const installedVersion = async (): Promise<string | null> => {
   const prefix = process.env.IRSIM_PREFIX
   if (!prefix) return null
   try {
-    return basename(await realpath(join(prefix, 'current')))
+    return basename(await realpath(join(prefix, 'current'))).replace(/-local$/, '')
   } catch {
     return null
   }

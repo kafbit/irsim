@@ -6,9 +6,11 @@ export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 export async function GET(request?: Request): Promise<Response> {
-  const skipLatest = request ? new URL(request.url).searchParams.get('latest') === '0' : false
+  const params = request ? new URL(request.url).searchParams : null
+  const skipLatest = params?.get('latest') === '0'
   const installed = await installedVersion()
-  const release = installed === null || skipLatest ? null : await latestRelease()
+  const release =
+    installed === null || skipLatest ? null : await latestRelease({ fresh: params?.get('fresh') === '1' })
   const info: VersionInfo = {
     running: runningVersion(),
     installed,

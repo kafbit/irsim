@@ -62,6 +62,19 @@ describe('comment reply route', () => {
     })
   })
 
+  it('rejects bad reply images and stores good ones', async () => {
+    const comment = await draft()
+    await sendDrafts({ sessionId: 's1' })
+    expect((await reply(comment.id, { author: 'user', body: 'x', images: 'nope' })).status).toBe(400)
+    expect(
+      (await reply(comment.id, { author: 'user', body: 'x', images: ['a', 'b', 'c', 'd', 'e'] }))
+        .status,
+    ).toBe(400)
+    const response = await reply(comment.id, { author: 'user', body: 'x', images: ['i_abc123'] })
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({ replies: [{ images: ['i_abc123'] }] })
+  })
+
   it('still accepts a claude reply and rejects a bad author', async () => {
     const comment = await draft()
     expect((await reply(comment.id, { author: 'claude', body: 'Done' })).status).toBe(200)

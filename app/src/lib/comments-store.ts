@@ -219,7 +219,12 @@ export const updateComment = async (
 
 export const addReply = async (
   id: string,
-  reply: { author: 'claude' | 'user'; body: string; session?: string | undefined },
+  reply: {
+    author: 'claude' | 'user'
+    body: string
+    session?: string | undefined
+    images?: string[] | undefined
+  },
   now = Date.now(),
 ): Promise<Change<Comment>> => {
   const agent =
@@ -230,7 +235,7 @@ export const addReply = async (
   return mutateOne(id, (comment) => {
     const at = new Date(now).toISOString()
     if (reply.author === 'claude') {
-      const { session, ...rest } = reply
+      const { session, images: _images, ...rest } = reply
       const stored = session ? { ...rest, session } : rest
       return {
         ...comment,
@@ -246,7 +251,16 @@ export const addReply = async (
       ...comment,
       status: 'queued',
       reopened: comment.status === 'resolved' || comment.reopened === true,
-      replies: [...comment.replies, { author: reply.author, body: reply.body, at, seen: false }],
+      replies: [
+        ...comment.replies,
+        {
+          author: reply.author,
+          body: reply.body,
+          at,
+          seen: false,
+          ...(reply.images && reply.images.length > 0 ? { images: reply.images } : {}),
+        },
+      ],
     }
   })
 }
@@ -496,7 +510,12 @@ export const claim = (sessionId: string, now = Date.now()): Promise<Claim> =>
     await writeList('comments.json', next)
     touched([...ids])
     const paths: Record<string, string> = {}
-    for (const image of next.flatMap((comment) => (ids.has(comment.id) ? comment.images : []))) {
+    const claimedImages = next.flatMap((comment) =>
+      ids.has(comment.id)
+        ? [...comment.images, ...comment.replies.flatMap((reply) => reply.images ?? [])]
+        : [],
+    )
+    for (const image of claimedImages) {
       const path = await imagePath(image)
       if (path) paths[image] = path
     }

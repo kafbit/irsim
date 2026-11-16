@@ -7,6 +7,7 @@ export type Reply = {
   body: string
   at: string
   seen: boolean
+  images?: string[]
   session?: string
   agent?: AgentId
 }

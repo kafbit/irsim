@@ -9,6 +9,7 @@ export {
   Trash as DeleteIcon,
   Pencil as EditIcon,
   Hand,
+  ImagePlus,
   MapIcon,
   MessageSquare,
   Monitor,
