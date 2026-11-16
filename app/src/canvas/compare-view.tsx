@@ -13,6 +13,7 @@ import {
   canvasHref,
   columnScale,
   COMPARE_WIDTHS,
+  confirmText,
   type CompareWidth,
   isCompareWidth,
   isNarrow,
@@ -78,6 +79,9 @@ function Column({
   mount,
   onSettled,
   disabled,
+  confirm,
+  onAsk,
+  onCancel,
   onChoose,
 }: {
   board: ManifestBoard
@@ -87,6 +91,10 @@ function Column({
   mount: boolean
   onSettled: () => void
   disabled: boolean
+  /** The confirmation shown in place of the button, or `null`. */
+  confirm: { title: string; text: string; action: string } | null
+  onAsk: () => void
+  onCancel: () => void
   onChoose: () => void
 }) {
   const [box, setBox] = useState({ width: 0, height: 0 })
@@ -161,14 +169,36 @@ function Column({
           ) : null}
         </div>
       </div>
-      <Button
-        variant={base ? 'secondary' : 'primary'}
-        size="sm"
-        disabled={disabled}
-        onClick={onChoose}
-      >
-        {base ? 'Keep original' : 'Choose'}
-      </Button>
+      {confirm ? (
+        <div
+          role="alertdialog"
+          aria-label="Confirm the choice"
+          className="flex flex-col gap-2.5 rounded-xl border border-border-strong bg-card p-3"
+        >
+          <p className="m-0 text-[13px] leading-[18px]">
+            <span className="font-semibold">{confirm.title}</span>
+            <br />
+            <span className="text-muted-foreground">{confirm.text}</span>
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" size="sm" disabled={disabled} onClick={onCancel}>
+              Cancel
+            </Button>
+            <Button size="sm" pending={disabled} onClick={onChoose}>
+              {confirm.action}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Button
+          variant={base ? 'secondary' : 'primary'}
+          size="sm"
+          disabled={disabled}
+          onClick={onAsk}
+        >
+          {base ? 'Keep original' : 'Choose'}
+        </Button>
+      )}
     </section>
   )
 }
@@ -180,6 +210,8 @@ function Compare({ manifest, base }: { manifest: PageManifest; base: ManifestBoa
   const [settled, setSettled] = useState(0)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  /** The board whose Choose or Keep original waits for its confirmation. */
+  const [asking, setAsking] = useState<string | null>(null)
 
   // Syncs with localStorage, an external system: the stored width applies after hydration.
   useEffect(() => {
@@ -278,6 +310,18 @@ function Compare({ manifest, base }: { manifest: PageManifest; base: ManifestBoa
             mount={index < limit}
             onSettled={onSettled}
             disabled={pending}
+            confirm={
+              asking === board.name
+                ? confirmText({
+                    base: base.name,
+                    pick: board.name,
+                    label: board.variantLabel ?? board.name,
+                    variants: boards.length - 1,
+                  })
+                : null
+            }
+            onAsk={() => setAsking(board.name)}
+            onCancel={() => setAsking(null)}
             onChoose={() => void choose(board.name)}
           />
         ))}

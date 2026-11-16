@@ -68,12 +68,12 @@ function SectionField({
 }
 
 const SWATCHES: { color: SectionColor; label: string; fill: string }[] = [
-  { color: 'gray', label: 'Gray', fill: 'var(--secondary)' },
-  { color: 'blue', label: 'Blue', fill: 'var(--info)' },
-  { color: 'green', label: 'Green', fill: 'var(--success)' },
-  { color: 'amber', label: 'Amber', fill: 'var(--warning)' },
-  { color: 'purple', label: 'Purple', fill: 'var(--rented)' },
-  { color: 'red', label: 'Red', fill: 'var(--destructive-tint)' },
+  { color: 'gray', label: 'Gray', fill: 'var(--muted-foreground)' },
+  { color: 'blue', label: 'Blue', fill: 'var(--info-foreground)' },
+  { color: 'green', label: 'Green', fill: 'var(--success-foreground)' },
+  { color: 'amber', label: 'Amber', fill: 'var(--warning-foreground)' },
+  { color: 'purple', label: 'Purple', fill: 'var(--rented-foreground)' },
+  { color: 'red', label: 'Red', fill: 'var(--destructive)' },
 ]
 
 /** Six swatches, one per section color; gray is the default and stores no color. */

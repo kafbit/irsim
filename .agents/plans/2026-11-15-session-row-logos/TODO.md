@@ -27,6 +27,6 @@
 - [x] Board: `CanvasApp` canvas height so the zoom bar is not cut off; narrower Reports section so the minimap does not cover it.
 - [x] Board: `CanvasInspector` prop `swatches` (solid|tint); solid uses the foreground colors.
 - [x] Board: `CanvasCompare` prop `confirm` (none|choose|keep), state board `CanvasCompareConfirm`.
-- [ ] Stop for approval of the swatch and Choose confirmation boards.
-- [ ] App: solid swatches in `inspector.tsx`.
-- [ ] App: Choose and Keep original confirmation in `compare-view.tsx`.
+- [x] Stop for approval of the swatch and Choose confirmation boards. The user approved them.
+- [x] App: solid swatches in `inspector.tsx`. Compared with the board, light and dark.
+- [x] App: Choose and Keep original confirmation in `compare-view.tsx`. Compared with `CanvasCompareConfirm`, light and dark.
