@@ -17,7 +17,9 @@
 - [x] Typecheck and affected tests. `design_canvas check` was not run: the tool is not available in this session.
 - [x] Board: thread Approve and build split button with Resolve in its menu (`CanvasThread`, `CanvasThreadResolveMenu`).
 - [x] Board: Send button on a draft comment, disabled with no session (`CanvasThread`, `CanvasThreadNoSession`).
-- [ ] Stop for approval of the thread boards.
+- [x] Board: session picker on a sent comment, Approve and build disabled without a session (`CanvasThread`, `CanvasThreadNoTarget`). Approved.
+- [x] Stop for approval of the thread boards. The user approved them.
 - [ ] App: thread Approve and build, which approves, resolves and sends the build turn; Resolve in its menu.
 - [ ] App: Send one draft comment to the active session.
+- [ ] App: session picker on a sent comment; Approve and build disabled without a session.
 - [ ] Compare the thread with its boards, light and dark.

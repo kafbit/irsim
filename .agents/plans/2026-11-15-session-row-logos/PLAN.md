@@ -83,6 +83,8 @@ Brand colors are the one place a board uses a literal color, because a logo keep
 - The Resolve button on a sent comment becomes a split button. The main part is `Approve and build`, and its menu holds `Approve and build` and `Resolve`.
 - Approve and build approves the commented board, resolves the comment, and sends one turn to the comment's session: the user accepted the board change for this comment; implement it in the app.
 - Resolve only resolves the comment, as the button does today.
+- Approve and build is disabled with the title "No agent session listening" when the comment has no target session. Resolve in its menu stays enabled.
+- A sent comment shows a Session picker above the reply box. Changing it sets the comment's session, and its replies and Approve and build go to the new session. A comment whose session ended shows "Pick a session" with a destructive border. Board: `CanvasThread` prop `drafts` (shown|hidden), state board `CanvasThreadNoTarget`.
 - Board: `CanvasThread` prop `resolve` (closed|open), state board `CanvasThreadResolveMenu`.
 - App: `comments/comment-card.tsx` split button and menu; an `onApproveAndBuild` action in `thread-panel.tsx` that calls the approval route, resolves the comment, and sends the build turn.
 

@@ -334,6 +334,14 @@
           "height": 820
         },
         {
+          "name": "CanvasThreadNoTarget",
+          "title": "Thread: sent comment without a session, Approve and build disabled",
+          "x": 3136,
+          "y": 2736,
+          "width": 320,
+          "height": 820
+        },
+        {
           "name": "CanvasPlayView",
           "title": "Play view",
           "x": 0,
