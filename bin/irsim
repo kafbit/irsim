@@ -10,6 +10,7 @@ import {
   realpathSync,
   renameSync,
   rmSync,
+  statSync,
   symlinkSync,
   writeFileSync,
 } from 'node:fs'
@@ -541,7 +542,44 @@ const acquireLock = (prefix) => {
   return release
 }
 
-const update = (args) => {
+const writeProgress = (prefix, payload) => {
+  const dir = join(prefix, '.update.lock')
+  const temporary = join(dir, `progress.${process.pid}.tmp`)
+  try {
+    writeFileSync(temporary, JSON.stringify(payload))
+    renameSync(temporary, join(dir, 'progress.json'))
+  } catch {}
+}
+
+const downloadAsset = (prefix, tag, asset, work, total) =>
+  new Promise((resolve) => {
+    const args = ['release', 'download', tag, '--repo', REPO, '--pattern', asset, '--dir', work]
+    const child = spawn('gh', args, { stdio: ['ignore', 'ignore', 'pipe'] })
+    let stderr = ''
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk
+    })
+    const tick = () => {
+      let received = 0
+      try {
+        received = statSync(join(work, asset)).size
+      } catch {}
+      writeProgress(prefix, { stage: 'download', received, total })
+    }
+    tick()
+    const timer = setInterval(tick, 250)
+    child.on('error', () => {
+      clearInterval(timer)
+      fail('gh is not installed or not on PATH')
+    })
+    child.on('close', (status) => {
+      clearInterval(timer)
+      if (status !== 0) fail(`gh ${args.slice(0, 2).join(' ')} failed: ${stderr.trim() || status}`)
+      resolve()
+    })
+  })
+
+const update = async (args) => {
   const opts = parse(args, { '--check': 'bool' })
   const installed = installedVersion()
   const tag = gh(['release', 'view', '--repo', REPO, '--json', 'tagName', '--jq', '.tagName'])
@@ -574,7 +612,24 @@ const update = (args) => {
     const asset = `irsim-${latest}-${platformTag()}.tar.gz`
     const work = mkdtempSync(join(tmpdir(), 'irsim-update-'))
     try {
-      gh(['release', 'download', tag, '--repo', REPO, '--pattern', asset, '--dir', work])
+      const lookup = spawnSync(
+        'gh',
+        [
+          'release',
+          'view',
+          tag,
+          '--repo',
+          REPO,
+          '--json',
+          'assets',
+          '--jq',
+          `.assets[] | select(.name=="${asset}") | .size`,
+        ],
+        { encoding: 'utf8' },
+      )
+      const size = lookup.error || lookup.status !== 0 ? 0 : Number(String(lookup.stdout).trim())
+      await downloadAsset(prefix, tag, asset, work, Number.isFinite(size) && size > 0 ? size : 0)
+      writeProgress(prefix, { stage: 'install' })
       const target = join(prefix, latest)
       const staging = `${target}.partial`
       rmSync(staging, { recursive: true, force: true })
@@ -686,7 +741,7 @@ switch (command) {
     init(rest)
     break
   case 'update':
-    update(rest)
+    await update(rest)
     break
   case 'doctor':
     await doctor(rest)

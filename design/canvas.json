@@ -142,6 +142,14 @@
           "height": 308
         },
         {
+          "name": "CanvasFrameCompact",
+          "title": "Frame: zoomed out, status as a dot",
+          "x": 3360,
+          "y": 2348,
+          "width": 200,
+          "height": 178
+        },
+        {
           "name": "CanvasFrameCommentingTitle",
           "title": "Frame: comment mode, title hovered",
           "x": 1920,
@@ -279,8 +287,16 @@
         },
         {
           "name": "UpdateNoticeUpdating",
-          "title": "Update notice: updating",
+          "title": "Update notice: updating, download progress",
           "x": 1600,
+          "y": 4896,
+          "width": 720,
+          "height": 560
+        },
+        {
+          "name": "UpdateNoticeInstalling",
+          "title": "Update notice: installing after the download",
+          "x": 4800,
           "y": 4896,
           "width": 720,
           "height": 560
@@ -337,6 +353,14 @@
           "name": "CanvasThreadNoTarget",
           "title": "Thread: sent comment without a session, Approve and build disabled",
           "x": 3136,
+          "y": 2736,
+          "width": 320,
+          "height": 820
+        },
+        {
+          "name": "CanvasThreadReplyImages",
+          "title": "Thread: reply with pasted images, and a sent reply with an image",
+          "x": 3536,
           "y": 2736,
           "width": 320,
           "height": 820
@@ -780,6 +804,62 @@
           "y": 13856,
           "width": 1440,
           "height": 948
+        },
+        {
+          "name": "CanvasFrameMenu",
+          "title": "Frame: context menu",
+          "x": 2400,
+          "y": 1960,
+          "width": 400,
+          "height": 308
+        },
+        {
+          "name": "CanvasFrameMenuNoSession",
+          "title": "Frame: context menu, no agent session",
+          "x": 2880,
+          "y": 1960,
+          "width": 400,
+          "height": 308
+        },
+        {
+          "name": "CanvasContextMenu",
+          "title": "Context menu",
+          "x": 0,
+          "y": 14884,
+          "width": 240,
+          "height": 300
+        },
+        {
+          "name": "CanvasFrameMenuMany",
+          "title": "Frames: context menu for several frames",
+          "x": 320,
+          "y": 14884,
+          "width": 900,
+          "height": 640
+        },
+        {
+          "name": "CanvasSectionMenu",
+          "title": "Section: context menu",
+          "x": 1300,
+          "y": 14884,
+          "width": 900,
+          "height": 640
+        },
+        {
+          "name": "CanvasSectionMenuPart",
+          "title": "Section: context menu for some of its frames",
+          "x": 2280,
+          "y": 14884,
+          "width": 900,
+          "height": 640
+        },
+        {
+          "name": "CanvasSectionMenuMixed",
+          "title": "Section: context menu for a section and a frame",
+          "x": 3260,
+          "y": 14884,
+          "width": 900,
+          "height": 900
         }
       ]
     }

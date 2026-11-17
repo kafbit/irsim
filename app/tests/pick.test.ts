@@ -80,13 +80,39 @@ const setup = (
   const resize = () => windowHandlers.get('resize')?.({})
   const click = (target: FakeElement) =>
     handlers.get('click')?.({ target, preventDefault() {}, stopPropagation() {} })
-  return { hover, click, resize, outline: () => made[0] as FakeElement }
+  return { hover, click, resize, handlers, picker, outline: () => made[0] as FakeElement }
 }
 
 beforeEach(() => vi.unstubAllGlobals())
 afterEach(() => vi.unstubAllGlobals())
 
+const HOVER = [
+  'mouseover',
+  'mouseout',
+  'mouseenter',
+  'mouseleave',
+  'pointerover',
+  'pointerout',
+  'pointerenter',
+  'pointerleave',
+]
+
 describe('comment mode hover outline', () => {
+  it('stops the hover events from reaching the board and removes the handlers when off', () => {
+    const { handlers, picker } = setup('#123456')
+    for (const type of HOVER) {
+      const handler = handlers.get(type)
+      expect(handler).toBeDefined()
+      const stopPropagation = vi.fn()
+      const preventDefault = vi.fn()
+      handler?.({ stopPropagation, preventDefault })
+      expect(stopPropagation).toHaveBeenCalledTimes(1)
+      expect(preventDefault).not.toHaveBeenCalled()
+    }
+    picker.setOn(false)
+    for (const type of HOVER) expect(handlers.has(type)).toBe(false)
+  })
+
   it('shows the outline over a stamped element, in the canvas ring colour', () => {
     const { hover, outline } = setup('#123456')
     hover(new FakeElement(true))

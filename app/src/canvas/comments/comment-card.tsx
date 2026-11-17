@@ -7,8 +7,8 @@ import { AgentLogo } from '../../ui/agent-logo'
 import { Badge, Button, IconButton, Textarea } from '../../ui'
 import { placeText, targetName } from '../../lib/place-text'
 import { viewLabel } from '../../lib/view-label'
-import { DeleteIcon, EditIcon, Monitor, Send, Smartphone, Tablet } from '../../ui/icons'
-import { useState } from 'react'
+import { DeleteIcon, EditIcon, ImagePlus, Monitor, Send, Smartphone, Tablet } from '../../ui/icons'
+import { useRef, useState } from 'react'
 import { ClampedText } from './clamped-text'
 import { ApproveSplit, CommentSession, NO_SESSION } from './comment-actions'
 import { ImageStrip, imageUrl } from './image-strip'
@@ -53,7 +53,7 @@ type Props = {
   onEdit: (id: string, body: string, images: string[]) => Promise<void>
   onDelete: (id: string) => Promise<void>
   onResolve: (id: string) => Promise<void>
-  onReply: (id: string, body: string) => Promise<void>
+  onReply: (id: string, body: string, images: string[]) => Promise<void>
   /** Sends this draft alone to the active session. */
   onSendOne?: ((id: string, sessionId: string) => Promise<void>) | undefined
   /** Approves the commented board, resolves the comment and sends one build turn to its session. */
@@ -90,6 +90,8 @@ export function CommentCard({
   const [busy, setBusy] = useState(false)
   const [replyDraft, setReplyDraft] = useState('')
   const pasted = usePastedImages(comment.images)
+  const replyPasted = usePastedImages()
+  const fileInput = useRef<HTMLInputElement>(null)
   const open = comment.status === 'queued' || comment.status === 'delivered'
   /** The comment's session is live, so its replies and a build go somewhere now. */
   const target = sessions.some((live) => live.id === comment.sessionId)
@@ -116,8 +118,11 @@ export function CommentCard({
 
   const sendReply = async () => {
     const body = replyDraft.trim()
-    if (!body) return
-    if (await run(() => onReply(comment.id, body))) setReplyDraft('')
+    if (!body || replyPasted.uploading > 0) return
+    if (await run(() => onReply(comment.id, body, replyPasted.images))) {
+      setReplyDraft('')
+      replyPasted.reset([])
+    }
   }
 
   const cancelEdit = () => {
@@ -244,6 +249,21 @@ export function CommentCard({
                 ) : null}
               </span>
               <ClampedText text={reply.body} />
+              {reply.images && reply.images.length > 0 ? (
+                <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
+                  {reply.images.slice(0, 4).map((id, index) => (
+                    <li key={id}>
+                      <a href={imageUrl(id)} target="_blank" rel="noreferrer">
+                        <img
+                          src={imageUrl(id)}
+                          alt={`Attachment ${index + 1}`}
+                          className="size-16 rounded-md border border-border object-cover"
+                        />
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
             </li>
           ))}
         </ul>
@@ -306,14 +326,47 @@ export function CommentCard({
             value={replyDraft}
             disabled={busy}
             onChange={(event) => setReplyDraft(event.target.value)}
+            onPaste={replyPasted.onPaste}
             onKeyDown={(event) => {
-              if (event.key === 'Escape') setReplyDraft('')
+              if (event.key === 'Escape') {
+                setReplyDraft('')
+                replyPasted.reset([])
+              }
               else if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) void sendReply()
             }}
             className="min-h-12 text-sm focus-visible:ring-0"
           />
-          <div className="flex justify-end">
-            <Button size="sm" disabled={!replyDraft.trim()} pending={busy} onClick={sendReply}>
+          <ImageStrip
+            images={replyPasted.images}
+            uploading={replyPasted.uploading}
+            message={replyPasted.message}
+            onRemove={replyPasted.remove}
+          />
+          <input
+            ref={fileInput}
+            type="file"
+            accept="image/*"
+            multiple
+            hidden
+            onChange={(event) => {
+              replyPasted.addFiles(Array.from(event.target.files ?? []))
+              event.target.value = ''
+            }}
+          />
+          <div className="flex items-center justify-between">
+            <IconButton
+              label="Attach images"
+              title="Attach images (or paste them into the reply)"
+              icon={<ImagePlus className="size-4" />}
+              onClick={() => fileInput.current?.click()}
+              className="size-[34px]"
+            />
+            <Button
+              size="sm"
+              disabled={!replyDraft.trim() || replyPasted.uploading > 0}
+              pending={busy}
+              onClick={sendReply}
+            >
               Reply
             </Button>
           </div>

@@ -65,6 +65,32 @@ function Placeholder({
   )
 }
 
+function Status({
+  label,
+  hint,
+  text,
+  dot,
+}: {
+  label: string
+  hint?: string
+  text: string
+  dot: string
+}) {
+  return (
+    <>
+      <span title={hint} className={`shrink-0 font-medium @max-[200px]:hidden ${text}`}>
+        {label}
+      </span>
+      <span
+        role="img"
+        aria-label={label}
+        title={label}
+        className={`hidden size-2 shrink-0 self-center rounded-full @max-[200px]:block ${dot}`}
+      />
+    </>
+  )
+}
+
 export const Frame = memo(function Frame({
   board,
   mounted,
@@ -118,59 +144,70 @@ export const Frame = memo(function Frame({
       className="absolute"
       style={{ left: board.x, top: board.y, width: board.width, height: board.height }}
     >
-      <button
-        type="button"
-        data-frame-title=""
-        onClick={(event) =>
-          commenting ? onComment(board.name) : onSelect(board.name, event.shiftKey)
-        }
-        className={`peer absolute start-0 bottom-full flex origin-bottom-left items-baseline gap-2 overflow-hidden pb-1.5 text-start text-xs whitespace-nowrap text-foreground -outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring ${
-          commenting
-            ? 'cursor-crosshair in-data-labels-off:invisible'
-            : 'cursor-pointer in-data-labels-off:invisible'
-        }`}
-        style={{ maxInlineSize: labelMaxInline(board.width), transform: 'scale(var(--inv, 1))' }}
+      <div
+        className="peer pointer-events-none absolute start-0 bottom-full flex origin-bottom-left items-end @container"
+        style={{ inlineSize: 'calc(var(--k, 1) * 100%)', transform: 'scale(var(--inv, 1))' }}
       >
-        {board.interactive ? (
-          <span
-            role="img"
-            aria-label="Prototype"
-            className="size-2 shrink-0 self-center rounded-full bg-blue-600"
+        <button
+          type="button"
+          data-frame-title=""
+          onClick={(event) =>
+            commenting ? onComment(board.name) : onSelect(board.name, event.shiftKey)
+          }
+          className={`pointer-events-auto flex min-w-0 items-baseline gap-2 overflow-hidden pb-1.5 text-start text-xs whitespace-nowrap text-foreground -outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring ${
+            commenting
+              ? 'cursor-crosshair in-data-labels-off:invisible'
+              : 'cursor-pointer in-data-labels-off:invisible'
+          } ${board.interactive && !playing ? '@max-[200px]:max-w-[calc(100%-32px)]!' : ''}`}
+          style={{ maxInlineSize: labelMaxInline(board.width) }}
+        >
+          {board.interactive ? (
+            <span
+              role="img"
+              aria-label="Prototype"
+              className="size-2 shrink-0 self-center rounded-full bg-blue-600"
+            />
+          ) : null}
+          {/* Before the title, so a narrow board truncates the title and keeps the approval state. */}
+          {outdated ? (
+            <Status label="Outdated" text="text-warning-foreground" dot="bg-warning-foreground" />
+          ) : null}
+          {notChanged ? (
+            <Status
+              label="Not changed yet"
+              text="text-muted-foreground"
+              dot="bg-muted-foreground"
+            />
+          ) : null}
+          {approval === 'approved' ? (
+            <Status label="Approved" text="text-success-foreground" dot="bg-success-foreground" />
+          ) : approval === 'changed' ? (
+            <Status
+              label="Changed"
+              hint="Changed since approval"
+              text="text-warning-foreground"
+              dot="bg-warning-foreground"
+            />
+          ) : approval === 'new' ? (
+            <Status label="New" text="text-info-foreground" dot="bg-info-foreground" />
+          ) : null}
+          <span dir="auto" className="truncate font-medium">
+            {board.title}
+          </span>
+          <span className="min-w-0 shrink-[10000] truncate text-muted-foreground">
+            {board.name}
+          </span>
+        </button>
+        {board.interactive || playing ? (
+          <FramePlay
+            name={board.name}
+            title={board.title}
+            playing={playing}
+            onPlay={onPlay}
+            onStop={onStop}
           />
         ) : null}
-        {/* Before the title, so a narrow board truncates the title and keeps the approval state. */}
-        {outdated ? (
-          <span className="shrink-0 font-medium text-warning-foreground">Outdated</span>
-        ) : null}
-        {notChanged ? (
-          <span className="shrink-0 font-medium text-muted-foreground">Not changed yet</span>
-        ) : null}
-        {approval === 'approved' ? (
-          <span className="shrink-0 font-medium text-success-foreground">Approved</span>
-        ) : approval === 'changed' ? (
-          <span
-            title="Changed since approval"
-            className="shrink-0 font-medium text-warning-foreground"
-          >
-            Changed
-          </span>
-        ) : approval === 'new' ? (
-          <span className="shrink-0 font-medium text-info-foreground">New</span>
-        ) : null}
-        <span dir="auto" className="truncate font-medium">
-          {board.title}
-        </span>
-        <span className="min-w-0 shrink-[10000] truncate text-muted-foreground">{board.name}</span>
-      </button>
-      {board.interactive || playing ? (
-        <FramePlay
-          name={board.name}
-          title={board.title}
-          playing={playing}
-          onPlay={onPlay}
-          onStop={onStop}
-        />
-      ) : null}
+      </div>
       <div
         className={`relative size-full overflow-clip rounded-xl bg-white outline ${
           playing ? 'outline-2 outline-blue-600' : 'outline-1 outline-border'
@@ -210,7 +247,7 @@ export const Frame = memo(function Frame({
       {commenting ? (
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 hidden rounded-xl outline-pick peer-hover:block peer-focus-visible:block"
+          className="pointer-events-none absolute inset-0 hidden rounded-xl outline-pick peer-has-[[data-frame-title]:hover]:block peer-has-[[data-frame-title]:focus-visible]:block"
           style={{
             outlineWidth: 'calc(2px * var(--inv, 1))',
             outlineOffset: 'calc(-2px * var(--inv, 1))',

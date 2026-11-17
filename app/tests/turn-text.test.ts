@@ -184,6 +184,19 @@ describe('buildTurnText', () => {
       )
     })
 
+    it('lists the image path of a reply under its body', () => {
+      const text = buildTurnText(
+        [
+          followUp({
+            replies: [{ author: 'user', body: 'Look', at, seen: false, images: ['i_a', 'i_gone'] }],
+          }),
+        ],
+        { i_a: '/data/images/i_a.png' },
+      )
+      expect(text).toContain('   NEW You: Look\n      image: /data/images/i_a.png\nReply to each')
+      expect(text).not.toContain('i_gone')
+    })
+
     it('names the agent that wrote a reply', () => {
       const text = buildTurnText([
         followUp({

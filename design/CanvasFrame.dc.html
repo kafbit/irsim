@@ -18,33 +18,22 @@ body{margin:0}
 </helmet>
 <div dir="ltr" lang="en" class="cf-root {{themeClass}}" style="position: relative; box-sizing: border-box; width: 100%; min-height: var(--cv-h, 100vh); padding: 48px 20px 20px 20px; background: var(--cv-bg, var(--shell)); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
 <div data-board="Dialog" style="position: relative; width: {{boxWidth}}; height: {{boxHeight}};">
-<button type="button" style="position: absolute; left: 0; bottom: 100%; display: flex; align-items: baseline; gap: 8px; max-width: 100%; box-sizing: border-box; margin: 0; padding: 0 0 6px 0; border: 0; background: transparent; overflow: hidden; font: inherit; font-size: 12px; line-height: 16px; white-space: nowrap; text-align: start; color: var(--foreground); cursor: {{titleCursor}};">
+<button type="button" style="position: absolute; left: 0; bottom: 100%; display: flex; align-items: baseline; gap: 8px; max-width: {{titleMax}}; box-sizing: border-box; margin: 0; padding: 0 0 6px 0; border: 0; background: transparent; overflow: hidden; font: inherit; font-size: 12px; line-height: 16px; white-space: nowrap; text-align: start; color: var(--foreground); cursor: {{titleCursor}};">
 <sc-if value="{{isPrototype}}" hint-placeholder-val="{{false}}">
 <span role="img" aria-label="Prototype" style="flex-shrink: 0; align-self: center; width: 8px; height: 8px; border-radius: 50%; background: #2563eb;"></span>
 </sc-if>
-<sc-if value="{{stale}}" hint-placeholder-val="{{false}}">
-<span style="flex-shrink: 0; font-weight: 500; color: var(--warning-foreground);">Outdated</span>
-</sc-if>
-<sc-if value="{{generating}}" hint-placeholder-val="{{false}}">
-<span style="flex-shrink: 0; font-weight: 500; color: var(--muted-foreground);">Not changed yet</span>
-</sc-if>
-<sc-if value="{{approved}}" hint-placeholder-val="{{false}}">
-<span style="flex-shrink: 0; font-weight: 500; color: var(--success-foreground);">Approved</span>
-</sc-if>
-<sc-if value="{{changed}}" hint-placeholder-val="{{false}}">
-<span style="flex-shrink: 0; font-weight: 500; color: var(--warning-foreground);">Changed</span>
-</sc-if>
-<sc-if value="{{isNew}}" hint-placeholder-val="{{false}}">
-<span style="flex-shrink: 0; font-weight: 500; color: var(--info-foreground);">New</span>
-</sc-if>
+<sc-for list="{{statuses}}" as="status">
+<sc-if value="{{compact}}" hint-placeholder-val="{{false}}"><span role="img" aria-label="{{status.label}}" title="{{status.label}}" style="flex-shrink: 0; align-self: center; width: 8px; height: 8px; border-radius: 50%; background: {{status.color}};"></span></sc-if>
+<sc-if value="{{wordy}}" hint-placeholder-val="{{true}}"><span style="flex-shrink: 0; font-weight: 500; color: {{status.color}};">{{status.label}}</span></sc-if>
+</sc-for>
 <span dir="auto" style="min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">Confirmation dialog</span>
 <span style="min-width: 0; flex-shrink: 10000; overflow: hidden; text-overflow: ellipsis; color: var(--muted-foreground);">Dialog</span>
 </button>
 <sc-if value="{{showPlay}}" hint-placeholder-val="{{false}}">
 <div style="position: absolute; right: 0; bottom: 100%; display: flex; align-items: center; padding-bottom: 4px;">
-<button type="button" aria-label="Play prototype Confirmation dialog" style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 24px; box-sizing: border-box; margin: 0; padding: 0 8px 0 6px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--play); font: inherit; font-size: 12px; font-weight: 500; white-space: nowrap; cursor: pointer;">
+<button type="button" aria-label="Play prototype Confirmation dialog" style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 24px; box-sizing: border-box; margin: 0; padding: {{playPadding}}; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--play); font: inherit; font-size: 12px; font-weight: 500; white-space: nowrap; cursor: pointer;">
 <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>
-<span>Play</span>
+<sc-if value="{{wordy}}" hint-placeholder-val="{{true}}"><span>Play</span></sc-if>
 </button>
 </div>
 </sc-if>
@@ -103,18 +92,40 @@ body{margin:0}
 </sc-if>
 </div>
 </sc-if>
+<sc-if value="{{menuOpen}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; left: 130px; top: 24px; z-index: 2;"><dc-import name="CanvasContextMenu" target="frame" session="{{session}}" play="{{playable}}" variant="{{variantFlag}}" pending="{{pendingCount}}" theme="{{theme}}" hint-size="240px,260px"></dc-import></div>
+</sc-if>
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"live","options":["live","selected","thumbnail","selectedMany","stale","generating","pending","failed","playing","commenting"]},"prototype":{"editor":"enum","default":"no","options":["no","yes"]},"hover":{"editor":"enum","default":"none","options":["none","title"]},"whole":{"editor":"enum","default":"none","options":["none","pin","composing"]},"approval":{"editor":"enum","default":"none","options":["none","approved","changed","new"]},"width":{"editor":"number","default":360},"height":{"editor":"number","default":240},"$preview":{"width":400,"height":308}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"live","options":["live","selected","thumbnail","selectedMany","stale","generating","pending","failed","playing","commenting"]},"prototype":{"editor":"enum","default":"no","options":["no","yes"]},"hover":{"editor":"enum","default":"none","options":["none","title"]},"whole":{"editor":"enum","default":"none","options":["none","pin","composing"]},"approval":{"editor":"enum","default":"none","options":["none","approved","changed","new"]},"menu":{"editor":"enum","default":"closed","options":["closed","open"]},"session":{"editor":"enum","default":"one","options":["one","none"]},"width":{"editor":"number","default":360},"height":{"editor":"number","default":240},"$preview":{"width":400,"height":308}}'>
 class Component extends DCLogic {
   renderVals() {
-    const { state, prototype, approval, theme, hover, whole } = this.props
+    const { state, prototype, approval, theme, hover, whole, menu, session } = this.props
     const width = Number(this.props.width)
     const height = Number(this.props.height)
     const playing = state === 'playing'
     const placeholder = state === 'pending' || state === 'failed'
+    const statuses = [
+      state === 'stale' ? { label: 'Outdated', color: 'var(--warning-foreground)' } : null,
+      state === 'generating' ? { label: 'Not changed yet', color: 'var(--muted-foreground)' } : null,
+      approval === 'approved' ? { label: 'Approved', color: 'var(--success-foreground)' } : null,
+      approval === 'changed' ? { label: 'Changed', color: 'var(--warning-foreground)' } : null,
+      approval === 'new' ? { label: 'New', color: 'var(--info-foreground)' } : null,
+    ].filter(Boolean)
+    const compact = width < 200
     return {
+      statuses,
+      menuOpen: menu === 'open',
+      session: session === 'none' ? 'none' : 'one',
+      playable: prototype === "yes" ? "yes" : "no",
+      variantFlag: state === 'generating' ? 'yes' : 'no',
+      pendingCount: approval === 'new' || approval === 'changed' ? 1 : 0,
+      theme: theme === 'dark' ? 'dark' : 'light',
+      compact,
+      wordy: !compact,
+      playPadding: compact ? '0 6px' : '0 8px 0 6px',
+      titleMax: compact && prototype === 'yes' && !playing ? 'calc(100% - 32px)' : '100%',
       themeClass: theme === 'dark' ? 'dark' : '',
       boxWidth: `${width}px`,
       boxHeight: `${height}px`,

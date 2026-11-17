@@ -5,6 +5,8 @@ import { designDir, projectRoot } from './design-dir'
 
 const run = promisify(execFile)
 
+export const projectName = (): string => basename(projectRoot(dirname(designDir())))
+
 /**
  * The branch checked out in this worktree, for the canvas tab title. A detached HEAD gives the
  * short commit and anything git cannot answer gives the worktree folder name, so a title never fails.

@@ -9,6 +9,8 @@ import { ApproveBox } from './approvals/approve-box'
 import { useApprovals } from './approvals/use-approvals'
 import { CommentLayer } from './comments/comment-layer'
 import { Composer } from './comments/composer'
+import { ContextMenu } from './context-menu'
+import { menuGroups, type MenuItemId, pendingNames } from './context-menu-model'
 import { boardPick, buildNote, numberComments, placedRect } from './comments/model'
 import { ThreadPanel } from './comments/thread-panel'
 import type { Comment, CommentView, PickedElement } from './comments/types'
@@ -42,7 +44,8 @@ import {
 import { SectionLayer } from './section-layer'
 import { SettingsDialog } from './settings-dialog'
 import { Sidebar } from './sidebar'
-import { pendingOf, TopBar } from './top-bar'
+import { pendingOf } from './approvals/pending'
+import { TopBar } from './top-bar'
 import { FocusBar } from './focus-bar'
 import { Toast, useNotice } from './toast'
 import { type Tool, Toolbar } from './toolbar'
@@ -106,7 +109,7 @@ export function PageCanvas({
   manifest: PageManifest
   pages: PageSummary[]
   focus: string | null
-  /** Runs when `canvas.json` changed on the server; the parent fetches the manifest again. Must be stable. */
+  /** Runs when `canvas.json` or a board file changed on the server; the parent fetches the manifest again. Must be stable. */
   onCanvasChange?: () => void
   /** From `?play=`: start with `focus` playing on the canvas or full screen. */
   play?: PlayMode | null
@@ -136,6 +139,13 @@ export function PageCanvas({
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [renaming, setRenaming] = useState<string | null>(null)
   const [hoveredSection, setHoveredSection] = useState<string | null>(null)
+  const [menu, setMenu] = useState<{
+    x: number
+    y: number
+    names: string[]
+    wholeSection: string | null
+  } | null>(null)
+  const [variantsFocus, setVariantsFocus] = useState<{ name: string; count: number } | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   const mounts = useMounts(boards)
   const [marqueeRect, setMarquee] = useState<Rect | null>(null)
@@ -195,14 +205,16 @@ export function PageCanvas({
   const { refresh: refreshFlags } = playFlags
   const { refetch: refetchApprovals } = approvals
   // A changed board may gain or lose its handlers and links, so its Play chip is read again, and
-  // an approval of it may no longer hold.
+  // an approval of it may no longer hold. The manifest carries the render hash of each board and of
+  // every board that imports it, and the thumbnail URL is keyed on that hash.
   const onBoardChange = useCallback(
     (name: string) => {
       reloadBoard(name)
       refreshFlags()
       void refetchApprovals()
+      onCanvasChange?.()
     },
-    [reloadBoard, refreshFlags, refetchApprovals],
+    [reloadBoard, refreshFlags, refetchApprovals, onCanvasChange],
   )
   const [thumbs, setThumbs] = useState<Record<string, { rev: number; ok: boolean }>>({})
   const onThumb = useCallback((name: string, ok: boolean) => {
@@ -423,6 +435,11 @@ export function PageCanvas({
   const playing = fullPlay ?? (selection.interacting ? only : null)
   useEffect(() => {
     playRun.current += 1
+    if (playing) return
+    const url = new URL(window.location.href)
+    if (!url.searchParams.has('play')) return
+    url.searchParams.delete('play')
+    window.history.replaceState(null, '', url)
   }, [playing])
   // A link in a played board moves Play to its target: in place on this page, else on its page.
   usePlayLinks((from, target) => {
@@ -616,6 +633,93 @@ export function PageCanvas({
     [approvals, comments, setNotice],
   )
 
+  const onContextMenu = (event: React.MouseEvent<HTMLElement>) => {
+    const target = event.target as HTMLElement
+    const label = target.closest<HTMLElement>('[data-section-label]')
+    const sectionId = label?.getAttribute('data-section-id') ?? null
+    const placed = sectionId ? placedSectionList.find((item) => item.section.id === sectionId) : undefined
+    if (placed) {
+      event.preventDefault()
+      selectBoards(placed.members)
+      setSelectedSection(placed.section.id)
+      setMenu({ x: event.clientX, y: event.clientY, names: placed.members, wholeSection: placed.section.id })
+      return
+    }
+    const name = boardOf(target)
+    if (!name) return
+    event.preventDefault()
+    const kept = selection.names.includes(name)
+    if (!kept) dispatch({ type: 'select', name })
+    setMenu({
+      x: event.clientX,
+      y: event.clientY,
+      names: kept ? selection.names : [name],
+      wholeSection: kept ? sectionSelected : null,
+    })
+  }
+  const variantOf = useMemo(
+    () => new Map(manifest.boards.map((board) => [board.name, board.variantOf])),
+    [manifest.boards],
+  )
+  const menuItems = useCallback(
+    (connected: boolean) =>
+      menu
+        ? menuGroups({
+            names: menu.names,
+            boards: boards.map((board) => ({
+              name: board.name,
+              section: board.section,
+              interactive: board.interactive,
+              variantOf: variantOf.get(board.name),
+            })),
+            sections,
+            stateOf: approvals.stateOf,
+            connected,
+            wholeSection: menu.wholeSection,
+          })
+        : [],
+    [menu, boards, variantOf, sections, approvals.stateOf],
+  )
+  const runMenuItem = (id: MenuItemId, sessionId: string | null) => {
+    if (!menu) return
+    const { names, wholeSection } = menu
+    const [first] = names
+    const direct = wholeSection
+      ? names.filter((name) => boards.find((board) => board.name === name)?.section === wholeSection)
+      : names
+    setMenu(null)
+    const fail = (failure: unknown) => setNotice(String((failure as Error)?.message ?? failure), 'error')
+    if (id === 'copy') {
+      navigator.clipboard
+        .writeText(names.join('\n'))
+        .then(() =>
+          setNotice(names.length === 1 ? `Copied ${first}` : `Copied ${names.length} frame names`, 'info'),
+        )
+        .catch(fail)
+    } else if (id === 'play' && first) playBoard(first, 'canvas')
+    else if (id === 'comment' && first) {
+      changeTool('comment')
+      commentOnBoard(first)
+    } else if (id === 'variants' && first) {
+      dispatch({ type: 'select', name: first })
+      setPanelOpen(false)
+      setVariantsFocus((current) => ({ name: first, count: (current?.count ?? 0) + 1 }))
+    } else if (id === 'approve' && sessionId) {
+      approveBoards({ boards: pendingNames(names, approvals.stateOf), sessionId }).catch(fail)
+    } else if (id === 'create-section') createSection(names, false)
+    else if (id === 'create-sub-section') createSection(direct, true)
+    else if (id === 'rename-section' && wholeSection) setRenaming(wholeSection)
+    else if (id === 'remove-from-section') assignSection(direct, null)
+    else if (id === 'delete-section' && wholeSection) deleteSection(wholeSection)
+  }
+  useEffect(() => {
+    if (menu && selection.names.length === 0) setMenu(null)
+  }, [menu, selection.names.length])
+  const clearVariantsFocus = useCallback(() => setVariantsFocus(null), [])
+  useEffect(() => {
+    if (variantsFocus && only !== variantsFocus.name) setVariantsFocus(null)
+  }, [only, variantsFocus])
+
   return (
     <div className="flex h-screen flex-col">
       <TopBar
@@ -659,6 +763,7 @@ export function PageCanvas({
           onPointerDown={frameEdit.onTitleDown}
           onPointerOver={(event) => event.buttons === 0 && setHovered(boardOf(event.target))}
           onPointerLeave={() => setHovered(null)}
+          onContextMenu={onContextMenu}
         >
           <SectionLayer
             hovered={hoveredSection}
@@ -796,6 +901,8 @@ export function PageCanvas({
             onColor: colorSection,
           }}
           onFocusBoard={focusBoard}
+          variantsFocus={variantsFocus?.count ?? 0}
+          onVariantsFocused={clearVariantsFocus}
         >
           {selectedBoard && approvals.stateOf(selectedBoard.name) !== undefined &&
           approvals.stateOf(selectedBoard.name) !== 'approved' ? (
@@ -816,6 +923,12 @@ export function PageCanvas({
         pageId={manifest.id}
         onSelectBoards={selectGlobal}
         onOpenSettings={() => setSettingsOpen(true)}
+      />
+      <ContextMenu
+        menu={menu}
+        groups={menuItems}
+        onSelect={runMenuItem}
+        onClose={() => setMenu(null)}
       />
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
       {fullBoard ? (

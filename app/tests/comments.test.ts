@@ -230,7 +230,7 @@ describe('wheelView', () => {
 describe('labelMaxInline', () => {
   it('is the frame screen width and falls to 0 under 24 px', () => {
     const css = labelMaxInline(1440)
-    expect(css).toContain('var(--k, 1) * 100%')
+    expect(css).toContain('100% * clamp')
     expect(css).toContain('var(--k, 1) * 1440 - 23')
   })
 })

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { latestRelease } from '../src/lib/release'
 
 const HOUR = 60 * 60 * 1000
+const QUARTER = 15 * 60 * 1000
 const output = (tag: string) => JSON.stringify({ tagName: tag, url: `https://example.test/${tag}` })
 
 describe('latestRelease', () => {
@@ -33,18 +34,28 @@ describe('latestRelease', () => {
     })
   })
 
-  it('does not run gh for a success cached less than 6 hours ago', async () => {
+  it('does not run gh for a success cached less than 15 minutes ago', async () => {
     const run = vi.fn(async () => output('v0.2.0'))
     await latestRelease(deps(run))
-    clock += 6 * HOUR - 1
+    clock += QUARTER - 1
     expect((await latestRelease(deps(run)))?.version).toBe('0.2.0')
     expect(run).toHaveBeenCalledTimes(1)
   })
 
-  it('runs gh again for a success cached 6 hours ago', async () => {
+  it('runs gh for a fresh check while a cached success is younger than 15 minutes', async () => {
+    const run = vi.fn(async () => output('v0.3.0'))
+    await latestRelease(deps(run))
+    clock += QUARTER / 3
+    run.mockResolvedValueOnce(output('v0.4.0'))
+    expect((await latestRelease({ ...deps(run), fresh: true }))?.version).toBe('0.4.0')
+    expect(run).toHaveBeenCalledTimes(2)
+    expect(JSON.parse(readFileSync(cacheFile, 'utf8')).release.version).toBe('0.4.0')
+  })
+
+  it('runs gh again for a success cached 15 minutes ago', async () => {
     const run = vi.fn(async () => output('v0.2.0'))
     await latestRelease(deps(run))
-    clock += 6 * HOUR
+    clock += QUARTER
     run.mockResolvedValueOnce(output('v0.3.0'))
     expect((await latestRelease(deps(run)))?.version).toBe('0.3.0')
     expect(run).toHaveBeenCalledTimes(2)
@@ -70,17 +81,17 @@ describe('latestRelease', () => {
     expect(JSON.parse(readFileSync(cacheFile, 'utf8'))).toEqual({ checkedAt: clock, release: null })
   })
 
-  it('keeps the previous release when the refresh fails and retries after 1 hour', async () => {
+  it('keeps the previous release when the refresh fails and retries after 15 minutes', async () => {
     const run = vi.fn<() => Promise<string>>(async () => output('v0.2.0'))
     await latestRelease(deps(run))
-    clock += 6 * HOUR
+    clock += QUARTER
     run.mockRejectedValueOnce(new Error('offline'))
     expect((await latestRelease(deps(run)))?.version).toBe('0.2.0')
     expect(JSON.parse(readFileSync(cacheFile, 'utf8'))).toEqual({
-      checkedAt: clock - 5 * HOUR,
+      checkedAt: clock,
       release: { version: '0.2.0', url: 'https://example.test/v0.2.0' },
     })
-    clock += HOUR - 1
+    clock += QUARTER - 1
     expect((await latestRelease(deps(run)))?.version).toBe('0.2.0')
     expect(run).toHaveBeenCalledTimes(2)
     clock += 1
@@ -89,10 +100,20 @@ describe('latestRelease', () => {
     expect(run).toHaveBeenCalledTimes(3)
   })
 
+  it('keeps the cache untouched when a fresh check fails', async () => {
+    const run = vi.fn<() => Promise<string>>(async () => output('v0.2.0'))
+    await latestRelease(deps(run))
+    const before = JSON.parse(readFileSync(cacheFile, 'utf8'))
+    clock += 1000
+    run.mockRejectedValueOnce(new Error('offline'))
+    expect((await latestRelease({ ...deps(run), fresh: true }))?.version).toBe('0.2.0')
+    expect(JSON.parse(readFileSync(cacheFile, 'utf8'))).toEqual(before)
+  })
+
   it('keeps the previous release when the refresh output cannot be parsed', async () => {
     const run = vi.fn<() => Promise<string>>(async () => output('v0.2.0'))
     await latestRelease(deps(run))
-    clock += 6 * HOUR
+    clock += QUARTER
     run.mockResolvedValueOnce('not json')
     expect((await latestRelease(deps(run)))?.version).toBe('0.2.0')
     expect(JSON.parse(readFileSync(cacheFile, 'utf8')).release.version).toBe('0.2.0')
@@ -137,6 +158,23 @@ describe('latestRelease', () => {
     expect((await first)?.version).toBe('0.2.0')
     expect((await second)?.version).toBe('0.2.0')
     expect(run).toHaveBeenCalledTimes(1)
+  })
+
+  it('runs its own check for a fresh call while a non-fresh call is in flight', async () => {
+    let release: (value: string) => void = () => {}
+    const slow = vi.fn(
+      () =>
+        new Promise<string>((resolve) => {
+          release = resolve
+        }),
+    )
+    const fast = vi.fn(async () => output('v0.9.0'))
+    const first = latestRelease(deps(slow))
+    const second = latestRelease({ ...deps(fast), fresh: true })
+    expect((await second)?.version).toBe('0.9.0')
+    expect(fast).toHaveBeenCalledTimes(1)
+    release(output('v0.1.0'))
+    await first
   })
 
   it('ignores a corrupt cache file', async () => {

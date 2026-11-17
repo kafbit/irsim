@@ -91,8 +91,12 @@ export function useComments(pageId: string) {
     edit: (id: string, body: string, images: string[]) =>
       write('PATCH', `/api/comments/${id}`, { body, images }),
     resolve: (id: string) => write('PATCH', `/api/comments/${id}`, { status: 'resolved' }),
-    reply: (id: string, body: string) =>
-      write('POST', `/api/comments/${id}/reply`, { author: 'user', body }),
+    reply: (id: string, body: string, images: string[] = []) =>
+      write('POST', `/api/comments/${id}/reply`, {
+        author: 'user',
+        body,
+        ...(images.length > 0 ? { images } : {}),
+      }),
     remove: (id: string) => write('DELETE', `/api/comments/${id}`),
     send: (sessionId: string) => write('POST', '/api/comments/send', { sessionId, page: pageId }),
     sendOne: (id: string, sessionId: string) =>

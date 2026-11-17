@@ -145,9 +145,6 @@ export const boardRegion = (board: Rect): Rect => ({
 
 export const LABEL_MIN_WIDTH = 24
 
-/**
- * The `max-inline-size` of a frame label, in layout pixels of the scaled world: the frame's screen
- * width (`--k` times its width). It falls to 0 once that screen width is under `LABEL_MIN_WIDTH`.
- */
+/** The `max-inline-size` of a frame label, as a share of its title wrapper, whose inline size is the frame's screen width (`--k` times its width). It falls to 0 once that screen width is under `LABEL_MIN_WIDTH`. */
 export const labelMaxInline = (boardWidth: number): string =>
-  `calc(var(--k, 1) * 100% * clamp(0, calc((var(--k, 1) * ${boardWidth} - ${LABEL_MIN_WIDTH - 1}) * 1000), 1))`
+  `calc(100% * clamp(0, calc((var(--k, 1) * ${boardWidth} - ${LABEL_MIN_WIDTH - 1}) * 1000), 1))`

@@ -96,4 +96,26 @@ describe('GET /api/version', () => {
     expect(body.latest).toBe('0.3.0')
     expect(latestRelease).toHaveBeenCalledTimes(1)
   })
+
+  it('answers the version of a local install without its -local suffix', async () => {
+    mkdirSync(join(dir, '0.3.0-local'))
+    symlinkSync('0.3.0-local', join(dir, 'current'))
+    process.env.IRSIM_PREFIX = dir
+    process.env.IRSIM_VERSION = '0.3.0'
+    process.env.IRSIM_LAUNCHER = join(dir, '0.3.0-local', 'bin', 'irsim')
+    const body = await (await GET(new Request('http://localhost/api/version'))).json()
+    expect(body.installed).toBe('0.3.0')
+  })
+
+  it('asks for a fresh release check for ?fresh=1', async () => {
+    mkdirSync(join(dir, '0.2.0'))
+    symlinkSync('0.2.0', join(dir, 'current'))
+    process.env.IRSIM_PREFIX = dir
+    process.env.IRSIM_LAUNCHER = join(dir, '0.2.0', 'bin', 'irsim')
+    await GET(new Request('http://localhost/api/version?fresh=1'))
+    expect(latestRelease).toHaveBeenCalledWith({ fresh: true })
+    latestRelease.mockClear()
+    await GET(new Request('http://localhost/api/version'))
+    expect(latestRelease).toHaveBeenCalledWith({ fresh: false })
+  })
 })
