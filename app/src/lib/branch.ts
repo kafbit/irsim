@@ -5,7 +5,6 @@ import { designDir, projectRoot } from './design-dir'
 
 const run = promisify(execFile)
 
-/** The worktree folder name, for the canvas tab title. */
 export const projectName = (): string => basename(projectRoot(dirname(designDir())))
 
 /**

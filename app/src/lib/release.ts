@@ -83,6 +83,7 @@ const check = async (deps: ReleaseDeps): Promise<Release | null> => {
   } catch {
     release = null
   }
+  if (release === null && cached?.release && deps.fresh) return cached.release
   if (release === null && cached?.release) {
     await writeCache(file, { checkedAt: now(), release: cached.release })
     return cached.release

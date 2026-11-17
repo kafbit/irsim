@@ -260,7 +260,6 @@ export function Inspector({
   sections: CanvasSection[]
   onSection: (names: string[], id: string | null) => void
   onFocusBoard: (name: string) => void
-  /** Changes each time the Variants box should take focus. */
   variantsFocus?: number
   onVariantsFocused?: (() => void) | undefined
   /** Actions on the board, shown above Play. */

@@ -57,7 +57,7 @@ export function ContextMenu({
   const current = useMemo(() => (menu ? groups(sessionId !== null) : null), [menu, groups, sessionId])
   if (current !== null && current !== kept) setKept(current)
   return (
-    <DropdownMenu dir="ltr" open={menu !== null} onOpenChange={(open) => !open && onClose()}>
+    <DropdownMenu dir="ltr" modal={false} open={menu !== null} onOpenChange={(open) => !open && onClose()}>
       <DropdownMenuTrigger asChild>
         <span
           aria-hidden="true"

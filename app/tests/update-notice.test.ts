@@ -6,6 +6,7 @@ import {
   shouldReload,
   unlessDismissed,
 } from '../src/canvas/use-update'
+import { busyLabelOf } from '../src/canvas/update-notice'
 import { newer, noticeOf, type VersionInfo } from '../src/lib/version-info'
 
 const info = (overrides: Partial<VersionInfo> = {}): VersionInfo => ({
@@ -171,5 +172,19 @@ describe('acquireWatcher', () => {
     expect(fn).not.toHaveBeenCalled()
     expect(again).toHaveBeenCalledTimes(1)
     release()
+  })
+})
+
+describe('busyLabelOf', () => {
+  it('says Downloading while updating before the install stage', () => {
+    expect(busyLabelOf('updating', false, '0.4.1')).toBe('Downloading 0.4.1…')
+  })
+
+  it('says Installing once the install stage was seen', () => {
+    expect(busyLabelOf('updating', true, '0.4.1')).toBe('Installing 0.4.1…')
+  })
+
+  it('says Restarting outside the updating phase', () => {
+    expect(busyLabelOf('restarting', true, '0.4.1')).toBe('Restarting the canvas…')
   })
 })

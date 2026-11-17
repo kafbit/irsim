@@ -100,6 +100,16 @@ describe('latestRelease', () => {
     expect(run).toHaveBeenCalledTimes(3)
   })
 
+  it('keeps the cache untouched when a fresh check fails', async () => {
+    const run = vi.fn<() => Promise<string>>(async () => output('v0.2.0'))
+    await latestRelease(deps(run))
+    const before = JSON.parse(readFileSync(cacheFile, 'utf8'))
+    clock += 1000
+    run.mockRejectedValueOnce(new Error('offline'))
+    expect((await latestRelease({ ...deps(run), fresh: true }))?.version).toBe('0.2.0')
+    expect(JSON.parse(readFileSync(cacheFile, 'utf8'))).toEqual(before)
+  })
+
   it('keeps the previous release when the refresh output cannot be parsed', async () => {
     const run = vi.fn<() => Promise<string>>(async () => output('v0.2.0'))
     await latestRelease(deps(run))

@@ -385,6 +385,16 @@ describe('comments store', () => {
       expect(claimed.text).toContain(`      image: ${path}`)
     })
 
+    it('a claim gives each new reply the paths of its images', async () => {
+      const id = await stored()
+      const comment = await createComment(input())
+      await sendDrafts({ sessionId: 's1' })
+      await claim('s1')
+      await addReply(comment.id, { author: 'user', body: 'See', images: [id] })
+      const claimed = await claim('s1')
+      expect(claimed.comments[0]?.newReplies[0]?.imagePaths).toEqual([await imagePath(id)])
+    })
+
     it('create keeps the image ids, and a comment without any reads as []', async () => {
       const id = await stored()
       expect((await createComment(input({ images: [id] }))).images).toEqual([id])

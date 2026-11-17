@@ -34,7 +34,7 @@ export type CommentFilter = {
 export type ClaimedComment = Comment & {
   imagePaths: string[]
   followUp: boolean
-  newReplies: Reply[]
+  newReplies: (Reply & { imagePaths: string[] })[]
 }
 
 export type Claim = {
@@ -522,7 +522,10 @@ export const claim = (sessionId: string, now = Date.now()): Promise<Claim> =>
     const delivered = next
       .filter((comment) => ids.has(comment.id))
       .map((comment): ClaimedComment => {
-        const newReplies = unseenUserReplies(before.get(comment.id) as Comment)
+        const newReplies = unseenUserReplies(before.get(comment.id) as Comment).map((reply) => ({
+          ...reply,
+          imagePaths: (reply.images ?? []).flatMap((image) => paths[image] ?? []),
+        }))
         return {
           ...comment,
           imagePaths: comment.images.flatMap((image) => paths[image] ?? []),

@@ -8,11 +8,23 @@ import { useUpdate } from './use-update'
 
 const COMMAND = 'irsim update'
 
+export const busyLabelOf = (phase: string, installing: boolean, version: string): string =>
+  phase !== 'updating'
+    ? 'Restarting the canvas…'
+    : installing
+      ? `Installing ${version}…`
+      : `Downloading ${version}…`
+
 export function UpdateNotice({ className }: { className?: string }) {
   const { notice, phase, progress, error, restartFailed, running, dismiss, start } = useUpdate()
   const [copied, setCopied] = useState(false)
+  const [installing, setInstalling] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   useMountEffect(() => () => clearTimeout(timer.current))
+
+  const installStarted = phase === 'updating' && progress?.stage === 'install'
+  if (phase !== 'updating' && installing) setInstalling(false)
+  else if (installStarted && !installing) setInstalling(true)
 
   if (notice === null) return null
 
@@ -51,12 +63,7 @@ export function UpdateNotice({ className }: { className?: string }) {
           ? `You have ${running ?? 'an older version'}.`
           : `This canvas still runs ${running ?? 'an older version'}. Restart it to use ${version}.`
 
-  const busyLabel =
-    phase !== 'updating'
-      ? 'Restarting the canvas…'
-      : progress?.stage === 'install'
-        ? `Installing ${version}…`
-        : `Downloading ${version}…`
+  const busyLabel = busyLabelOf(phase, installing, version)
   const download = phase === 'updating' && progress?.stage === 'download' && progress.total > 0 ? progress : null
   const percent = download ? Math.min(100, Math.floor((download.received * 100) / download.total)) : 0
   const megabytes = (bytes: number) => `${(bytes / 1_000_000).toFixed(1)} MB`
