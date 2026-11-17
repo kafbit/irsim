@@ -4,28 +4,11 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { Check, ChevronDown, PanelLeft, Search, Settings } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui'
-import type { ApprovalState } from './approvals/use-approvals'
+import type { PendingBoards } from './approvals/pending'
 import { SessionRow } from './comments/session-row'
 import { useSession } from './comments/use-session'
 
 const ICON = 'inline-flex size-8 shrink-0 items-center justify-center rounded-lg border p-0'
-
-export type PendingBoards = { changed: string[]; added: string[] }
-
-/** The boards a page shows as New or Changed; the rest are approved or as they were. */
-export const pendingOf = (
-  names: string[],
-  stateOf: (name: string) => ApprovalState | undefined,
-): PendingBoards => {
-  const changed: string[] = []
-  const added: string[] = []
-  for (const name of names) {
-    const state = stateOf(name)
-    if (state === 'changed') changed.push(name)
-    else if (state === 'new') added.push(name)
-  }
-  return { changed, added }
-}
 
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`
 

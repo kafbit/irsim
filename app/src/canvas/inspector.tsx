@@ -250,6 +250,7 @@ export function Inspector({
   onSection,
   onFocusBoard,
   variantsFocus = 0,
+  onVariantsFocused,
   children,
 }: {
   board: ManifestBoard
@@ -261,6 +262,7 @@ export function Inspector({
   onFocusBoard: (name: string) => void
   /** Changes each time the Variants box should take focus. */
   variantsFocus?: number
+  onVariantsFocused?: (() => void) | undefined
   /** Actions on the board, shown above Play. */
   children?: React.ReactNode
 }) {
@@ -322,7 +324,7 @@ export function Inspector({
           onSection={onSection}
         />
       </dl>
-      <VariantsBox board={board} page={pageId} focusSignal={variantsFocus} />
+      <VariantsBox board={board} page={pageId} focusSignal={variantsFocus} onFocused={onVariantsFocused} />
       {children}
       <Button asChild variant="secondary" size="sm">
         <Link href={playHref(pageId, board.name, 'full')}>

@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +20,7 @@ import {
   SquareSquare,
 } from '../ui/icons'
 import { SplitIcon } from '../ui/icons-custom'
+import { useSession } from './comments/use-session'
 import type { MenuItem, MenuItemId } from './context-menu-model'
 
 const ICON = 'size-4'
@@ -37,36 +38,42 @@ const ICONS: Record<MenuItemId, React.ReactNode> = {
   'delete-section': <DeleteIcon className={ICON} />,
 }
 
-export type ContextMenuState = { x: number; y: number; groups: MenuItem[][] }
-
-/** The right click menu of the canvas, opened at a screen point. */
 export function ContextMenu({
   menu,
+  groups,
   onSelect,
   onClose,
 }: {
-  menu: ContextMenuState | null
-  onSelect: (id: MenuItemId) => void
+  menu: { x: number; y: number } | null
+  groups: (connected: boolean) => MenuItem[][]
+  onSelect: (id: MenuItemId, sessionId: string | null) => void
   onClose: () => void
 }) {
+  const { sessionId } = useSession()
+  const [last, setLast] = useState(menu)
+  if (menu !== null && menu !== last) setLast(menu)
+  const shown = menu ?? last
+  const [kept, setKept] = useState<MenuItem[][]>([])
+  const current = useMemo(() => (menu ? groups(sessionId !== null) : null), [menu, groups, sessionId])
+  if (current !== null && current !== kept) setKept(current)
   return (
     <DropdownMenu dir="ltr" open={menu !== null} onOpenChange={(open) => !open && onClose()}>
       <DropdownMenuTrigger asChild>
         <span
           aria-hidden="true"
           className="pointer-events-none fixed size-0"
-          style={{ left: menu?.x ?? 0, top: menu?.y ?? 0 }}
+          style={{ left: shown?.x ?? 0, top: shown?.y ?? 0 }}
         />
       </DropdownMenuTrigger>
       <DropdownMenuContent lang="en" align="start" side="bottom" sideOffset={0} className="w-60">
-        {menu?.groups.map((group, index) => (
+        {kept.map((group, index) => (
           <Fragment key={group[0]?.id}>
             {index > 0 ? <DropdownMenuSeparator /> : null}
             {group.map((item) => (
               <DropdownMenuItem
                 key={item.id}
                 variant={item.danger ? 'destructive' : 'default'}
-                onSelect={() => onSelect(item.id)}
+                onSelect={() => onSelect(item.id, sessionId)}
               >
                 {ICONS[item.id]}
                 {item.label}

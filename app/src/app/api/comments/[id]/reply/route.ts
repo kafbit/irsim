@@ -1,4 +1,4 @@
-import { bad, isText, parseImages, readBody } from '../../../../../lib/comments-input'
+import { bad, hasUnknownImage, isText, parseImages, readBody } from '../../../../../lib/comments-input'
 import { addReply } from '../../../../../lib/comments-store'
 
 export const dynamic = 'force-dynamic'
@@ -15,6 +15,7 @@ export async function POST(
   if (author !== 'claude' && author !== 'user') return bad('author must be claude or user')
   const images = author === 'user' ? parseImages(body.images) : []
   if (typeof images === 'string') return bad(images)
+  if (await hasUnknownImage(images)) return bad('unknown image')
   const { id } = await params
   const result = await addReply(id, {
     author,

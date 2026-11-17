@@ -150,6 +150,23 @@ describe('latestRelease', () => {
     expect(run).toHaveBeenCalledTimes(1)
   })
 
+  it('runs its own check for a fresh call while a non-fresh call is in flight', async () => {
+    let release: (value: string) => void = () => {}
+    const slow = vi.fn(
+      () =>
+        new Promise<string>((resolve) => {
+          release = resolve
+        }),
+    )
+    const fast = vi.fn(async () => output('v0.9.0'))
+    const first = latestRelease(deps(slow))
+    const second = latestRelease({ ...deps(fast), fresh: true })
+    expect((await second)?.version).toBe('0.9.0')
+    expect(fast).toHaveBeenCalledTimes(1)
+    release(output('v0.1.0'))
+    await first
+  })
+
   it('ignores a corrupt cache file', async () => {
     writeFileSync(cacheFile.replace('nested/', ''), '{broken')
     const file = join(dir, 'latest-release.json')

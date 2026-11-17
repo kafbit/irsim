@@ -78,6 +78,25 @@ describe('menuGroups', () => {
     expect(ids(whole).at(-1)).toEqual(['rename-section', 'remove-from-section', 'delete-section'])
   })
 
+  it('drops Create sub-section and Remove from section when every board is in a sub-section', () => {
+    const nested = [{ id: 's1', title: 'One' }, { id: 's2', title: 'Two', parent: 's1' }]
+    const tree = [{ name: 'C', section: 's2' }, { name: 'D', section: 's2' }]
+    const whole = run({ names: ['C', 'D'], boards: tree, sections: nested, wholeSection: 's1' })
+    expect(ids(whole).at(-1)).toEqual(['rename-section', 'delete-section'])
+  })
+
+  it('keeps both items when a section has a direct board and a sub-section board', () => {
+    const nested = [{ id: 's1', title: 'One' }, { id: 's2', title: 'Two', parent: 's1' }]
+    const tree = [{ name: 'C', section: 's1' }, { name: 'D', section: 's2' }]
+    const whole = run({ names: ['C', 'D'], boards: tree, sections: nested, wholeSection: 's1' })
+    expect(ids(whole).at(-1)).toEqual([
+      'rename-section',
+      'create-sub-section',
+      'remove-from-section',
+      'delete-section',
+    ])
+  })
+
   it('lists part of a section', () => {
     expect(ids(run({ names: ['C', 'D'], connected: false })).at(-1)).toEqual([
       'create-sub-section',
@@ -95,6 +114,6 @@ describe('menuGroups', () => {
 
 describe('pendingNames', () => {
   it('keeps the new and changed names', () => {
-    expect(pendingNames(['A', 'B', 'C', 'V'], stateOf)).toEqual(['A', 'B'])
+    expect(pendingNames(['A', 'B', 'C', 'V'], stateOf)).toEqual(['B', 'A'])
   })
 })

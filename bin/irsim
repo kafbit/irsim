@@ -612,8 +612,9 @@ const update = async (args) => {
     const asset = `irsim-${latest}-${platformTag()}.tar.gz`
     const work = mkdtempSync(join(tmpdir(), 'irsim-update-'))
     try {
-      const size = Number(
-        gh([
+      const lookup = spawnSync(
+        'gh',
+        [
           'release',
           'view',
           tag,
@@ -623,8 +624,10 @@ const update = async (args) => {
           'assets',
           '--jq',
           `.assets[] | select(.name=="${asset}") | .size`,
-        ]),
+        ],
+        { encoding: 'utf8' },
       )
+      const size = lookup.error || lookup.status !== 0 ? 0 : Number(String(lookup.stdout).trim())
       await downloadAsset(prefix, tag, asset, work, Number.isFinite(size) && size > 0 ? size : 0)
       writeProgress(prefix, { stage: 'install' })
       const target = join(prefix, latest)

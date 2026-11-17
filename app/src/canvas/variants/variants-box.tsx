@@ -46,10 +46,12 @@ function BaseBoardBox({
   board,
   page,
   focusSignal,
+  onFocused,
 }: {
   board: ManifestBoard
   page: string
   focusSignal: number
+  onFocused?: (() => void) | undefined
 }) {
   const presets = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -57,7 +59,8 @@ function BaseBoardBox({
     const first = presets.current?.querySelector('button')
     first?.focus()
     presets.current?.scrollIntoView({ block: 'nearest' })
-  }, [focusSignal])
+    onFocused?.()
+  }, [focusSignal, onFocused])
   const manifest = useApi<PageManifest>(`/api/pages/${encodeURIComponent(page)}`)
   const { sessions, loaded, sessionId, pick } = useSession()
   const [chosen, setChosen] = useState<string[]>([])
@@ -181,14 +184,22 @@ export function VariantsBox({
   board,
   page,
   focusSignal = 0,
+  onFocused,
 }: {
   board: ManifestBoard
   page: string
   focusSignal?: number
+  onFocused?: (() => void) | undefined
 }) {
   return board.variantOf ? (
     <VariantBoardBox board={board} page={page} />
   ) : (
-    <BaseBoardBox key={board.name} board={board} page={page} focusSignal={focusSignal} />
+    <BaseBoardBox
+      key={board.name}
+      board={board}
+      page={page}
+      focusSignal={focusSignal}
+      onFocused={onFocused}
+    />
   )
 }

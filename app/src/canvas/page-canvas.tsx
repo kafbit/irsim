@@ -9,11 +9,10 @@ import { ApproveBox } from './approvals/approve-box'
 import { useApprovals } from './approvals/use-approvals'
 import { CommentLayer } from './comments/comment-layer'
 import { Composer } from './comments/composer'
-import { ContextMenu, type ContextMenuState } from './context-menu'
+import { ContextMenu } from './context-menu'
 import { menuGroups, type MenuItemId, pendingNames } from './context-menu-model'
 import { boardPick, buildNote, numberComments, placedRect } from './comments/model'
 import { ThreadPanel } from './comments/thread-panel'
-import { useSession } from './comments/use-session'
 import type { Comment, CommentView, PickedElement } from './comments/types'
 import { useBoardReloads } from './comments/use-board-reloads'
 import { useCommentMode } from './comments/use-comment-mode'
@@ -45,7 +44,8 @@ import {
 import { SectionLayer } from './section-layer'
 import { SettingsDialog } from './settings-dialog'
 import { Sidebar } from './sidebar'
-import { pendingOf, TopBar } from './top-bar'
+import { pendingOf } from './approvals/pending'
+import { TopBar } from './top-bar'
 import { FocusBar } from './focus-bar'
 import { Toast, useNotice } from './toast'
 import { type Tool, Toolbar } from './toolbar'
@@ -146,7 +146,6 @@ export function PageCanvas({
     wholeSection: string | null
   } | null>(null)
   const [variantsFocus, setVariantsFocus] = useState<{ name: string; count: number } | null>(null)
-  const { sessionId } = useSession()
   const searchRef = useRef<HTMLInputElement>(null)
   const mounts = useMounts(boards)
   const [marqueeRect, setMarquee] = useState<Rect | null>(null)
@@ -662,33 +661,32 @@ export function PageCanvas({
     () => new Map(manifest.boards.map((board) => [board.name, board.variantOf])),
     [manifest.boards],
   )
-  const menuView = useMemo<ContextMenuState | null>(
-    () =>
+  const menuItems = useCallback(
+    (connected: boolean) =>
       menu
-        ? {
-            x: menu.x,
-            y: menu.y,
-            groups: menuGroups({
-              names: menu.names,
-              boards: boards.map((board) => ({
-                name: board.name,
-                section: board.section,
-                interactive: board.interactive,
-                variantOf: variantOf.get(board.name),
-              })),
-              sections,
-              stateOf: approvals.stateOf,
-              connected: sessionId !== null,
-              wholeSection: menu.wholeSection,
-            }),
-          }
-        : null,
-    [menu, boards, variantOf, sections, approvals.stateOf, sessionId],
+        ? menuGroups({
+            names: menu.names,
+            boards: boards.map((board) => ({
+              name: board.name,
+              section: board.section,
+              interactive: board.interactive,
+              variantOf: variantOf.get(board.name),
+            })),
+            sections,
+            stateOf: approvals.stateOf,
+            connected,
+            wholeSection: menu.wholeSection,
+          })
+        : [],
+    [menu, boards, variantOf, sections, approvals.stateOf],
   )
-  const runMenuItem = (id: MenuItemId) => {
+  const runMenuItem = (id: MenuItemId, sessionId: string | null) => {
     if (!menu) return
     const { names, wholeSection } = menu
     const [first] = names
+    const direct = wholeSection
+      ? names.filter((name) => boards.find((board) => board.name === name)?.section === wholeSection)
+      : names
     setMenu(null)
     const fail = (failure: unknown) => setNotice(String((failure as Error)?.message ?? failure), 'error')
     if (id === 'copy') {
@@ -709,14 +707,15 @@ export function PageCanvas({
     } else if (id === 'approve' && sessionId) {
       approveBoards({ boards: pendingNames(names, approvals.stateOf), sessionId }).catch(fail)
     } else if (id === 'create-section') createSection(names, false)
-    else if (id === 'create-sub-section') createSection(names, true)
+    else if (id === 'create-sub-section') createSection(direct, true)
     else if (id === 'rename-section' && wholeSection) setRenaming(wholeSection)
-    else if (id === 'remove-from-section') assignSection(names, null)
+    else if (id === 'remove-from-section') assignSection(direct, null)
     else if (id === 'delete-section' && wholeSection) deleteSection(wholeSection)
   }
   useEffect(() => {
     if (menu && selection.names.length === 0) setMenu(null)
   }, [menu, selection.names.length])
+  const clearVariantsFocus = useCallback(() => setVariantsFocus(null), [])
   useEffect(() => {
     if (variantsFocus && only !== variantsFocus.name) setVariantsFocus(null)
   }, [only, variantsFocus])
@@ -903,6 +902,7 @@ export function PageCanvas({
           }}
           onFocusBoard={focusBoard}
           variantsFocus={variantsFocus?.count ?? 0}
+          onVariantsFocused={clearVariantsFocus}
         >
           {selectedBoard && approvals.stateOf(selectedBoard.name) !== undefined &&
           approvals.stateOf(selectedBoard.name) !== 'approved' ? (
@@ -925,7 +925,8 @@ export function PageCanvas({
         onOpenSettings={() => setSettingsOpen(true)}
       />
       <ContextMenu
-        menu={menuView}
+        menu={menu}
+        groups={menuItems}
         onSelect={runMenuItem}
         onClose={() => setMenu(null)}
       />

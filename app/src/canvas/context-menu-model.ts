@@ -1,4 +1,5 @@
 import type { ApprovalState } from './approvals/use-approvals'
+import { pendingOf } from './approvals/pending'
 import { canNest, sharedSection } from './sections'
 import type { CanvasSection } from './types'
 
@@ -23,17 +24,14 @@ type MenuBoard = {
   variantOf?: string | undefined
 }
 
-/** The names whose approval state is new or changed. */
 export const pendingNames = (
   names: string[],
   stateOf: (name: string) => ApprovalState | undefined,
-): string[] =>
-  names.filter((name) => {
-    const state = stateOf(name)
-    return state === 'new' || state === 'changed'
-  })
+): string[] => {
+  const { changed, added } = pendingOf(names, stateOf)
+  return [...changed, ...added]
+}
 
-/** The right click menu items for `names`, in groups; an empty group is dropped. */
 export function menuGroups(input: {
   names: string[]
   boards: MenuBoard[]
@@ -93,9 +91,13 @@ export function menuGroups(input: {
     sectionItems.push(remove)
   }
   if (target === 'section') {
+    const direct = names.some(
+      (name) => boards.find((candidate) => candidate.name === name)?.section === wholeSection,
+    )
     sectionItems.push({ id: 'rename-section', label: 'Rename section' })
-    if (nestId !== null && canNest(nestId, sections)) sectionItems.push(nest)
-    sectionItems.push(remove, { id: 'delete-section', label: 'Delete section', danger: true })
+    if (direct && nestId !== null && canNest(nestId, sections)) sectionItems.push(nest)
+    if (direct) sectionItems.push(remove)
+    sectionItems.push({ id: 'delete-section', label: 'Delete section', danger: true })
   }
 
   return [copy, frameItems, agentItems, sectionItems].filter((group) => group.length > 0)

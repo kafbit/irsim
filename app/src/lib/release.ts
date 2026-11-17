@@ -92,7 +92,7 @@ const check = async (deps: ReleaseDeps): Promise<Release | null> => {
 }
 
 export const latestRelease = (deps: ReleaseDeps = {}): Promise<Release | null> => {
-  if (globals.__irsimReleaseCheck) return globals.__irsimReleaseCheck
+  if (!deps.fresh && globals.__irsimReleaseCheck) return globals.__irsimReleaseCheck
   const pending = check(deps).finally(() => {
     if (globals.__irsimReleaseCheck === pending) delete globals.__irsimReleaseCheck
   })

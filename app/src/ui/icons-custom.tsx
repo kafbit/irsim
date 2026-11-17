@@ -1,4 +1,3 @@
-/** Two panels split by a vertical line. */
 export const SplitIcon = ({ size = 14, className }: { size?: number; className?: string }) => (
   <svg
     width={size}

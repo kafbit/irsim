@@ -42,7 +42,9 @@ export function usePastedImages(initial: string[] = []) {
     }
   }
 
-  const addFiles = (files: File[]) => {
+  const addFiles = (picked: File[]) => {
+    const files = picked.filter((file) => file.type.startsWith('image/'))
+    if (files.length === 0) return
     const room = Math.max(MAX_IMAGES - reserved.current, 0)
     setMessage(files.length > room ? `Up to ${MAX_IMAGES} images.` : null)
     for (const file of files.slice(0, room)) void add(file)

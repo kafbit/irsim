@@ -26,13 +26,11 @@ export class DCLogic {
 
   /**
    * Merge into `state` and re-render this component. The boards call it several times in a row,
-   * so the update is queued rather than nested. An update that changes no key does not re-render.
+   * so the update is queued rather than nested.
    *
    * @param {Record<string, unknown>} next
    */
   setState(next) {
-    const keys = Object.keys(next)
-    if (keys.length > 0 && keys.every((key) => Object.is(this.state[key], next[key]))) return
     this.state = { ...this.state, ...next }
     this.__update?.()
   }
