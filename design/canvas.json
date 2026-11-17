@@ -804,6 +804,62 @@
           "y": 13856,
           "width": 1440,
           "height": 948
+        },
+        {
+          "name": "CanvasFrameMenu",
+          "title": "Frame: context menu",
+          "x": 2400,
+          "y": 1960,
+          "width": 400,
+          "height": 308
+        },
+        {
+          "name": "CanvasFrameMenuNoSession",
+          "title": "Frame: context menu, no agent session",
+          "x": 2880,
+          "y": 1960,
+          "width": 400,
+          "height": 308
+        },
+        {
+          "name": "CanvasContextMenu",
+          "title": "Context menu",
+          "x": 0,
+          "y": 14884,
+          "width": 240,
+          "height": 300
+        },
+        {
+          "name": "CanvasFrameMenuMany",
+          "title": "Frames: context menu for several frames",
+          "x": 320,
+          "y": 14884,
+          "width": 900,
+          "height": 640
+        },
+        {
+          "name": "CanvasSectionMenu",
+          "title": "Section: context menu",
+          "x": 1300,
+          "y": 14884,
+          "width": 900,
+          "height": 640
+        },
+        {
+          "name": "CanvasSectionMenuPart",
+          "title": "Section: context menu for some of its frames",
+          "x": 2280,
+          "y": 14884,
+          "width": 900,
+          "height": 640
+        },
+        {
+          "name": "CanvasSectionMenuMixed",
+          "title": "Section: context menu for a section and a frame",
+          "x": 3260,
+          "y": 14884,
+          "width": 900,
+          "height": 900
         }
       ]
     }

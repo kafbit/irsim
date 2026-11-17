@@ -281,6 +281,7 @@ export const SectionLayer = memo(function SectionLayer({
               ) : (
                 <span
                   data-section-label=""
+                  data-section-id={section.id}
                   className={`pointer-events-auto box-border flex h-full min-w-0 items-center gap-2 rounded-[6px] border border-solid bg-card px-2 ${
                     movable ? 'cursor-move' : 'cursor-grab'
                   }`}

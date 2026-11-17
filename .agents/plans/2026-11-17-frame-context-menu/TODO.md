@@ -1,0 +1,11 @@
+- [x] Boards `CanvasFrame` (props `menu`, `session`), `CanvasFrameMenu`, `CanvasFrameMenuNoSession`, positions in `design/canvas.json`, `AGENTS.md` row
+- [x] Boards `CanvasContextMenu`, `CanvasFrameMenuMany`, `CanvasSectionMenu`, `CanvasSectionMenuPart`, `CanvasSectionMenuMixed`, `CanvasSection` prop `menu`
+- [x] User confirms the boards
+- [x] `canvas/context-menu.tsx`: the menu at the pointer, built on the existing `DropdownMenu` (no new UI primitive)
+- [x] `canvas/context-menu-model.ts`: items from the selection, with a unit test of each target
+- [x] `page-canvas.tsx` (one `onContextMenu` on the world) and `section-layer.tsx` (`data-section-id`): open the menu and set the selection; `Frame` is unchanged
+- [x] `page-canvas.tsx`: copy with toast, comment, variants focus, approve and build with toast
+- [x] Inspector: focus the Variants box on request
+- [x] Tests for the item conditions
+- [x] Playwright comparison with the boards (the canvas ran in its dark theme; light not captured)
+- [x] `design_canvas` check of the `canvas-app` page

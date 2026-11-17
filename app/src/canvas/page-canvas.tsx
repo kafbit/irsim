@@ -9,8 +9,11 @@ import { ApproveBox } from './approvals/approve-box'
 import { useApprovals } from './approvals/use-approvals'
 import { CommentLayer } from './comments/comment-layer'
 import { Composer } from './comments/composer'
+import { ContextMenu, type ContextMenuState } from './context-menu'
+import { menuGroups, type MenuItemId, pendingNames } from './context-menu-model'
 import { boardPick, buildNote, numberComments, placedRect } from './comments/model'
 import { ThreadPanel } from './comments/thread-panel'
+import { useSession } from './comments/use-session'
 import type { Comment, CommentView, PickedElement } from './comments/types'
 import { useBoardReloads } from './comments/use-board-reloads'
 import { useCommentMode } from './comments/use-comment-mode'
@@ -136,6 +139,14 @@ export function PageCanvas({
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [renaming, setRenaming] = useState<string | null>(null)
   const [hoveredSection, setHoveredSection] = useState<string | null>(null)
+  const [menu, setMenu] = useState<{
+    x: number
+    y: number
+    names: string[]
+    wholeSection: string | null
+  } | null>(null)
+  const [variantsFocus, setVariantsFocus] = useState<{ name: string; count: number } | null>(null)
+  const { sessionId } = useSession()
   const searchRef = useRef<HTMLInputElement>(null)
   const mounts = useMounts(boards)
   const [marqueeRect, setMarquee] = useState<Rect | null>(null)
@@ -623,6 +634,93 @@ export function PageCanvas({
     [approvals, comments, setNotice],
   )
 
+  const onContextMenu = (event: React.MouseEvent<HTMLElement>) => {
+    const target = event.target as HTMLElement
+    const label = target.closest<HTMLElement>('[data-section-label]')
+    const sectionId = label?.getAttribute('data-section-id') ?? null
+    const placed = sectionId ? placedSectionList.find((item) => item.section.id === sectionId) : undefined
+    if (placed) {
+      event.preventDefault()
+      selectBoards(placed.members)
+      setSelectedSection(placed.section.id)
+      setMenu({ x: event.clientX, y: event.clientY, names: placed.members, wholeSection: placed.section.id })
+      return
+    }
+    const name = boardOf(target)
+    if (!name) return
+    event.preventDefault()
+    const kept = selection.names.includes(name)
+    if (!kept) dispatch({ type: 'select', name })
+    setMenu({
+      x: event.clientX,
+      y: event.clientY,
+      names: kept ? selection.names : [name],
+      wholeSection: kept ? sectionSelected : null,
+    })
+  }
+  const variantOf = useMemo(
+    () => new Map(manifest.boards.map((board) => [board.name, board.variantOf])),
+    [manifest.boards],
+  )
+  const menuView = useMemo<ContextMenuState | null>(
+    () =>
+      menu
+        ? {
+            x: menu.x,
+            y: menu.y,
+            groups: menuGroups({
+              names: menu.names,
+              boards: boards.map((board) => ({
+                name: board.name,
+                section: board.section,
+                interactive: board.interactive,
+                variantOf: variantOf.get(board.name),
+              })),
+              sections,
+              stateOf: approvals.stateOf,
+              connected: sessionId !== null,
+              wholeSection: menu.wholeSection,
+            }),
+          }
+        : null,
+    [menu, boards, variantOf, sections, approvals.stateOf, sessionId],
+  )
+  const runMenuItem = (id: MenuItemId) => {
+    if (!menu) return
+    const { names, wholeSection } = menu
+    const [first] = names
+    setMenu(null)
+    const fail = (failure: unknown) => setNotice(String((failure as Error)?.message ?? failure), 'error')
+    if (id === 'copy') {
+      navigator.clipboard
+        .writeText(names.join('\n'))
+        .then(() =>
+          setNotice(names.length === 1 ? `Copied ${first}` : `Copied ${names.length} frame names`, 'info'),
+        )
+        .catch(fail)
+    } else if (id === 'play' && first) playBoard(first, 'canvas')
+    else if (id === 'comment' && first) {
+      changeTool('comment')
+      commentOnBoard(first)
+    } else if (id === 'variants' && first) {
+      dispatch({ type: 'select', name: first })
+      setPanelOpen(false)
+      setVariantsFocus((current) => ({ name: first, count: (current?.count ?? 0) + 1 }))
+    } else if (id === 'approve' && sessionId) {
+      approveBoards({ boards: pendingNames(names, approvals.stateOf), sessionId }).catch(fail)
+    } else if (id === 'create-section') createSection(names, false)
+    else if (id === 'create-sub-section') createSection(names, true)
+    else if (id === 'rename-section' && wholeSection) setRenaming(wholeSection)
+    else if (id === 'remove-from-section') assignSection(names, null)
+    else if (id === 'delete-section' && wholeSection) deleteSection(wholeSection)
+  }
+  useEffect(() => {
+    if (menu && selection.names.length === 0) setMenu(null)
+  }, [menu, selection.names.length])
+  useEffect(() => {
+    if (variantsFocus && only !== variantsFocus.name) setVariantsFocus(null)
+  }, [only, variantsFocus])
+
   return (
     <div className="flex h-screen flex-col">
       <TopBar
@@ -666,6 +764,7 @@ export function PageCanvas({
           onPointerDown={frameEdit.onTitleDown}
           onPointerOver={(event) => event.buttons === 0 && setHovered(boardOf(event.target))}
           onPointerLeave={() => setHovered(null)}
+          onContextMenu={onContextMenu}
         >
           <SectionLayer
             hovered={hoveredSection}
@@ -803,6 +902,7 @@ export function PageCanvas({
             onColor: colorSection,
           }}
           onFocusBoard={focusBoard}
+          variantsFocus={variantsFocus?.count ?? 0}
         >
           {selectedBoard && approvals.stateOf(selectedBoard.name) !== undefined &&
           approvals.stateOf(selectedBoard.name) !== 'approved' ? (
@@ -823,6 +923,11 @@ export function PageCanvas({
         pageId={manifest.id}
         onSelectBoards={selectGlobal}
         onOpenSettings={() => setSettingsOpen(true)}
+      />
+      <ContextMenu
+        menu={menuView}
+        onSelect={runMenuItem}
+        onClose={() => setMenu(null)}
       />
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
       {fullBoard ? (

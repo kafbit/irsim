@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<title>Canvas context menu</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.cm-root{--pick:#14161a;--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--destructive-tint:#fbe9e6;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a;--popover:#ffffff;--muted:#efefeb;--play:#2563eb;--play-hover:#1d4ed8;--mock-bg:#f6f6f3;--mock-ink:#14161a;--mock-on-ink:#ecece8;--mock-card:#ffffff;--mock-line:#e4e4e0;--mock-bar:#d6d7d2;--mock-accent:#2563eb}
+.cm-root.dark{--pick:#14161a;--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--destructive-tint:#3b1814;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8;--popover:#1a1b1e;--muted:#26272b;--play:#60a5fa;--play-hover:#93c5fd}
+</style>
+</helmet>
+<div dir="ltr" lang="en" role="menu" aria-label="{{label}}" class="cm-root {{themeClass}}" style="display: flex; flex-direction: column; box-sizing: border-box; width: 240px; padding: 6px; border: 1px solid var(--border); border-radius: 12px; background: var(--popover); color: var(--foreground); font-family: system-ui, sans-serif; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);">
+<sc-for list="{{groups}}" as="g">
+<sc-if value="{{g.sep}}" hint-placeholder-val="{{false}}"><div role="separator" style="height: 1px; margin: 6px 4px; background: var(--muted);"></div></sc-if>
+<sc-for list="{{g.items}}" as="it">
+<div role="menuitem" style="display: flex; align-items: center; gap: 10px; min-height: 38px; box-sizing: border-box; padding: 6px 10px; border-radius: 6px; font-size: 14px; color: {{it.color}}; background: {{it.bg}};"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{it.iconColor}};"><path d="{{it.d1}}"></path><path d="{{it.d2}}"></path><path d="{{it.d3}}"></path></svg><span style="flex: 1; white-space: nowrap;">{{it.label}}</span><sc-if value="{{it.key}}" hint-placeholder-val="{{false}}"><span style="font-size: 12px; color: var(--muted-foreground);">{{it.key}}</span></sc-if></div>
+</sc-for>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"target":{"editor":"enum","default":"frame","options":["frame","frames","section","part","mixed"]},"count":{"editor":"number","default":2},"session":{"editor":"enum","default":"one","options":["one","none"]},"play":{"editor":"enum","default":"yes","options":["yes","no"]},"variant":{"editor":"enum","default":"no","options":["no","yes"]},"pending":{"editor":"number","default":1},"nestable":{"editor":"enum","default":"yes","options":["yes","no"]},"":{"width":240,"height":300}}'>
+const ICONS = {
+  copy: ['M10 8h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z', 'M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2', ''],
+  play: ['M6 3l14 9-14 9z', '', ''],
+  comment: ['M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z', '', ''],
+  variants: ['M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3', 'M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3', 'M12 2v20'],
+  approve: ['M20 6 9 17l-5-5', '', ''],
+  section: ['M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z', 'M3 9h18', ''],
+  sub: ['M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z', 'M9 8h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z', ''],
+  out: ['M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4', 'm16 17 5-5-5-5', 'M21 12H9'],
+  rename: ['M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z', '', ''],
+  trash: ['M3 6h18', 'M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6', 'M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2'],
+}
+class Component extends DCLogic {
+  renderVals() {
+    const { theme, target, session, play, variant, nestable } = this.props
+    const count = Number(this.props.count)
+    const pending = Number(this.props.pending)
+    const connected = session !== 'none'
+    const single = target === 'frame'
+    const item = (icon, label, extra = {}) => {
+      const [d1, d2, d3] = ICONS[icon]
+      const danger = extra.danger === true
+      return { d1, d2, d3, label, key: extra.key || '', bg: 'transparent', color: danger ? 'var(--destructive)' : 'var(--foreground)', iconColor: danger ? 'var(--destructive)' : 'var(--muted-foreground)' }
+    }
+    const copy = item('copy', single ? 'Copy frame name' : `Copy ${count} frame names`)
+    copy.bg = 'var(--accent)'
+    const frameItems = single
+      ? [play === "yes" ? item("play", "Play") : null, item('comment', 'Comment')]
+      : []
+    const agentItems = connected
+      ? single
+        ? [variant === 'no' ? item('variants', 'Generate variants') : null, pending > 0 ? item('approve', 'Approve and build') : null]
+        : [pending > 0 ? item('approve', `Approve ${pending} and build`) : null]
+      : []
+    const sectionItems = {
+      frame: [],
+      frames: [item('section', 'Create section', { key: 'Shift+S' })],
+      section: [item('rename', 'Rename section'), nestable === 'yes' ? item('sub', 'Create sub-section') : null, item('out', 'Remove from section'), item('trash', 'Delete section', { danger: true })],
+      part: [nestable === 'yes' ? item('sub', 'Create sub-section') : null, item('out', 'Remove from section')],
+      mixed: [item('section', 'Create section', { key: 'Shift+S' }), item('out', 'Remove from section')],
+    }[target] || []
+    const groups = [[copy], frameItems, agentItems, sectionItems]
+      .map((items) => items.filter(Boolean))
+      .filter((items) => items.length > 0)
+      .map((items, i) => ({ sep: i > 0, items }))
+    return {
+      themeClass: theme === 'dark' ? 'dark' : '',
+      label: single ? 'Frame actions' : 'Selection actions',
+      groups,
+    }
+  }
+}
+</script>
+</body>
+</html>

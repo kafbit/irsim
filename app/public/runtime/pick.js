@@ -7,6 +7,16 @@
 const BASE = 'position:fixed;pointer-events:none;z-index:2147483647;outline-offset:0'
 const FALLBACK_PICK = '#14161a'
 const SWALLOWED = ['pointerdown', 'mousedown', 'mouseup']
+const HOVER = [
+  'mouseover',
+  'mouseout',
+  'mouseenter',
+  'mouseleave',
+  'pointerover',
+  'pointerout',
+  'pointerenter',
+  'pointerleave',
+]
 const MAX_PATH = 4
 const MAX_TEXT = 80
 
@@ -139,6 +149,11 @@ export const createPicker = (post) => {
     event.stopPropagation()
   }
 
+  /** @param {Event} event */
+  const stop = (event) => {
+    event.stopPropagation()
+  }
+
   const refresh = () => showOutline(hovered)
 
   /** @param {boolean} on */
@@ -147,6 +162,7 @@ export const createPicker = (post) => {
     document[action]('mousemove', onMove, true)
     document[action]('click', onClick, true)
     for (const type of SWALLOWED) document[action](type, swallow, true)
+    for (const type of HOVER) document[action](type, stop, true)
     window[action]('scroll', refresh, true)
     window[action]('resize', refresh)
     if (on && !outline) {

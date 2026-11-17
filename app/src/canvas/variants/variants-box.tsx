@@ -1,9 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { PRESETS } from '../../lib/variant-presets'
 import { Button, Textarea } from '../../ui'
+import { SplitIcon } from '../../ui/icons-custom'
 import { SessionRow } from '../comments/session-row'
 import { useSession } from '../comments/use-session'
 import type { ManifestBoard, PageManifest } from '../types'
@@ -11,24 +12,6 @@ import { useApi } from '../use-api'
 import { compareHref, generateLabel, sentLabel, togglePreset, variantsOf } from './variants-model'
 
 const HEADING = 'm-0 text-xs font-normal text-muted-foreground'
-
-const SplitIcon = () => (
-  <svg
-    width="14"
-    height="14"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3" />
-    <path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3" />
-    <path d="M12 2v20" />
-  </svg>
-)
 
 function CompareLink({ page, base, label }: { page: string; base: string; label: string }) {
   return (
@@ -59,7 +42,22 @@ function VariantBoardBox({ board, page }: { board: ManifestBoard; page: string }
   )
 }
 
-function BaseBoardBox({ board, page }: { board: ManifestBoard; page: string }) {
+function BaseBoardBox({
+  board,
+  page,
+  focusSignal,
+}: {
+  board: ManifestBoard
+  page: string
+  focusSignal: number
+}) {
+  const presets = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (focusSignal <= 0) return
+    const first = presets.current?.querySelector('button')
+    first?.focus()
+    presets.current?.scrollIntoView({ block: 'nearest' })
+  }, [focusSignal])
   const manifest = useApi<PageManifest>(`/api/pages/${encodeURIComponent(page)}`)
   const { sessions, loaded, sessionId, pick } = useSession()
   const [chosen, setChosen] = useState<string[]>([])
@@ -124,7 +122,7 @@ function BaseBoardBox({ board, page }: { board: ManifestBoard; page: string }) {
   return (
     <section aria-label="Variants" className="flex flex-col gap-2">
       <h3 className={HEADING}>Variants</h3>
-      <div role="group" aria-label="Presets" className="flex flex-wrap gap-1.5">
+      <div ref={presets} role="group" aria-label="Presets" className="flex flex-wrap gap-1.5">
         {PRESETS.map((preset) => {
           const on = chosen.includes(preset.label)
           return (
@@ -179,10 +177,18 @@ function BaseBoardBox({ board, page }: { board: ManifestBoard; page: string }) {
 }
 
 /** Variants of the selected board: presets to generate them for a base board, a link to compare them for either. */
-export function VariantsBox({ board, page }: { board: ManifestBoard; page: string }) {
+export function VariantsBox({
+  board,
+  page,
+  focusSignal = 0,
+}: {
+  board: ManifestBoard
+  page: string
+  focusSignal?: number
+}) {
   return board.variantOf ? (
     <VariantBoardBox board={board} page={page} />
   ) : (
-    <BaseBoardBox key={board.name} board={board} page={page} />
+    <BaseBoardBox key={board.name} board={board} page={page} focusSignal={focusSignal} />
   )
 }

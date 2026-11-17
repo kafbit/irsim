@@ -92,13 +92,16 @@ body{margin:0}
 </sc-if>
 </div>
 </sc-if>
+<sc-if value="{{menuOpen}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; left: 130px; top: 24px; z-index: 2;"><dc-import name="CanvasContextMenu" target="frame" session="{{session}}" play="{{playable}}" variant="{{variantFlag}}" pending="{{pendingCount}}" theme="{{theme}}" hint-size="240px,260px"></dc-import></div>
+</sc-if>
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"live","options":["live","selected","thumbnail","selectedMany","stale","generating","pending","failed","playing","commenting"]},"prototype":{"editor":"enum","default":"no","options":["no","yes"]},"hover":{"editor":"enum","default":"none","options":["none","title"]},"whole":{"editor":"enum","default":"none","options":["none","pin","composing"]},"approval":{"editor":"enum","default":"none","options":["none","approved","changed","new"]},"width":{"editor":"number","default":360},"height":{"editor":"number","default":240},"$preview":{"width":400,"height":308}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"live","options":["live","selected","thumbnail","selectedMany","stale","generating","pending","failed","playing","commenting"]},"prototype":{"editor":"enum","default":"no","options":["no","yes"]},"hover":{"editor":"enum","default":"none","options":["none","title"]},"whole":{"editor":"enum","default":"none","options":["none","pin","composing"]},"approval":{"editor":"enum","default":"none","options":["none","approved","changed","new"]},"menu":{"editor":"enum","default":"closed","options":["closed","open"]},"session":{"editor":"enum","default":"one","options":["one","none"]},"width":{"editor":"number","default":360},"height":{"editor":"number","default":240},"$preview":{"width":400,"height":308}}'>
 class Component extends DCLogic {
   renderVals() {
-    const { state, prototype, approval, theme, hover, whole } = this.props
+    const { state, prototype, approval, theme, hover, whole, menu, session } = this.props
     const width = Number(this.props.width)
     const height = Number(this.props.height)
     const playing = state === 'playing'
@@ -113,6 +116,12 @@ class Component extends DCLogic {
     const compact = width < 200
     return {
       statuses,
+      menuOpen: menu === 'open',
+      session: session === 'none' ? 'none' : 'one',
+      playable: prototype === "yes" ? "yes" : "no",
+      variantFlag: state === 'generating' ? 'yes' : 'no',
+      pendingCount: approval === 'new' || approval === 'changed' ? 1 : 0,
+      theme: theme === 'dark' ? 'dark' : 'light',
       compact,
       wordy: !compact,
       playPadding: compact ? '0 6px' : '0 8px 0 6px',
