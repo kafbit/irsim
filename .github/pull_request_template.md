@@ -1,8 +1,6 @@
-Check every box. If an item does not apply, check it, strike the text through and add a note: `- [x] ~~Text of the item.~~ Not applicable: reason.`
+<!-- Check every box. If an item does not apply, check it, strike the text through and add a note: `- [x] ~~Text of the item.~~ Not applicable: reason.` -->
 
 ## What changed
-
--
 
 ## Canvas boards
 
@@ -22,4 +20,5 @@ Board and running canvas, side by side, for each changed screen.
 ## Checks
 
 - [ ] Affected tests pass
+- [ ] New tests that only catch a regression or prevent a bug, no testing for constants or how the UI should look like, this is a visual test and review not a code test.
 - [ ] Lint and typecheck pass
