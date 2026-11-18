@@ -1,6 +1,6 @@
 import { readCanvasPages } from '../../../lib/canvas-pages'
 import { bad, isText, readBody } from '../../../lib/comments-input'
-import { createPageRequest, isSessionLive } from '../../../lib/comments-store'
+import { createPageRequest } from '../../../lib/comments-store'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -16,7 +16,6 @@ export async function POST(request: Request): Promise<Response> {
   if (!isText(page)) return bad('page must be text')
   if (kind !== 'reorganize' && kind !== 'icon') return bad('kind must be reorganize or icon')
   if (!(await readCanvasPages()).some((one) => one.id === page)) return bad('unknown page')
-  if (!(await isSessionLive(sessionId))) return Response.json({ error: NO_SESSION }, { status: 409 })
   const queued = await createPageRequest({ page, kind, sessionId })
   if (queued === 'no_session') return Response.json({ error: NO_SESSION }, { status: 409 })
   return Response.json({ id: queued.id })
