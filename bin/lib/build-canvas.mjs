@@ -50,6 +50,12 @@ const keptSections = (sections) =>
           title: entry.title,
           ...(typeof entry.variantOf === 'string' ? { variantOf: entry.variantOf } : {}),
           ...(typeof entry.baseSection === 'string' ? { baseSection: entry.baseSection } : {}),
+          ...(typeof entry.parent === 'string' ? { parent: entry.parent } : {}),
+          ...(typeof entry.color === 'string' ? { color: entry.color } : {}),
+          ...(['x', 'y', 'width', 'height'].every((key) => Number.isFinite(entry[key]))
+            ? { x: entry.x, y: entry.y, width: entry.width, height: entry.height }
+            : {}),
+          ...(entry.layout && typeof entry.layout === 'object' ? { layout: entry.layout } : {}),
         }))
     : undefined
 
@@ -79,6 +85,7 @@ export const buildCanvas = (designDir) => {
   const layout = (previous.pages ?? []).map((page) => ({
     id: page.id,
     title: page.title,
+    ...(typeof page.icon === 'string' ? { icon: page.icon } : {}),
     sections: keptSections(page.sections),
     boards: page.boards.map((b) => b.name),
   }))
@@ -126,6 +133,7 @@ export const buildCanvas = (designDir) => {
     return {
       id: page.id,
       title: page.title,
+      ...(page.icon ? { icon: page.icon } : {}),
       ...(page.sections ? { sections: page.sections } : {}),
       boards,
     }

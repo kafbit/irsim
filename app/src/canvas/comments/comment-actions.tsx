@@ -71,47 +71,65 @@ export function CommentSession({
 }
 
 /**
- * Approve and build, with Resolve in its menu. Approve and build needs a live target session;
- * Resolve only closes the thread and always works.
+ * Reply with Resolve and Approve and build in its menu. Approve and build needs a live target
+ * session; Resolve only closes the thread and always works.
  */
-export function ApproveSplit({
-  canBuild,
+export function ReplySplit({
+  replyDisabled,
   busy,
+  onReply,
+  canBuild,
   onApproveAndBuild,
   onResolve,
 }: {
-  canBuild: boolean
+  replyDisabled: boolean
   busy: boolean
+  onReply: () => void
+  canBuild: boolean
   onApproveAndBuild: () => void
   onResolve: () => void
 }) {
   return (
     <DropdownMenu dir="ltr">
-      <div className="flex items-center">
-        <Button
-          disabled={!canBuild}
-          pending={busy}
-          icon={<Check className="size-3.5" aria-hidden="true" />}
-          title={canBuild ? 'Approve the board, resolve and build' : NO_TARGET}
-          onClick={onApproveAndBuild}
-          size="sm"
-          className="flex-1 rounded-e-none"
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          aria-label="Resolve"
+          title="Resolve"
+          disabled={busy}
+          onClick={onResolve}
+          className="grid size-8.5 shrink-0 cursor-pointer place-items-center rounded-[10px] bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50"
         >
-          Approve and build
-        </Button>
-        <span aria-hidden="true" className="h-8.5 w-px shrink-0 bg-border" />
-        <DropdownMenuTrigger asChild>
+          <Check className="size-4" aria-hidden="true" />
+        </button>
+        <div className="flex items-center">
           <Button
-            aria-label="Resolve options"
-            disabled={busy}
             size="sm"
-            className="size-8.5 shrink-0 rounded-s-none p-0"
+            disabled={replyDisabled}
+            pending={busy}
+            onClick={onReply}
+            className="rounded-e-none"
           >
-            <ChevronDown className="size-4" aria-hidden="true" />
+            Reply
           </Button>
-        </DropdownMenuTrigger>
+          <span aria-hidden="true" className="h-8.5 w-px shrink-0 bg-border" />
+          <DropdownMenuTrigger asChild>
+            <Button
+              aria-label="More actions"
+              disabled={busy}
+              size="sm"
+              className="size-8.5 shrink-0 rounded-s-none p-0"
+            >
+              <ChevronDown className="size-4" aria-hidden="true" />
+            </Button>
+          </DropdownMenuTrigger>
+        </div>
       </div>
       <DropdownMenuContent lang="en" align="end" className="w-64">
+        <DropdownMenuItem onSelect={onResolve} className="flex-col items-start gap-0.5">
+          <span className="font-medium">Resolve</span>
+          <span className="text-xs text-muted-foreground">Closes the thread without building</span>
+        </DropdownMenuItem>
         <DropdownMenuItem
           disabled={!canBuild}
           onSelect={onApproveAndBuild}
@@ -123,10 +141,6 @@ export function ApproveSplit({
               ? 'Approves the board, resolves the thread and asks the agent to build it'
               : NO_TARGET}
           </span>
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onResolve} className="flex-col items-start gap-0.5">
-          <span className="font-medium">Resolve</span>
-          <span className="text-xs text-muted-foreground">Closes the thread without building</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

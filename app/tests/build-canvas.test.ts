@@ -184,4 +184,33 @@ describe('irsim build', () => {
       { id: 'v', title: 'Leads variants', variantOf: 'Leads', baseSection: 'main' },
     ])
   })
+
+  it('keeps the page icon and the section parent, color, area and layout', () => {
+    add('Leads', 'Leads')
+    const sections = [
+      { id: 'a', title: 'A', color: 'blue', x: 1, y: 2, width: 300, height: 400, layout: { mode: 'wrap', gap: 24 } },
+      { id: 'b', title: 'B', parent: 'a' },
+    ]
+    writeFileSync(
+      join(dir, 'canvas.json'),
+      JSON.stringify({
+        version: 1,
+        pages: [
+          {
+            id: 'sales',
+            title: 'Sales',
+            icon: 'house',
+            sections,
+            boards: [{ name: 'Leads', title: 'Leads', x: 0, y: 0, width: 1, height: 1 }],
+          },
+        ],
+        overrides: { colors: {}, radius: {}, type: {} },
+        bindings: {},
+      }),
+    )
+    run()
+    const [page] = canvas().pages as unknown as { icon: unknown; sections: unknown }[]
+    expect(page?.icon).toBe('house')
+    expect(page?.sections).toEqual(sections)
+  })
 })

@@ -48,6 +48,7 @@ const isPage = (value: unknown): boolean =>
   isRecord(value) &&
   typeof value.id === 'string' &&
   typeof value.title === 'string' &&
+  isOptionalString(value.icon) &&
   hasSections(value) &&
   Array.isArray(value.boards) &&
   value.boards.every(isBoard)

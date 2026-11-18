@@ -168,6 +168,7 @@ export class Camera {
       style.transform = `translate(${x}px, ${y}px) scale(${k})`
       style.setProperty('--k', String(k))
       style.setProperty('--inv', String(1 / k))
+      style.setProperty('--label-scale', String(Math.min(1.25, Math.max(0.8, k ** 0.2))))
       const labels = k >= LABELS_MIN_SCALE
       if (labels !== this.labels) {
         this.labels = labels

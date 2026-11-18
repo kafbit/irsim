@@ -161,21 +161,23 @@ export function initialSectionState(
 }
 
 /** Drops a cleared (`null`, empty or gray) parent or color, as the server does. */
-type Loose = Omit<CanvasSection, 'parent' | 'color' | 'x' | 'y' | 'width' | 'height'> & {
+type Loose = Omit<CanvasSection, 'parent' | 'color' | 'x' | 'y' | 'width' | 'height' | 'layout'> & {
   parent?: string | null | undefined
   color?: CanvasSection['color'] | null | undefined
   x?: number | null | undefined
   y?: number | null | undefined
   width?: number | null | undefined
   height?: number | null | undefined
+  layout?: CanvasSection['layout'] | null | undefined
 }
 const tidy = (section: Loose): CanvasSection => {
-  const { parent, color, x, y, width, height, ...rest } = section
+  const { parent, color, x, y, width, height, layout, ...rest } = section
   const stored = [x, y, width, height].every((value) => Number.isFinite(value))
   return {
     ...rest,
     ...(parent ? { parent } : {}),
     ...(color && color !== 'gray' ? { color } : {}),
+    ...(layout ? { layout } : {}),
     ...(stored
       ? {
           x: Math.round(x as number),
@@ -434,3 +436,12 @@ export function moveSectionEdits(
     },
   }
 }
+
+const compareText = (a: string, b: string) =>
+  a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+
+export const byTitle = (a: { title: string; name: string }, b: { title: string; name: string }) =>
+  compareText(a.title, b.title) || compareText(a.name, b.name)
+
+export const bySectionTitle = (a: { title: string }, b: { title: string }) =>
+  compareText(a.title, b.title)

@@ -98,3 +98,14 @@ export type VariantRequest = {
   status: 'queued' | 'delivered'
   createdAt: string
 }
+
+export type PageRequestKind = 'reorganize' | 'icon'
+
+export type PageRequest = {
+  id: string
+  page: string
+  kind: PageRequestKind
+  sessionId: string
+  at: string
+  status: 'queued' | 'delivered'
+}

@@ -33,7 +33,7 @@ export function Composer({
   page: string
   /** False for a board that is itself a variant: the Variants toggle is not offered. */
   canVary?: boolean
-  onSave: (body: string, images: string[]) => Promise<void>
+  onSave: (body: string, images: string[], sendTo: string | null) => Promise<void>
   onSent: (count: number) => void
   onCancel: () => void
 }) {

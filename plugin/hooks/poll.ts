@@ -1,5 +1,5 @@
 import { api, baseUrl, listenKey } from './api'
-import type { Claim, Engine } from './api'
+import type { Claim, Engine, Release } from './api'
 
 const POLL_MS = 2000
 const statusLine = (url: string): string =>
@@ -7,6 +7,22 @@ const statusLine = (url: string): string =>
 
 let timer: { cancel: () => void } | null = null
 let isPolling = false
+let turnRunning = false
+
+export const setTurnRunning = (running: boolean): void => {
+  turnRunning = running
+}
+
+const releaseOf = (sessionId: string, claim: Claim): Release => ({
+  sessionId,
+  comments: (claim.comments ?? []).map((comment) => comment.id),
+  approvals: (claim.approvals ?? []).map((approval) => approval.id),
+  variants: (claim.variants ?? []).map((request) => request.id),
+  pages: (claim.pages ?? []).map((request) => request.id),
+  replies: (claim.comments ?? []).flatMap((comment) =>
+    (comment.newReplies ?? []).map((reply) => ({ comment: comment.id, at: reply.at })),
+  ),
+})
 
 export async function syncPoll($: Engine): Promise<void> {
   const sessionId = await $.session.id()
@@ -23,7 +39,7 @@ export async function syncPoll($: Engine): Promise<void> {
 }
 
 async function poll($: Engine): Promise<void> {
-  if (isPolling) return
+  if (isPolling || turnRunning) return
   isPolling = true
   try {
     const sessionId = await $.session.id()
@@ -32,8 +48,17 @@ async function poll($: Engine): Promise<void> {
       method: 'POST',
       body: { sessionId },
     })
-    if (claim.count > 0 && claim.text)
-      void $.prompt.submit({ text: claim.text }).catch(() => undefined)
+    if (claim.count > 0 && claim.text) {
+      const delivered = await $.prompt
+        .submit({ text: claim.text })
+        .then((result) => result?.drop === undefined)
+        .catch(() => false)
+      if (!delivered)
+        await api($, '/api/comments/release', {
+          method: 'POST',
+          body: releaseOf(sessionId, claim),
+        }).catch(() => undefined)
+    }
   } catch {
     return
   } finally {

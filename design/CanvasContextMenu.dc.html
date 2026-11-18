@@ -14,16 +14,17 @@ body{margin:0}
 .cm-root.dark{--pick:#14161a;--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--destructive-tint:#3b1814;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8;--popover:#1a1b1e;--muted:#26272b;--play:#60a5fa;--play-hover:#93c5fd}
 </style>
 </helmet>
-<div dir="ltr" lang="en" role="menu" aria-label="{{label}}" class="cm-root {{themeClass}}" style="display: flex; flex-direction: column; box-sizing: border-box; width: 240px; padding: 6px; border: 1px solid var(--border); border-radius: 12px; background: var(--popover); color: var(--foreground); font-family: system-ui, sans-serif; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);">
+<div dir="ltr" lang="en" role="menu" aria-label="{{label}}" class="cm-root {{themeClass}}" style="position: relative; display: flex; flex-direction: column; box-sizing: border-box; width: {{width}}px; padding: 6px; border: 1px solid var(--border); border-radius: 12px; background: var(--popover); color: var(--foreground); font-family: system-ui, sans-serif; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);">
 <sc-for list="{{groups}}" as="g">
 <sc-if value="{{g.sep}}" hint-placeholder-val="{{false}}"><div role="separator" style="height: 1px; margin: 6px 4px; background: var(--muted);"></div></sc-if>
 <sc-for list="{{g.items}}" as="it">
-<div role="menuitem" style="display: flex; align-items: center; gap: 10px; min-height: 38px; box-sizing: border-box; padding: 6px 10px; border-radius: 6px; font-size: 14px; color: {{it.color}}; background: {{it.bg}};"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{it.iconColor}};"><path d="{{it.d1}}"></path><path d="{{it.d2}}"></path><path d="{{it.d3}}"></path></svg><span style="flex: 1; white-space: nowrap;">{{it.label}}</span><sc-if value="{{it.key}}" hint-placeholder-val="{{false}}"><span style="font-size: 12px; color: var(--muted-foreground);">{{it.key}}</span></sc-if></div>
+<div role="menuitem" style="display: flex; align-items: center; gap: 10px; min-height: 38px; box-sizing: border-box; padding: 6px 10px; border-radius: 6px; font-size: 14px; color: {{it.color}}; background: {{it.bg}};"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{it.iconColor}};"><path d="{{it.d1}}"></path><path d="{{it.d2}}"></path><path d="{{it.d3}}"></path></svg><span style="flex: 1; white-space: nowrap;">{{it.label}}</span><sc-if value="{{it.key}}" hint-placeholder-val="{{false}}"><span style="font-size: 12px; color: var(--muted-foreground);">{{it.key}}</span></sc-if><sc-if value="{{it.sub}}" hint-placeholder-val="{{false}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: var(--muted-foreground);"><path d="m9 18 6-6-6-6"></path></svg></sc-if></div>
 </sc-for>
 </sc-for>
+<sc-if value="{{showSub}}" hint-placeholder-val="{{false}}"><div role="menu" aria-label="Tidy" style="position: absolute; left: 100%; top: {{subTop}}px; margin-left: 4px; display: flex; flex-direction: column; box-sizing: border-box; width: 300px; padding: 6px; border: 1px solid var(--border); border-radius: 12px; background: var(--popover); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);"><sc-for list="{{subItems}}" as="si"><div role="menuitem" style="display: flex; align-items: center; gap: 10px; min-height: 38px; box-sizing: border-box; padding: 6px 10px; border-radius: 6px; font-size: 14px; color: var(--foreground); background: {{si.bg}};"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: var(--muted-foreground);"><path d="{{si.d}}"></path></svg><span style="display: flex; flex-direction: column; flex: 1; min-width: 0;"><span style="white-space: nowrap;">{{si.label}}</span><sc-if value="{{si.note}}" hint-placeholder-val="{{false}}"><span style="font-size: 12px; color: var(--muted-foreground);">{{si.note}}</span></sc-if></span></div></sc-for></div></sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"target":{"editor":"enum","default":"frame","options":["frame","frames","section","part","mixed"]},"count":{"editor":"number","default":2},"session":{"editor":"enum","default":"one","options":["one","none"]},"play":{"editor":"enum","default":"yes","options":["yes","no"]},"variant":{"editor":"enum","default":"no","options":["no","yes"]},"pending":{"editor":"number","default":1},"nestable":{"editor":"enum","default":"yes","options":["yes","no"]},"":{"width":240,"height":300}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"target":{"editor":"enum","default":"frame","options":["frame","frames","section","part","mixed","page","canvas"]},"submenu":{"editor":"enum","default":"none","options":["none","tidy"]},"sidebar":{"editor":"enum","default":"no","options":["no","yes"]},"count":{"editor":"number","default":2},"session":{"editor":"enum","default":"one","options":["one","none"]},"play":{"editor":"enum","default":"yes","options":["yes","no"]},"variant":{"editor":"enum","default":"no","options":["no","yes"]},"pending":{"editor":"number","default":1},"nestable":{"editor":"enum","default":"yes","options":["yes","no"]},"":{"width":240,"height":300}}'>
 const ICONS = {
   copy: ['M10 8h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z', 'M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2', ''],
   play: ['M6 3l14 9-14 9z', '', ''],
@@ -34,22 +35,40 @@ const ICONS = {
   sub: ['M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z', 'M9 8h6a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z', ''],
   out: ['M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4', 'm16 17 5-5-5-5', 'M21 12H9'],
   rename: ['M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z', '', ''],
+  open: 'M7 7h10v10M7 17 17 7',
+  external: 'M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6',
+  link: 'M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71',
+  icon: 'M13.267 2.08a10 10 0 108.653 8.653M15 10V9M16 5h6M16.472 15a6 6 0 01-8.943 0M19 2v6M9 10V9',
+  move: 'M2 9V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-1M2 13h10M9 16l3-3-3-3',
+  sparkles: 'M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594zM20 2v4M22 4h-4M2 20a2 2 0 1 0 4 0a2 2 0 1 0 -4 0',
+  select: 'M5 3a2 2 0 0 0-2 2M19 3a2 2 0 0 1 2 2M21 19a2 2 0 0 1-2 2M5 21a2 2 0 0 1-2-2M9 3h1M9 21h1M14 3h1M14 21h1M3 9v1M21 9v1M3 14v1M21 14v1',
+  fit: 'M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3',
+  hundred: 'M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2',
+  hide: 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2zM9 3v18',
+  grid: 'M4 3h5a1 1 0 0 1 1 1v5a1 1 0 0 1 -1 1h-5a1 1 0 0 1 -1 -1v-5a1 1 0 0 1 1 -1zM15 3h5a1 1 0 0 1 1 1v5a1 1 0 0 1 -1 1h-5a1 1 0 0 1 -1 -1v-5a1 1 0 0 1 1 -1zM15 14h5a1 1 0 0 1 1 1v5a1 1 0 0 1 -1 1h-5a1 1 0 0 1 -1 -1v-5a1 1 0 0 1 1 -1zM4 14h5a1 1 0 0 1 1 1v5a1 1 0 0 1 -1 1h-5a1 1 0 0 1 -1 -1v-5a1 1 0 0 1 1 -1z',
+  locate: 'M2 12L5 12M19 12L22 12M12 2L12 5M12 19L12 22M5 12a7 7 0 1 0 14 0a7 7 0 1 0 -14 0M9 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0',
+  tidy: 'M4 3h5a1 1 0 0 1 1 1v7a1 1 0 0 1 -1 1h-5a1 1 0 0 1 -1 -1v-7a1 1 0 0 1 1 -1zM15 3h5a1 1 0 0 1 1 1v3a1 1 0 0 1 -1 1h-5a1 1 0 0 1 -1 -1v-3a1 1 0 0 1 1 -1zM15 12h5a1 1 0 0 1 1 1v7a1 1 0 0 1 -1 1h-5a1 1 0 0 1 -1 -1v-7a1 1 0 0 1 1 -1zM4 16h5a1 1 0 0 1 1 1v3a1 1 0 0 1 -1 1h-5a1 1 0 0 1 -1 -1v-3a1 1 0 0 1 1 -1z',
+  row: 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2zM9 3v18M15 3v18',
+  column: 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2zM21 9H3M21 15H3',
+  wrap: 'M16 16l-3 3 3 3M3 12h14.5a1 1 0 0 1 0 7H13M3 19h6M3 5h18',
+  grid: 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2zM3 9h18M3 15h18M9 3v18M15 3v18',
   trash: ['M3 6h18', 'M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6', 'M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2'],
 }
 class Component extends DCLogic {
   renderVals() {
-    const { theme, target, session, play, variant, nestable } = this.props
+    const { theme, target, session, play, variant, nestable, sidebar, submenu } = this.props
     const count = Number(this.props.count)
     const pending = Number(this.props.pending)
     const connected = session !== 'none'
     const single = target === 'frame'
     const item = (icon, label, extra = {}) => {
-      const [d1, d2, d3] = ICONS[icon]
+      const found = ICONS[icon]
+      const [d1, d2, d3] = Array.isArray(found) ? found : [found, '', '']
       const danger = extra.danger === true
-      return { d1, d2, d3, label, key: extra.key || '', bg: 'transparent', color: danger ? 'var(--destructive)' : 'var(--foreground)', iconColor: danger ? 'var(--destructive)' : 'var(--muted-foreground)' }
+      return { d1, d2, d3, label, key: extra.key || '', sub: extra.sub === true, bg: 'transparent', color: danger ? 'var(--destructive)' : 'var(--foreground)', iconColor: danger ? 'var(--destructive)' : 'var(--muted-foreground)' }
     }
-    const copy = item('copy', single ? 'Copy frame name' : `Copy ${count} frame names`)
-    copy.bg = 'var(--accent)'
+    const page = target === 'page' || target === 'canvas'
+    const copy = item('copy', page ? 'Copy page name' : single ? 'Copy frame name' : `Copy ${count} frame names`)
     const frameItems = single
       ? [play === "yes" ? item("play", "Play") : null, item('comment', 'Comment')]
       : []
@@ -65,13 +84,56 @@ class Component extends DCLogic {
       part: [nestable === 'yes' ? item('sub', 'Create sub-section') : null, item('out', 'Remove from section')],
       mixed: [item('section', 'Create section', { key: 'Shift+S' }), item('out', 'Remove from section')],
     }[target] || []
-    const groups = [[copy], frameItems, agentItems, sectionItems]
+    const pageGroups = target === 'page'
+      ? [
+          [item('open', 'Open'), item('external', 'Open in new tab')],
+          [copy, item('link', 'Copy page link')],
+          [item('rename', 'Rename page'), item('icon', 'Change icon…'), item('move', 'Move to group', { sub: true })],
+          connected ? [item('sparkles', 'Choose icon with agent')] : [],
+        ]
+      : target === 'canvas'
+        ? [
+            [copy, item('link', 'Copy page link')],
+            [item('select', 'Select all', { key: 'Ctrl+A' }), item('fit', 'Zoom to fit', { key: 'Shift+1' }), item('hundred', 'Zoom to 100%', { key: 'Shift+0' }), item('hide', 'Hide sidebar')],
+            [item('rename', 'Rename page'), item('icon', 'Change icon…')],
+            connected ? [item('grid', 'Reorganize frames with agent'), item('sparkles', 'Choose icon with agent')] : [],
+          ]
+        : null
+    const locate = sidebar === 'yes' && (target === 'frame' || target === 'section') ? [item('locate', 'Show on canvas')] : []
+    const tidyGroup = target === 'section' ? [item('tidy', 'Tidy', { sub: true })] : []
+    const groups = (pageGroups || [locate, [copy], frameItems, agentItems, tidyGroup, sectionItems])
       .map((items) => items.filter(Boolean))
       .filter((items) => items.length > 0)
       .map((items, i) => ({ sep: i > 0, items }))
+    const showSub = target === 'section' && submenu === 'tidy'
+    let subTop = 0
+    if (showSub) {
+      let y = 7
+      for (const g of groups) {
+        if (g.sep) y += 13
+        for (const it of g.items) {
+          if (it.label === 'Tidy') {
+            it.bg = 'var(--accent)'
+            subTop = y - 7
+          }
+          y += 38
+        }
+      }
+    }
+    if (!showSub) groups[0].items[0].bg = 'var(--accent)'
+    const subItems = [
+      { d: ICONS.row, label: 'In a row', note: '', bg: 'transparent' },
+      { d: ICONS.column, label: 'In a column', note: '', bg: 'transparent' },
+      { d: ICONS.wrap, label: 'Wrap', note: 'Reflows when the section is resized', bg: 'transparent' },
+      { d: ICONS.grid, label: 'Grid…', note: 'Opens the controls in the right sidebar', bg: 'transparent' },
+    ]
     return {
       themeClass: theme === 'dark' ? 'dark' : '',
-      label: single ? 'Frame actions' : 'Selection actions',
+      label: target === 'page' ? 'Page actions' : target === 'canvas' ? 'Canvas actions' : single ? 'Frame actions' : 'Selection actions',
+      width: page ? 268 : 240,
+      showSub,
+      subTop,
+      subItems,
       groups,
     }
   }

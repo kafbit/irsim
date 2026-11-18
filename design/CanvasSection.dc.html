@@ -16,7 +16,7 @@ body{margin:0}
 </helmet>
 <div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 100%; min-height: var(--cv-h, 100vh); padding: 72px 40px 40px; background: var(--cv-bg, var(--shell)); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
 <div style="position: relative; box-sizing: border-box; width: {{areaW}}px; height: {{areaH}}px; margin-bottom: {{areaBelow}}px; border: {{borderWidth}}px solid {{borderColor}}; border-radius: {{areaR}}px; background: {{areaBg}}; cursor: {{cursor}};">
-<div style="position: absolute; left: 0; bottom: 100%; display: {{pillDisplay}}; align-items: center; gap: 8px; max-width: 100%; margin-bottom: 6px;">
+<div style="position: absolute; z-index: 2; left: 0; bottom: 100%; display: {{pillDisplay}}; align-items: center; gap: 8px; max-width: 100%; margin-bottom: 6px; transform: scale({{labelScale}}); transform-origin: left bottom;">
 <sc-if value="{{renaming}}" hint-placeholder-val="{{false}}">
 <span role="textbox" aria-label="Section name" style="display: inline-flex; align-items: center; height: 26px; box-sizing: border-box; padding: 0 8px; border: 1px solid var(--ring); border-radius: 6px; background: var(--background); font-size: 13px; font-weight: 600;">{{title}}<span aria-hidden="true" style="width: 1px; height: 14px; margin-left: 1px; background: var(--foreground);"></span></span>
 </sc-if>
@@ -29,7 +29,7 @@ body{margin:0}
 </div>
 <sc-for list="{{subs}}" as="sub">
 <div style="position: absolute; left: {{sub.x}}px; top: {{sub.y}}px; width: {{sub.w}}px; height: {{sub.h}}px; box-sizing: border-box; border: 1px solid var(--border-strong); border-radius: {{subR}}px; background: {{sub.bg}};">
-<div style="position: absolute; left: 0; bottom: 100%; display: flex; align-items: center; max-width: 100%; margin-bottom: 6px;"><span style="display: inline-flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; height: 26px; box-sizing: border-box; padding: 0 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); white-space: nowrap;"><span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 13px; font-weight: 600; color: {{sub.pillText}};">{{sub.title}}</span><sc-if value="{{showCount}}" hint-placeholder-val="{{true}}"><span style="flex-shrink: 0; font-size: 12px; color: var(--muted-foreground);">{{sub.countLabel}}</span></sc-if></span></div>
+<div style="position: absolute; z-index: 1; left: 0; bottom: 100%; display: flex; align-items: center; max-width: 100%; margin-bottom: 6px; transform: scale({{labelScale}}); transform-origin: left bottom;"><span style="display: inline-flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; height: 26px; box-sizing: border-box; padding: 0 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); white-space: nowrap;"><span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 13px; font-weight: 600; color: {{sub.pillText}};">{{sub.title}}</span><sc-if value="{{showCount}}" hint-placeholder-val="{{true}}"><span style="flex-shrink: 0; font-size: 12px; color: var(--muted-foreground);">{{sub.countLabel}}</span></sc-if></span></div>
 </div>
 </sc-for>
 <sc-for list="{{frames}}" as="f">
@@ -50,15 +50,15 @@ body{margin:0}
 </div>
 </sc-if>
 <sc-if value="{{menuOpen}}" hint-placeholder-val="{{false}}">
-<div style="position: absolute; left: {{menuX}}px; top: {{menuY}}px; z-index: 2;"><dc-import name="CanvasContextMenu" target="{{menu}}" count="{{menuCount}}" pending="{{menuCount}}" session="one" nestable="yes" theme="{{theme}}" hint-size="240px,320px"></dc-import></div>
+<div style="position: absolute; left: {{menuX}}px; top: {{menuY}}px; z-index: 2;"><dc-import name="CanvasContextMenu" target="{{menu}}" count="{{menuCount}}" pending="{{menuCount}}" submenu="{{submenu}}" session="one" nestable="yes" theme="{{theme}}" hint-size="240px,320px"></dc-import></div>
 </sc-if>
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"color":{"editor":"enum","default":"gray","options":["gray","blue","green","amber","purple","red"]},"nested":{"editor":"enum","default":"none","options":["none","child"]},"state":{"editor":"enum","default":"default","options":["default","hover","renaming","variants","selected","drop"]},"zoom":{"editor":"enum","default":"normal","options":["normal","far"]},"menu":{"editor":"enum","default":"none","options":["none","frames","section","part","mixed"]},"$preview":{"width":900,"height":640}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"color":{"editor":"enum","default":"gray","options":["gray","blue","green","amber","purple","red"]},"nested":{"editor":"enum","default":"none","options":["none","child"]},"state":{"editor":"enum","default":"default","options":["default","hover","renaming","variants","selected","drop"]},"zoom":{"editor":"enum","default":"normal","options":["normal","far"]},"menu":{"editor":"enum","default":"none","options":["none","frames","section","part","mixed"]},"submenu":{"editor":"enum","default":"none","options":["none","tidy"]},"$preview":{"width":900,"height":640}}'>
 class Component extends DCLogic {
   renderVals() {
-    const { state, theme } = this.props
+    const { state, theme, submenu } = this.props
     const far = this.props.zoom === 'far'
     const k = far ? 0.11 : 1
     const variants = state === 'variants'
@@ -110,6 +110,7 @@ class Component extends DCLogic {
       themeClass: theme === 'dark' ? 'dark' : '',
       theme: theme === 'dark' ? 'dark' : 'light',
       menu,
+      submenu: submenu === 'tidy' ? 'tidy' : 'none',
       menuOpen: menu !== 'none',
       menuCount: menu === 'mixed' ? 3 : 2,
       menuX: { frames: 300, section: 120, part: 400, mixed: 300 }[menu] || 0,
@@ -128,6 +129,7 @@ class Component extends DCLogic {
       areaR: far ? 4 : 12,
       frameR: far ? 2 : 12,
       showTitles: !far,
+      labelScale: far ? 0.8 : 1,
       showCount: !far,
       pillBorder: state === 'hover' || state === 'selected' ? 'var(--ring)' : 'var(--border)',
       variants: variants && !far,

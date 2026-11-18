@@ -1,5 +1,5 @@
 import { NO_CHROMIUM, checkBoards, type BoardTarget } from './board-check'
-import type { CanvasBoard } from './canvas-pages'
+import { type CanvasBoard, isLucideIcon } from './canvas-pages'
 
 /** A board that is on disk but not yet in canvas.json gets this size. */
 export const DEFAULT_SIZE = { width: 1440, height: 900 }
@@ -26,3 +26,6 @@ export const runChecks = async (request: Request, targets: BoardTarget[]): Promi
     return Response.json({ error: message }, { status: message === NO_CHROMIUM ? 503 : 500 })
   }
 }
+
+export const iconWarning = (icon: string | undefined): string | null =>
+  icon !== undefined && !isLucideIcon(icon) ? `page icon "${icon}" is not a Lucide icon` : null

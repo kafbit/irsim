@@ -3,7 +3,7 @@ import Script from 'next/script'
 import type { ReactNode } from 'react'
 import { currentBranch, projectName } from '../lib/branch'
 import { DEFAULT_THEME, themeScript } from '../lib/theme'
-import { runningVersion } from '../lib/version-state'
+import { runningBuild, runningVersion } from '../lib/version-state'
 import './globals.css'
 
 export const dynamic = 'force-dynamic'
@@ -21,6 +21,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="ar" dir="rtl" data-theme={DEFAULT_THEME} suppressHydrationWarning>
       <head>
         <meta name="irsim-version" content={runningVersion()} />
+        <meta name="irsim-build" content={runningBuild() ?? ''} />
       </head>
       <body>
         <Script id="canvas-theme" strategy="beforeInteractive">

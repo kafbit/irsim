@@ -14,8 +14,65 @@ export type MenuItemId =
   | 'create-sub-section'
   | 'remove-from-section'
   | 'delete-section'
+  | 'show-on-canvas'
+  | 'tidy'
+  | 'tidy-row'
+  | 'tidy-column'
+  | 'tidy-wrap'
+  | 'tidy-grid'
+  | 'copy-page-name'
+  | 'copy-page-link'
+  | 'select-all'
+  | 'zoom-fit'
+  | 'zoom-100'
+  | 'toggle-sidebar'
+  | 'rename-page'
+  | 'change-icon'
+  | 'reorganize'
+  | 'choose-icon'
 
-export type MenuItem = { id: MenuItemId; label: string; shortcut?: string; danger?: boolean }
+export type MenuItem = {
+  id: MenuItemId
+  label: string
+  shortcut?: string
+  danger?: boolean
+  note?: string
+  children?: MenuItem[]
+}
+
+export const TIDY_ITEMS: MenuItem[] = [
+  { id: 'tidy-row', label: 'In a row' },
+  { id: 'tidy-column', label: 'In a column' },
+  { id: 'tidy-wrap', label: 'Wrap', note: 'Reflows when the section is resized' },
+  { id: 'tidy-grid', label: 'Grid…', note: 'Opens the controls in the right sidebar' },
+]
+
+export function canvasMenuGroups(input: { connected: boolean; sidebarShown: boolean }): MenuItem[][] {
+  const { connected, sidebarShown } = input
+  const groups: MenuItem[][] = [
+    [
+      { id: 'copy-page-name', label: 'Copy page name' },
+      { id: 'copy-page-link', label: 'Copy page link' },
+    ],
+    [
+      { id: 'select-all', label: 'Select all', shortcut: 'Ctrl+A' },
+      { id: 'zoom-fit', label: 'Zoom to fit', shortcut: 'Shift+1' },
+      { id: 'zoom-100', label: 'Zoom to 100%', shortcut: 'Shift+0' },
+      { id: 'toggle-sidebar', label: sidebarShown ? 'Hide sidebar' : 'Show sidebar', shortcut: 'Ctrl+\\' },
+    ],
+    [
+      { id: 'rename-page', label: 'Rename page' },
+      { id: 'change-icon', label: 'Change icon…' },
+    ],
+    connected
+      ? [
+          { id: 'reorganize', label: 'Reorganize frames with agent' },
+          { id: 'choose-icon', label: 'Choose icon with agent' },
+        ]
+      : [],
+  ]
+  return groups.filter((group) => group.length > 0)
+}
 
 type MenuBoard = {
   name: string
@@ -39,8 +96,9 @@ export function menuGroups(input: {
   stateOf: (name: string) => ApprovalState | undefined
   connected: boolean
   wholeSection: string | null
+  sidebar?: boolean
 }): MenuItem[][] {
-  const { names, boards, sections, stateOf, connected, wholeSection } = input
+  const { names, boards, sections, stateOf, connected, wholeSection, sidebar = false } = input
   const [only] = names
   const single = names.length === 1 && wholeSection === null && only !== undefined
   const board = single ? boards.find((candidate) => candidate.name === only) : undefined
@@ -55,6 +113,11 @@ export function menuGroups(input: {
           : names.some((name) => boards.find((candidate) => candidate.name === name)?.section)
             ? 'mixed'
             : 'frames'
+
+  const locate: MenuItem[] =
+    sidebar && (target === 'frame' || target === 'section')
+      ? [{ id: 'show-on-canvas', label: 'Show on canvas' }]
+      : []
 
   const copy: MenuItem[] = [
     { id: 'copy', label: single ? 'Copy frame name' : `Copy ${names.length} frame names` },
@@ -79,6 +142,14 @@ export function menuGroups(input: {
     }
   }
 
+  const direct =
+    target === 'section' &&
+    names.some((name) => boards.find((candidate) => candidate.name === name)?.section === wholeSection)
+  const tidyItems: MenuItem[] =
+    target === 'section' && direct
+      ? [{ id: 'tidy', label: 'Tidy', children: TIDY_ITEMS }]
+      : []
+
   const sectionItems: MenuItem[] = []
   const nestId = target === 'section' ? wholeSection : typeof shared === 'string' ? shared : null
   const nest: MenuItem = { id: 'create-sub-section', label: 'Create sub-section' }
@@ -91,14 +162,11 @@ export function menuGroups(input: {
     sectionItems.push(remove)
   }
   if (target === 'section') {
-    const direct = names.some(
-      (name) => boards.find((candidate) => candidate.name === name)?.section === wholeSection,
-    )
     sectionItems.push({ id: 'rename-section', label: 'Rename section' })
     if (direct && nestId !== null && canNest(nestId, sections)) sectionItems.push(nest)
     if (direct) sectionItems.push(remove)
     sectionItems.push({ id: 'delete-section', label: 'Delete section', danger: true })
   }
 
-  return [copy, frameItems, agentItems, sectionItems].filter((group) => group.length > 0)
+  return [locate, copy, frameItems, agentItems, tidyItems, sectionItems].filter((group) => group.length > 0)
 }

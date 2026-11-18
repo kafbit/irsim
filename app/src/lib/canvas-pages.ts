@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import dynamicIconImports from 'lucide-react/dynamicIconImports'
 import { designDir } from './design-dir'
 
 export type CanvasBoard = {
@@ -34,10 +35,12 @@ export type CanvasSection = {
   y?: number
   width?: number
   height?: number
+  layout?: { mode: 'wrap'; gap: number }
 }
 export type CanvasPage = {
   id: string
   title: string
+  icon?: string
   sections?: CanvasSection[]
   boards: CanvasBoard[]
 }
@@ -51,3 +54,7 @@ export const readCanvasPages = async (): Promise<CanvasPage[]> => {
   }
   return canvas.pages
 }
+
+const lucideNames = new Set<string>(Object.keys(dynamicIconImports))
+
+export const isLucideIcon = (name: string): boolean => lucideNames.has(name)

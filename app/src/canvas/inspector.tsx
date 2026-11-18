@@ -1,11 +1,13 @@
 'use client'
 
-import { Button, IconButton, Select } from '../ui'
-import { Check, ChevronDown, CopyIcon, Play } from '../ui/icons'
+import { Button, cn, IconButton, Input, Select } from '../ui'
+import { Check, ChevronDown, Columns3, CopyIcon, Grid3x3, Play, Rows3, WrapText } from '../ui/icons'
 import Link from 'next/link'
 import { useState } from 'react'
 import { SECTION_TONES } from './section-colors'
 import { canNest, sharedSection } from './sections'
+import { DEFAULT_GAP, type TidyRequest } from './tidy-section'
+import type { TidyMode } from './tidy'
 import type { CanvasSection, ManifestBoard, PageSummary } from './types'
 
 type SectionColor = NonNullable<CanvasSection['color']>
@@ -115,6 +117,8 @@ export function InspectorMulti({
   onCreateSection,
   onDeleteSection,
   onColor,
+  onTidy,
+  gridFor = null,
 }: {
   names: string[]
   boards: { name: string; title: string; section?: string | undefined }[]
@@ -124,6 +128,10 @@ export function InspectorMulti({
   onCreateSection: (names: string[], nested?: boolean) => void
   onDeleteSection: (id: string) => void
   onColor: (id: string, color: SectionColor | null) => void
+  /** Tidy the boards the section holds itself. */
+  onTidy?: (id: string, request: TidyRequest) => void
+  /** The section whose Tidy block opens on Grid. */
+  gridFor?: string | null
 }) {
   const shared = sharedSection(names, boards)
   const common =
@@ -170,6 +178,15 @@ export function InspectorMulti({
                 Create sub-section
               </Button>
             ) : null}
+            {onTidy && boards.some((board) => board.section === common.id) ? (
+              <TidyBlock
+                key={`${common.id}:${gridFor === common.id}`}
+                count={boards.filter((board) => board.section === common.id).length}
+                layout={common.layout}
+                grid={gridFor === common.id}
+                onTidy={(request) => onTidy(common.id, request)}
+              />
+            ) : null}
             <Button variant="secondary" size="sm" onClick={() => onDeleteSection(common.id)}>
               Delete section
             </Button>
@@ -177,6 +194,127 @@ export function InspectorMulti({
         ) : null}
       </section>
     </aside>
+  )
+}
+
+const TIDY_MODES: { mode: TidyMode; label: string; icon: React.ReactNode }[] = [
+  { mode: 'row', label: 'Row', icon: <Columns3 className="size-4" aria-hidden="true" /> },
+  { mode: 'column', label: 'Column', icon: <Rows3 className="size-4" aria-hidden="true" /> },
+  { mode: 'wrap', label: 'Wrap', icon: <WrapText className="size-4" aria-hidden="true" /> },
+  { mode: 'grid', label: 'Grid', icon: <Grid3x3 className="size-4" aria-hidden="true" /> },
+]
+
+const whole = (value: string, fallback: number, min: number, max: number) => {
+  const parsed = Math.round(Number(value))
+  return Number.isFinite(parsed) && value.trim() !== '' ? Math.min(max, Math.max(min, parsed)) : fallback
+}
+
+function NumberField({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  label: string
+  value: string
+  min: number
+  max: number
+  onChange: (value: string) => void
+}) {
+  return (
+    <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-muted-foreground">
+      {label}
+      <Input
+        type="number"
+        inputMode="numeric"
+        min={min}
+        max={max}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="h-[34px] rounded-[10px] px-2.5 text-sm text-foreground"
+      />
+    </label>
+  )
+}
+
+/** Tidy the boards a section holds: a layout, the gap, and for Grid its columns and rows. Remounts per section. */
+function TidyBlock({
+  count,
+  layout,
+  grid,
+  onTidy,
+}: {
+  count: number
+  layout: CanvasSection['layout']
+  grid: boolean
+  onTidy: (request: TidyRequest) => void
+}) {
+  const [mode, setMode] = useState<TidyMode>(grid ? 'grid' : layout ? 'wrap' : 'row')
+  const [gap, setGap] = useState(String(layout?.gap ?? DEFAULT_GAP))
+  const initialColumns = Math.max(1, Math.ceil(Math.sqrt(count)))
+  const [columns, setColumns] = useState(String(initialColumns))
+  const [rows, setRows] = useState(String(Math.ceil(count / initialColumns)))
+  const editColumns = (value: string) => {
+    setColumns(value)
+    const next = whole(value, 0, 1, Math.max(1, count))
+    if (next > 0) setRows(String(Math.ceil(count / next)))
+  }
+  const editRows = (value: string) => {
+    setRows(value)
+    const next = whole(value, 0, 1, Math.max(1, count))
+    if (next > 0) setColumns(String(Math.ceil(count / next)))
+  }
+  const apply = () => {
+    const request: TidyRequest = { mode, gap: whole(gap, DEFAULT_GAP, 0, 400) }
+    if (mode === 'grid') {
+      request.columns = whole(columns, initialColumns, 1, Math.max(1, count))
+      request.rows = whole(rows, Math.ceil(count / request.columns), 1, Math.max(1, count))
+    }
+    onTidy(request)
+  }
+  return (
+    <div role="group" aria-label="Tidy" className="flex flex-col gap-2">
+      <h3 className="m-0 text-xs font-normal text-muted-foreground">Tidy</h3>
+      <div
+        role="radiogroup"
+        aria-label="Layout"
+        className="grid grid-cols-4 gap-0.5 rounded-[10px] border border-border bg-secondary p-0.5"
+      >
+        {TIDY_MODES.map((option) => (
+          <button
+            key={option.mode}
+            type="button"
+            role="radio"
+            aria-checked={option.mode === mode}
+            onClick={() => setMode(option.mode)}
+            className={cn(
+              'flex h-12 min-w-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border bg-transparent p-0 text-[11px] font-medium text-foreground focus-visible:outline-2 focus-visible:outline-ring',
+              option.mode === mode ? 'border-border-strong bg-accent' : 'border-transparent',
+            )}
+          >
+            {option.icon}
+            {option.label}
+          </button>
+        ))}
+      </div>
+      <NumberField label="Gap" value={gap} min={0} max={400} onChange={setGap} />
+      {mode === 'grid' ? (
+        <div className="flex items-end gap-2">
+          <NumberField label="Columns" value={columns} min={1} max={Math.max(1, count)} onChange={editColumns} />
+          <span className="pb-2 text-sm text-muted-foreground">×</span>
+          <NumberField label="Rows" value={rows} min={1} max={Math.max(1, count)} onChange={editRows} />
+        </div>
+      ) : null}
+      {mode === 'wrap' ? (
+        <p className="m-0 text-xs leading-4 text-muted-foreground">
+          Frames reflow when you resize the section
+        </p>
+      ) : null}
+      <Button size="sm" onClick={apply}>
+        Tidy
+      </Button>
+    </div>
   )
 }
 

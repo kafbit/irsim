@@ -9,6 +9,8 @@ import type {
   PageApprovals,
   Reply,
   Session,
+  PageRequest,
+  PageRequestKind,
   VariantRequest,
   VariantPick,
   VariantRequestEntry,
@@ -17,7 +19,14 @@ import { dataDir } from './data-dir'
 import { designFolderName } from './design-dir'
 import { emit } from './events'
 import { closureOf } from './closure'
-import { buildApprovalText, buildTurnText, buildVariantText, unseenUserReplies } from './turn-text'
+import { readCanvasPages } from './canvas-pages'
+import {
+  buildApprovalText,
+  buildPageRequestText,
+  buildTurnText,
+  buildVariantText,
+  unseenUserReplies,
+} from './turn-text'
 
 export type NewComment = Pick<
   Comment,
@@ -43,6 +52,16 @@ export type Claim = {
   text: string
   comments: ClaimedComment[]
   approvals: Approval[]
+  variants: VariantRequest[]
+  pages: PageRequest[]
+}
+
+export type Release = {
+  comments: string[]
+  approvals: string[]
+  variants: string[]
+  pages?: string[]
+  replies: { comment: string; at: string }[]
 }
 
 export const SESSION_TTL_MS = 30_000
@@ -98,7 +117,7 @@ const writeList = async (name: string, list: unknown[]): Promise<void> => {
   await rename(temp, file)
 }
 
-const newId = (prefix: 'c' | 'b' | 'a' | 'v'): string =>
+const newId = (prefix: 'c' | 'b' | 'a' | 'v' | 'p'): string =>
   `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6).padEnd(4, '0')}`
 
 const touched = (ids: string[]): void => emit({ event: 'comments', data: { ids } })
@@ -428,6 +447,26 @@ export const createVariantRequest = (
     return request
   })
 
+/** Queues a page request (reorganize or icon) for a live session; its next claim delivers it. */
+export const createPageRequest = (
+  input: { page: string; kind: PageRequestKind; sessionId: string },
+  now = Date.now(),
+): Promise<PageRequest | 'no_session'> =>
+  enqueue(async () => {
+    if (!(await isSessionLive(input.sessionId, now))) return 'no_session'
+    const request: PageRequest = {
+      id: newId('p'),
+      ...input,
+      at: new Date(now).toISOString(),
+      status: 'queued',
+    }
+    await writeList('page-requests.json', [
+      ...(await readList<PageRequest>('page-requests.json')),
+      request,
+    ])
+    return request
+  })
+
 const joinText = (...parts: string[]): string => parts.filter((part) => part !== '').join('\n\n')
 
 export const claim = (sessionId: string, now = Date.now()): Promise<Claim> =>
@@ -480,6 +519,26 @@ export const claim = (sessionId: string, now = Date.now()): Promise<Claim> =>
         ),
       )
     }
+    const allPages = await readList<PageRequest>('page-requests.json')
+    const pages = allPages.filter(
+      (request) => request.status === 'queued' && request.sessionId === sessionId,
+    )
+    let pageText = ''
+    if (pages.length > 0) {
+      const titles: Record<string, string> = {}
+      for (const page of await readCanvasPages().catch(() => [])) titles[page.id] = page.title
+      pageText = buildPageRequestText(pages, titles, designFolderName())
+    }
+    const deliverPages = async (): Promise<void> => {
+      if (pages.length === 0) return
+      const ids = new Set(pages.map((request) => request.id))
+      await writeList(
+        'page-requests.json',
+        allPages.map((request) =>
+          ids.has(request.id) ? { ...request, status: 'delivered' } : request,
+        ),
+      )
+    }
     const all = await readComments()
     const taken = all.filter(
       (comment) => comment.status === 'queued' && comment.sessionId === sessionId,
@@ -487,12 +546,15 @@ export const claim = (sessionId: string, now = Date.now()): Promise<Claim> =>
     if (taken.length === 0) {
       await deliverApprovals()
       await deliverVariants()
+      await deliverPages()
       return {
         batch: null,
-        count: approvals.length + variants.length,
-        text: joinText(approvalText, variantText),
+        count: approvals.length + variants.length + pages.length,
+        text: joinText(approvalText, variantText, pageText),
         comments: [],
         approvals,
+        variants,
+        pages,
       }
     }
     const ids = new Set(taken.map((comment) => comment.id))
@@ -536,11 +598,83 @@ export const claim = (sessionId: string, now = Date.now()): Promise<Claim> =>
     const commentText = buildTurnText(taken, paths, designFolderName())
     await deliverApprovals()
     await deliverVariants()
+    await deliverPages()
     return {
       batch: delivered[delivered.length - 1]?.batch ?? null,
-      count: delivered.length + approvals.length + variants.length,
-      text: joinText(approvalText, variantText, commentText),
+      count: delivered.length + approvals.length + variants.length + pages.length,
+      text: joinText(approvalText, variantText, pageText, commentText),
       comments: delivered,
       approvals,
+      variants,
+      pages,
+    }
+  })
+
+export const release = (sessionId: string, items: Release): Promise<void> =>
+  enqueue(async () => {
+    if (items.approvals.length > 0) {
+      const ids = new Set(items.approvals)
+      const changed: string[] = []
+      const all = await readList<Approval>('approvals.json')
+      const next = all.map((approval): Approval => {
+        if (!ids.has(approval.id) || approval.sessionId !== sessionId || approval.status !== 'delivered')
+          return approval
+        changed.push(approval.id)
+        return { ...approval, status: 'queued' }
+      })
+      if (changed.length > 0) {
+        await writeList('approvals.json', next)
+        approvalsChanged(changed)
+      }
+    }
+    if (items.variants.length > 0) {
+      const ids = new Set(items.variants)
+      const all = await readList<VariantRequest>('variant-requests.json')
+      let changed = false
+      const next = all.map((request): VariantRequest => {
+        if (!ids.has(request.id) || request.sessionId !== sessionId || request.status !== 'delivered')
+          return request
+        changed = true
+        return { ...request, status: 'queued' }
+      })
+      if (changed) await writeList('variant-requests.json', next)
+    }
+    if ((items.pages ?? []).length > 0) {
+      const ids = new Set(items.pages)
+      const all = await readList<PageRequest>('page-requests.json')
+      let changed = false
+      const next = all.map((request): PageRequest => {
+        if (!ids.has(request.id) || request.sessionId !== sessionId || request.status !== 'delivered')
+          return request
+        changed = true
+        return { ...request, status: 'queued' }
+      })
+      if (changed) await writeList('page-requests.json', next)
+    }
+    const commentIds = new Set(items.comments)
+    const replyAts = new Map<string, Set<string>>()
+    for (const reply of items.replies) {
+      replyAts.set(reply.comment, (replyAts.get(reply.comment) ?? new Set()).add(reply.at))
+    }
+    if (commentIds.size === 0 && replyAts.size === 0) return
+    const all = await readComments()
+    const changed: string[] = []
+    const next = all.map((comment): Comment => {
+      if (comment.sessionId !== sessionId || comment.status !== 'delivered') return comment
+      const requeue = commentIds.has(comment.id)
+      const ats = replyAts.get(comment.id)
+      if (!requeue && !ats) return comment
+      changed.push(comment.id)
+      return {
+        ...comment,
+        status: requeue ? 'queued' : comment.status,
+        replies: comment.replies.map((reply) =>
+          ats?.has(reply.at) && reply.author === 'user' ? { ...reply, seen: false } : reply,
+        ),
+      }
+    })
+    if (changed.length > 0) {
+      await writeList('comments.json', next)
+      touched(changed)
     }
   })

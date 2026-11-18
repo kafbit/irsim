@@ -10,7 +10,7 @@ import { viewLabel } from '../../lib/view-label'
 import { DeleteIcon, EditIcon, ImagePlus, Monitor, Send, Smartphone, Tablet } from '../../ui/icons'
 import { useRef, useState } from 'react'
 import { ClampedText } from './clamped-text'
-import { ApproveSplit, CommentSession, NO_SESSION } from './comment-actions'
+import { ReplySplit, CommentSession, NO_SESSION } from './comment-actions'
 import { ImageStrip, imageUrl } from './image-strip'
 import type { Comment, CommentView, Session } from './types'
 import { usePastedImages } from './use-pasted-images'
@@ -361,26 +361,29 @@ export function CommentCard({
               onClick={() => fileInput.current?.click()}
               className="size-[34px]"
             />
-            <Button
-              size="sm"
-              disabled={!replyDraft.trim() || replyPasted.uploading > 0}
-              pending={busy}
-              onClick={sendReply}
-            >
-              Reply
-            </Button>
+            {open ? (
+              <ReplySplit
+                replyDisabled={!replyDraft.trim() || replyPasted.uploading > 0}
+                busy={busy}
+                onReply={sendReply}
+                canBuild={target && onApproveAndBuild !== undefined}
+                onApproveAndBuild={() => {
+                  if (onApproveAndBuild) void run(() => onApproveAndBuild(comment))
+                }}
+                onResolve={() => void run(() => onResolve(comment.id))}
+              />
+            ) : (
+              <Button
+                size="sm"
+                disabled={!replyDraft.trim() || replyPasted.uploading > 0}
+                pending={busy}
+                onClick={sendReply}
+              >
+                Reply
+              </Button>
+            )}
           </div>
         </div>
-      ) : null}
-      {open ? (
-        <ApproveSplit
-          canBuild={target && onApproveAndBuild !== undefined}
-          busy={busy}
-          onApproveAndBuild={() => {
-            if (onApproveAndBuild) void run(() => onApproveAndBuild(comment))
-          }}
-          onResolve={() => void run(() => onResolve(comment.id))}
-        />
       ) : null}
     </li>
   )

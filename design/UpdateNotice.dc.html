@@ -67,7 +67,7 @@ body{margin:0}
 <div style="flex: 1; display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--muted);">Canvas</div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","default":"available","options":["available","restart","updating","installing","restarting","failed","notback"]},"theme":{"editor":"enum","default":"light","options":["light","dark"]},"$preview":{"width":720,"height":560}}'>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","default":"available","options":["available","restart","rebuild","updating","installing","restarting","failed","notback"]},"theme":{"editor":"enum","default":"light","options":["light","dark"]},"$preview":{"width":720,"height":560}}'>
 class Component extends DCLogic {
   renderVals() {
     const state = this.props.state
@@ -76,6 +76,7 @@ class Component extends DCLogic {
     const copy = {
       available: { headline: `irsim ${latest} is available`, detail: `You have ${running}.`, action: 'Update and restart' },
       restart: { headline: `irsim ${latest} is installed`, detail: `This canvas still runs ${running}. Restart it to use ${latest}.`, action: 'Restart' },
+      rebuild: { headline: `A new build of irsim ${latest} is installed`, detail: 'This canvas still runs the previous build. Restart it to use the new one.', action: 'Restart' },
       updating: { headline: `Updating to ${latest}`, detail: 'The canvas restarts when the download is installed.', busyLabel: `Downloading ${latest}…` },
       installing: { headline: `Updating to ${latest}`, detail: 'The canvas restarts when the download is installed.', busyLabel: `Installing ${latest}…` },
       restarting: { headline: `Restarting on ${latest}`, detail: 'The page reloads when the canvas answers.', busyLabel: 'Restarting the canvas…' },
@@ -91,12 +92,12 @@ class Component extends DCLogic {
       themeClass: this.props.theme === 'dark' ? 'dark' : '',
       pages,
       boards: ['Home', 'Button', 'Dialog', 'Table'],
-      dismissable: state === 'available' || state === 'restart' || state === 'failed' || state === 'notback',
+      dismissable: state === 'available' || state === 'restart' || state === 'rebuild' || state === 'failed' || state === 'notback',
       downloading: state === 'updating',
       spinning: state === 'installing' || state === 'restarting',
       percent: 42,
       bytes: '4.2 MB of 10.0 MB',
-      hasAction: state === 'available' || state === 'restart',
+      hasAction: state === 'available' || state === 'restart' || state === 'rebuild',
       hasNotes: state === 'available',
       failed: state === 'failed',
       detailColor: state === 'failed' || state === 'notback' ? 'var(--danger)' : 'var(--muted)',

@@ -1,0 +1,17 @@
+- [x] Boards: `CanvasPages` props `groups` and `drag`, `CanvasSidebar` props `groups` and `collapsed`, boards and sections drawn in title order, the irsim mark on page cards and sidebar page rows; new wrappers `CanvasPagesGroups`, `CanvasPagesDrag`, `CanvasSidebarGroups`, `CanvasSidebarSectionsCollapsed`; `canvas.json` positions; `AGENTS.md` table rows. Check the page.
+- [x] Stop for board approval.
+- [x] `IrsimMark` in `ui/icons-custom.tsx`, used in `page-index.tsx` cards and `sidebar.tsx` page rows.
+- [x] `page-groups.ts` model and its tests.
+- [x] `use-page-groups.ts` storage hook.
+- [x] `page-index.tsx` groups, drag and drop, New group.
+- [x] `sidebar.tsx` page list groups and drag and drop.
+- [x] `sidebar.tsx` collapsible sections with stored state, boards and sections sorted by title.
+- [x] Compare app and boards, light and dark.
+- [x] Typecheck, lint, affected tests, page check.
+- [x] Regroup the boards into pages `canvas-app` and `canvas-system` with sections and subsections (negotiated tree).
+- [x] Plugin: claim only when no main-loop turn runs; release claimed items when the submit is dropped or rejected (`/api/comments/release`); opencode connector releases on a failed prompt.
+- [x] Board: `CanvasThread` Reply split button, menu Resolve then Approve and build.
+- [x] Boards: group header × removed, right click menu (Rename group, Ungroup): `CanvasSidebarGroupMenu`, `CanvasPagesGroupMenu`.
+- [x] Stop for approval of `CanvasThread`, `CanvasThreadResolveMenu`, `CanvasSidebarGroupMenu`, `CanvasPagesGroupMenu`.
+- [x] `comment-actions.tsx` and `comment-card.tsx`: Reply split button.
+- [x] Same claim fix in `plugin/harnesses/pi/irsim.ts` and `plugin/harnesses/command-code/irsim.ts`.

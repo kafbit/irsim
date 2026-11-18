@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { UpdateProgress } from '../lib/update-progress'
-import { type Notice, noticeOf, type VersionInfo } from '../lib/version-info'
+import { identityOf, type Notice, noticeOf, type VersionInfo } from '../lib/version-info'
+import { hasUnsentImages } from './comments/use-pasted-images'
 import { useMountEffect } from './use-mount-effect'
 
 export type UpdatePhase = 'idle' | 'updating' | 'restarting' | 'failed'
@@ -22,16 +23,22 @@ export const unlessDismissed = (notice: Notice | null, dismissed: string | null)
 
 export const shouldReload = (
   baseline: string | null,
-  next: VersionInfo | null,
+  nextIdentity: string | null,
   dirty: boolean,
-): boolean => !dirty && baseline !== null && next !== null && next.running !== baseline
+): boolean => !dirty && baseline !== null && nextIdentity !== null && nextIdentity !== baseline
 
 const COMPOSER = '[role="dialog"][aria-label="New comment"]'
 
-export const hasDraft = (doc: { querySelectorAll: (selector: string) => ArrayLike<object> }) =>
+type Doc = { querySelectorAll: (selector: string) => ArrayLike<object> }
+
+export const hasUnsent = (doc: Doc, unsentImages: () => boolean = hasUnsentImages) =>
+  unsentImages() ||
   Array.from(doc.querySelectorAll('textarea')).some(
-    (field) => ((field as { value?: string }).value ?? '') !== '',
-  ) || doc.querySelectorAll(COMPOSER).length > 0
+    (field) => ((field as { value?: string }).value ?? '').trim() !== '',
+  )
+
+export const hasDraft = (doc: Doc, unsentImages: () => boolean = hasUnsentImages) =>
+  hasUnsent(doc, unsentImages) || doc.querySelectorAll(COMPOSER).length > 0
 
 type Watcher = { fns: Set<() => void>; timer: ReturnType<typeof setInterval> | null }
 
@@ -53,8 +60,10 @@ export const acquireWatcher = (fn: () => void): (() => void) => {
   }
 }
 
-const servedVersion = (): string | null =>
-  document.querySelector('meta[name="irsim-version"]')?.getAttribute('content') ?? null
+const servedIdentity = (): string | null =>
+  document.querySelector('meta[name="irsim-build"]')?.getAttribute('content') ||
+  document.querySelector('meta[name="irsim-version"]')?.getAttribute('content') ||
+  null
 
 const readDismissed = (): string | null => {
   try {
@@ -100,26 +109,33 @@ export function useUpdate() {
 
   useMountEffect(() => {
     mounted.current = true
-    baseline.current = servedVersion()
+    baseline.current = servedIdentity()
     setDismissed(readDismissed())
-    let release: (() => void) | null = null
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!hasUnsent(document)) return
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
     const watch = () => {
       if (document.visibilityState !== 'visible' || phaseRef.current !== 'idle') return
       readInfo({ probe: true })
         .then((next) => {
           if (!mounted.current || phaseRef.current !== 'idle') return
-          if (baseline.current === null && next !== null) baseline.current = next.running
-          else if (shouldReload(baseline.current, next, hasDraft(document))) window.location.reload()
+          if (baseline.current === null && next !== null) baseline.current = identityOf(next)
+          else if (shouldReload(baseline.current, next && identityOf(next), hasDraft(document))) {
+            window.location.reload()
+          }
         })
         .catch(() => {})
     }
+    const release = acquireWatcher(watch)
     const check = (fresh = false) => {
       const run = readInfo({ probe: false, fresh })
         .then((next) => {
-          if (next !== null && baseline.current === null) baseline.current = next.running
+          if (next !== null && baseline.current === null) baseline.current = identityOf(next)
           if (!mounted.current || next === null) return
           setInfo(next)
-          if (next.canUpdate && release === null) release = acquireWatcher(watch)
         })
         .catch(() => {})
       return run
@@ -136,7 +152,8 @@ export function useUpdate() {
       mounted.current = false
       recheck.current = null
       clearInterval(timer)
-      release?.()
+      release()
+      window.removeEventListener('beforeunload', onBeforeUnload)
     }
   })
 
@@ -168,13 +185,13 @@ export function useUpdate() {
     setPhase('failed')
   }
 
-  const waitForRestart = async (version: string) => {
+  const waitForRestart = async (matches: (next: VersionInfo) => boolean) => {
     const deadline = Date.now() + GIVE_UP_AFTER_MS
     while (mounted.current && Date.now() < deadline) {
       await wait(POLL_EVERY_MS)
       try {
         const next = await readInfo({ probe: true })
-        if (next?.running === version && mounted.current) {
+        if (next !== null && matches(next) && mounted.current) {
           window.location.reload()
           return
         }
@@ -192,17 +209,22 @@ export function useUpdate() {
     setRestartFailed(false)
     setPhase(notice.kind === 'available' ? 'updating' : 'restarting')
     try {
-      const response = await fetch('/api/update', { method: 'POST' })
+      const restart = notice.kind !== 'available'
+      const response = await fetch(restart ? '/api/restart' : '/api/update', { method: 'POST' })
       const body = (await response.json().catch(() => ({}))) as {
-        version?: string
+        version?: string | null
+        build?: string | null
         error?: string
       }
-      if (response.status !== 202 || typeof body.version !== 'string') {
+      const expected = restart ? (body.build ?? body.version) : body.version
+      if (response.status !== 202 || typeof expected !== 'string') {
         fail(body.error ?? `The update failed (HTTP ${response.status}).`)
         return
       }
       if (mounted.current) setPhase('restarting')
-      await waitForRestart(body.version)
+      await waitForRestart(
+        restart ? (next) => identityOf(next) === expected : (next) => next.running === expected,
+      )
     } catch {
       fail('The update request did not reach the canvas.')
     }

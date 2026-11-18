@@ -1,4 +1,5 @@
-import { applyEdit, type CanvasEdit, placeBoard } from '../../../lib/canvas-layout'
+import { isLucideIcon } from '../../../lib/canvas-pages'
+import { applyEdit, type CanvasEdit, editPage, placeBoard } from '../../../lib/canvas-layout'
 import { editCanvas, invalid, locked, readCanvas, writeCanvas } from '../../../lib/canvas-file'
 
 export const dynamic = 'force-dynamic'
@@ -38,7 +39,8 @@ const editOf = (body: Record<string, unknown>): CanvasEdit | string => {
 
 /**
  * Applies one layout edit. The body is either `{ page, board, x, y, width, height }` (one board) or
- * `{ page, boards?, sections? }` (several boards and section edits). Runs under one lock so two
+ * `{ page, boards?, sections? }` (several boards and section edits). Without `board`, `boards` and
+ * `sections`, `{ page, title?, icon? }` edits the page: `icon` is a Lucide icon name, `null` removes it. Runs under one lock so two
  * requests cannot lose each other's edit.
  */
 export async function PATCH(request: Request): Promise<Response> {
@@ -57,6 +59,9 @@ export async function PATCH(request: Request): Promise<Response> {
     const { board } = body
     const rect = { x: body.x, y: body.y, width: body.width, height: body.height }
     apply = (canvas) => placeBoard(canvas, page, board, rect)
+  } else if (body.boards === undefined && body.sections === undefined) {
+    const edit = { title: body.title, icon: body.icon }
+    apply = (canvas) => editPage(canvas, page, edit, isLucideIcon)
   } else {
     const edit = editOf(body)
     if (typeof edit === 'string') return Response.json({ error: edit }, { status: 400 })

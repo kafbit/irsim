@@ -10,7 +10,7 @@ import { useApprovals } from './approvals/use-approvals'
 import { CommentLayer } from './comments/comment-layer'
 import { Composer } from './comments/composer'
 import { ContextMenu } from './context-menu'
-import { menuGroups, type MenuItemId, pendingNames } from './context-menu-model'
+import { canvasMenuGroups, menuGroups, type MenuItemId, pendingNames } from './context-menu-model'
 import { boardPick, buildNote, numberComments, placedRect } from './comments/model'
 import { ThreadPanel } from './comments/thread-panel'
 import type { Comment, CommentView, PickedElement } from './comments/types'
@@ -28,6 +28,9 @@ import { noticeFor } from './history'
 import { isVisible } from './mount-policy'
 import { adjacentBoard, readingOrder } from './navigation'
 import { Overlay } from './overlay'
+import { patchPage } from './page-menu'
+import { PagePopovers, type PagePopover } from './page-popover'
+import { sendPageRequest } from './page-requests'
 import { PlayView } from './play-view'
 import { NO_SELECTION, reduceSelection, type Selection } from './selection'
 import {
@@ -39,9 +42,11 @@ import {
   resizeSectionEdits,
   placedSections,
   renameEdits,
+  SECTION_PAD,
   withMembership,
 } from './sections'
 import { SectionLayer } from './section-layer'
+import { DEFAULT_GAP, directMembers, sectionTidyEdits, type TidyRequest, wrapWidth } from './tidy-section'
 import { SettingsDialog } from './settings-dialog'
 import { Sidebar } from './sidebar'
 import { pendingOf } from './approvals/pending'
@@ -144,7 +149,11 @@ export function PageCanvas({
     y: number
     names: string[]
     wholeSection: string | null
+    sidebar: boolean
+    canvas: boolean
   } | null>(null)
+  const [pagePopover, setPagePopover] = useState<PagePopover | null>(null)
+  const [gridFor, setGridFor] = useState<string | null>(null)
   const [variantsFocus, setVariantsFocus] = useState<{ name: string; count: number } | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   const mounts = useMounts(boards)
@@ -289,6 +298,10 @@ export function PageCanvas({
     () => placedSections(sections, boards),
     [sections, boards],
   )
+  const placedRef = useRef(placedSectionList)
+  useEffect(() => {
+    placedRef.current = placedSectionList
+  })
   const toggleSidebar = useCallback(() => {
     setSidebarShown((shown) => {
       writeSidebar(!shown)
@@ -350,8 +363,42 @@ export function PageCanvas({
     (id: string, rect: Rect) => {
       const section = latestEdit.current.sections.find((candidate) => candidate.id === id)
       if (!section) return
+      if (section.layout) {
+        const members = directMembers(id, latestEdit.current.boards)
+        const widest = Math.max(0, ...members.map((member) => member.width))
+        const width = Math.max(rect.width, widest + SECTION_PAD * 2)
+        const edits = sectionTidyEdits(section, latestEdit.current.boards, {
+          mode: 'wrap',
+          gap: section.layout.gap,
+          width: width - SECTION_PAD * 2,
+          area: { ...rect, width },
+        })
+        if (edits) editSections(`resize of ${section.title}`, edits.before, edits.after)
+        return
+      }
       const { before, after } = resizeSectionEdits(section, rect)
       editSections(`resize of ${section.title}`, before, after)
+    },
+    [editSections],
+  )
+  const tidySection = useCallback(
+    (id: string, request: TidyRequest) => {
+      const current = latestEdit.current
+      const section = current.sections.find((candidate) => candidate.id === id)
+      if (!section) return
+      const placed = placedRef.current.find((item) => item.section.id === id)
+      const width =
+        request.mode === 'wrap' && request.width === undefined && placed
+          ? wrapWidth(placed.bounds, directMembers(id, current.boards))
+          : request.width
+      const edits = sectionTidyEdits(section, current.boards, {
+        ...request,
+        ...(width === undefined ? {} : { width }),
+        ...(width !== undefined && request.width === undefined && placed
+          ? { originX: placed.bounds.x + SECTION_PAD }
+          : {}),
+      })
+      if (edits) editSections(`tidy of ${section.title}`, edits.before, edits.after)
     },
     [editSections],
   )
@@ -633,29 +680,44 @@ export function PageCanvas({
     [approvals, comments, setNotice],
   )
 
-  const onContextMenu = (event: React.MouseEvent<HTMLElement>) => {
-    const target = event.target as HTMLElement
-    const label = target.closest<HTMLElement>('[data-section-label]')
-    const sectionId = label?.getAttribute('data-section-id') ?? null
-    const placed = sectionId ? placedSectionList.find((item) => item.section.id === sectionId) : undefined
-    if (placed) {
-      event.preventDefault()
-      selectBoards(placed.members)
-      setSelectedSection(placed.section.id)
-      setMenu({ x: event.clientX, y: event.clientY, names: placed.members, wholeSection: placed.section.id })
-      return
-    }
-    const name = boardOf(target)
-    if (!name) return
-    event.preventDefault()
+  const openSectionMenu = (id: string, point: { x: number; y: number }, sidebar: boolean) => {
+    const placed = placedSectionList.find((item) => item.section.id === id)
+    if (!placed) return
+    selectBoards(placed.members)
+    setSelectedSection(placed.section.id)
+    setMenu({ ...point, names: placed.members, wholeSection: placed.section.id, sidebar, canvas: false })
+  }
+  const openFrameMenu = (name: string, point: { x: number; y: number }, sidebar: boolean) => {
     const kept = selection.names.includes(name)
     if (!kept) dispatch({ type: 'select', name })
     setMenu({
-      x: event.clientX,
-      y: event.clientY,
+      ...point,
       names: kept ? selection.names : [name],
       wholeSection: kept ? sectionSelected : null,
+      sidebar,
+      canvas: false,
     })
+  }
+  const onContextMenu = (event: React.MouseEvent<HTMLElement>) => {
+    const target = event.target as HTMLElement
+    const point = { x: event.clientX, y: event.clientY }
+    const label = target.closest<HTMLElement>('[data-section-label]')
+    const sectionId = label?.getAttribute('data-section-id') ?? null
+    if (sectionId && placedSectionList.some((item) => item.section.id === sectionId)) {
+      event.preventDefault()
+      openSectionMenu(sectionId, point, false)
+      return
+    }
+    const name = boardOf(target)
+    if (name) {
+      event.preventDefault()
+      openFrameMenu(name, point, false)
+      return
+    }
+    const onWorld = target === event.currentTarget || target.closest('[data-world]') !== null
+    if (!onWorld || target.closest('button, a, input, textarea, select')) return
+    event.preventDefault()
+    setMenu({ ...point, names: [], wholeSection: null, sidebar: false, canvas: true })
   }
   const variantOf = useMemo(
     () => new Map(manifest.boards.map((board) => [board.name, board.variantOf])),
@@ -663,7 +725,9 @@ export function PageCanvas({
   )
   const menuItems = useCallback(
     (connected: boolean) =>
-      menu
+      menu?.canvas
+        ? canvasMenuGroups({ connected, sidebarShown })
+        : menu
         ? menuGroups({
             names: menu.names,
             boards: boards.map((board) => ({
@@ -676,20 +740,71 @@ export function PageCanvas({
             stateOf: approvals.stateOf,
             connected,
             wholeSection: menu.wholeSection,
+            sidebar: menu.sidebar,
           })
         : [],
-    [menu, boards, variantOf, sections, approvals.stateOf],
+    [menu, boards, variantOf, sections, approvals.stateOf, sidebarShown],
   )
   const runMenuItem = (id: MenuItemId, sessionId: string | null) => {
     if (!menu) return
-    const { names, wholeSection } = menu
+    const { names, wholeSection, x, y } = menu
     const [first] = names
     const direct = wholeSection
       ? names.filter((name) => boards.find((board) => board.name === name)?.section === wholeSection)
       : names
     setMenu(null)
     const fail = (failure: unknown) => setNotice(String((failure as Error)?.message ?? failure), 'error')
-    if (id === 'copy') {
+    const copyText = (text: string, done: string) =>
+      navigator.clipboard
+        .writeText(text)
+        .then(() => setNotice(done, 'info'))
+        .catch(fail)
+    const placedSection = wholeSection
+      ? placedSectionList.find((item) => item.section.id === wholeSection)
+      : undefined
+    const tidyWith = (mode: 'row' | 'column' | 'wrap') => {
+      if (!placedSection) return
+      const members = directMembers(placedSection.section.id, boards)
+      const widest = Math.max(0, ...members.map((member) => member.width))
+      tidySection(placedSection.section.id, {
+        mode,
+        gap: placedSection.section.layout?.gap ?? DEFAULT_GAP,
+        ...(mode === 'wrap'
+          ? { width: Math.max(placedSection.bounds.width - SECTION_PAD * 2, widest) }
+          : {}),
+      })
+    }
+    if (id === 'copy-page-name') copyText(manifest.title, 'Copied the page name')
+    else if (id === 'copy-page-link') {
+      copyText(`${window.location.origin}/p/${encodeURIComponent(manifest.id)}`, 'Copied the page link')
+    } else if (id === 'select-all') dispatch({ type: 'selectAll', names: boards.map((board) => board.name) })
+    else if (id === 'zoom-fit') actions.fit()
+    else if (id === 'zoom-100') actions.actualSize()
+    else if (id === 'toggle-sidebar') toggleSidebar()
+    else if (id === 'rename-page') setPagePopover({ kind: 'rename', x, y })
+    else if (id === 'change-icon') setPagePopover({ kind: 'icon', x, y })
+    else if ((id === 'reorganize' || id === 'choose-icon') && sessionId) {
+      sendPageRequest({ page: manifest.id, kind: id === 'reorganize' ? 'reorganize' : 'icon', sessionId })
+        .then(() =>
+          setNotice(
+            id === 'reorganize' ? 'Asked the agent to reorganize the frames' : 'Asked the agent to choose an icon',
+            'info',
+          ),
+        )
+        .catch(fail)
+    } else if (id === 'show-on-canvas') {
+      if (wholeSection) {
+        selectBoards(names)
+        setSelectedSection(wholeSection)
+        actions.focusBoards(names)
+      } else if (first) focusBoard(first)
+    } else if (id === 'tidy-row') tidyWith('row')
+    else if (id === 'tidy-column') tidyWith('column')
+    else if (id === 'tidy-wrap') tidyWith('wrap')
+    else if (id === 'tidy-grid' && wholeSection) {
+      setPanelOpen(false)
+      setGridFor(wholeSection)
+    } else if (id === 'copy') {
       navigator.clipboard
         .writeText(names.join('\n'))
         .then(() =>
@@ -713,8 +828,30 @@ export function PageCanvas({
     else if (id === 'delete-section' && wholeSection) deleteSection(wholeSection)
   }
   useEffect(() => {
-    if (menu && selection.names.length === 0) setMenu(null)
+    if (menu && !menu.canvas && selection.names.length === 0) setMenu(null)
   }, [menu, selection.names.length])
+  useEffect(() => {
+    if (gridFor && sectionSelected !== gridFor) setGridFor(null)
+  }, [gridFor, sectionSelected])
+  const savePageTitle = useCallback(
+    (title: string) => {
+      setPagePopover(null)
+      if (title === manifest.title) return
+      patchPage({ page: manifest.id, title })
+        .then(() => onCanvasChange?.())
+        .catch((failure: unknown) => setNotice(String((failure as Error)?.message ?? failure), 'error'))
+    },
+    [manifest.id, manifest.title, onCanvasChange, setNotice],
+  )
+  const savePageIcon = useCallback(
+    (icon: string | null) => {
+      setPagePopover(null)
+      patchPage({ page: manifest.id, icon })
+        .then(() => onCanvasChange?.())
+        .catch((failure: unknown) => setNotice(String((failure as Error)?.message ?? failure), 'error'))
+    },
+    [manifest.id, onCanvasChange, setNotice],
+  )
   const clearVariantsFocus = useCallback(() => setVariantsFocus(null), [])
   useEffect(() => {
     if (variantsFocus && only !== variantsFocus.name) setVariantsFocus(null)
@@ -743,6 +880,8 @@ export function PageCanvas({
           searchRef={searchRef}
           onFocusBoard={focusBoard}
           onSelectBoards={selectBoards}
+          onFrameMenu={(name, point) => openFrameMenu(name, point, true)}
+          onSectionMenu={(id, point) => openSectionMenu(id, point, true)}
         />
       ) : null}
       <div
@@ -751,6 +890,7 @@ export function PageCanvas({
         role="application"
         aria-label="Design canvas"
         {...handlers}
+        onContextMenu={onContextMenu}
         className={`relative min-w-0 flex-1 touch-none overflow-clip outline-none select-none ${
           tool === 'hand' ? 'cursor-grab' : ''
         }`}
@@ -758,12 +898,12 @@ export function PageCanvas({
       >
         <div
           ref={worldRef}
+          data-world=""
           data-hand={tool === 'hand' ? '' : undefined}
           className="absolute start-0 top-0 origin-top-left"
           onPointerDown={frameEdit.onTitleDown}
           onPointerOver={(event) => event.buttons === 0 && setHovered(boardOf(event.target))}
           onPointerLeave={() => setHovered(null)}
-          onContextMenu={onContextMenu}
         >
           <SectionLayer
             hovered={hoveredSection}
@@ -830,9 +970,10 @@ export function PageCanvas({
             pick={pick}
             page={manifest.id}
             canVary={!manifest.boards.find((board) => board.name === pick.board)?.variantOf}
-            onSave={async (body, images) => {
-              await comments.create({ ...pick, page: manifest.id, body, images })
+            onSave={async (body, images, sendTo) => {
+              const problem = await comments.create({ ...pick, page: manifest.id, body, images }, sendTo)
               setPick(null)
+              if (problem) setNotice(`Saved as a draft. Sending failed: ${problem}`, 'error')
             }}
             onSent={(count) => {
               const title = boards.find((board) => board.name === pick.board)?.title || pick.board
@@ -899,6 +1040,8 @@ export function PageCanvas({
             onCreateSection: createSection,
             onDeleteSection: deleteSection,
             onColor: colorSection,
+            onTidy: tidySection,
+            gridFor,
           }}
           onFocusBoard={focusBoard}
           variantsFocus={variantsFocus?.count ?? 0}
@@ -930,6 +1073,14 @@ export function PageCanvas({
         onSelect={runMenuItem}
         onClose={() => setMenu(null)}
       />
+      <PagePopovers
+        popover={pagePopover}
+        title={manifest.title}
+        icon={manifest.icon}
+        onRename={savePageTitle}
+        onPick={savePageIcon}
+        onClose={() => setPagePopover(null)}
+      />
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
       {fullBoard ? (
         <PlayView
@@ -942,6 +1093,7 @@ export function PageCanvas({
           start={playStart}
           canVary={!manifest.boards.find((board) => board.name === fullBoard.name)?.variantOf}
           onApproveAndBuild={approveAndBuild}
+          onNotice={setNotice}
         />
       ) : null}
     </div>

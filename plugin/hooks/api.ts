@@ -36,7 +36,23 @@ export type CheckResult = {
   warnings: string[]
   screenshot?: string
 }
-export type Claim = { count: number; text?: string }
+type ClaimedReply = { at: string }
+export type Claim = {
+  count: number
+  text?: string
+  comments?: { id: string; newReplies?: ClaimedReply[] }[]
+  approvals?: { id: string }[]
+  variants?: { id: string }[]
+  pages?: { id: string }[]
+}
+export type Release = {
+  sessionId: string
+  comments: string[]
+  approvals: string[]
+  variants: string[]
+  pages: string[]
+  replies: { comment: string; at: string }[]
+}
 
 const START_TIMEOUT_MS = 30_000
 const START_STEP_MS = 500

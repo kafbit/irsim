@@ -51,6 +51,7 @@ export default {
   async setup(ctx) {
     const directory = ctx.location?.directory ?? process.cwd()
     const timers = new Map()
+    const polling = new Set()
     let disposed = false
 
     const start = async (sessionID) => {
@@ -61,14 +62,38 @@ export default {
       )
       if (!registered.ok) return registered.text
       if (!timers.has(sessionID)) {
-        const timer = setInterval(async () => {
-          if (disposed) return
+        const poll = async () => {
           const claimed = await bridge(
-            ['claim', '--session', sessionID, '--cwd', directory],
+            ['claim', '--session', sessionID, '--cwd', directory, '--json'],
             directory,
           )
           if (!claimed.ok || claimed.text === '') return
-          await ctx.session.prompt({ sessionID, text: claimed.text }).catch(() => undefined)
+          let count = 0
+          let text = ''
+          try {
+            ;({ count, text } = JSON.parse(claimed.text))
+          } catch {
+            return
+          }
+          if (!(count > 0 && text)) return
+          const delivered = await ctx.session
+            .prompt({ sessionID, text })
+            .then(() => true)
+            .catch(() => false)
+          if (!delivered)
+            await bridge(
+              ['release', '--session', sessionID, '--cwd', directory, '--claim', claimed.text],
+              directory,
+            )
+        }
+        const timer = setInterval(async () => {
+          if (disposed || polling.has(sessionID)) return
+          polling.add(sessionID)
+          try {
+            await poll()
+          } finally {
+            polling.delete(sessionID)
+          }
         }, POLL_MS)
         timer.unref?.()
         timers.set(sessionID, timer)

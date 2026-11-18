@@ -21,7 +21,7 @@ const DEFAULT_WORKTREES: Worktrees = { '/work/design-app': { root: '/work', port
 function world(
   on: On,
   claim: { count: number; text?: string } = { count: 0 },
-  options: { worktrees?: Worktrees; env?: string } = {},
+  options: { worktrees?: Worktrees; env?: string; submit?: 'drop' | 'reject'; hold?: Promise<void> } = {},
 ) {
   const worktrees = options.worktrees ?? DEFAULT_WORKTREES
   const session = { cwd: '/work/design-app' }
@@ -37,6 +37,8 @@ function world(
   })
 
   on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('turn.start', (_, e) => ({ turnId: e.turnId }))
+  on('turn.complete', (_, e) => ({ text: e.answer }))
   on('env.get', () => ({ value: options.env }))
   on('session.id', () => ({ value: SESSION }))
   on('session.cwd', () => ({ value: session.cwd }))
@@ -46,8 +48,11 @@ function world(
     statuses.push(e.text)
     return { value: undefined }
   })
-  on('prompt.submit', (_, e) => {
+  on('prompt.submit', async (_, e) => {
     submitted.push(e.text)
+    if (options.hold) await options.hold
+    if (options.submit === 'reject') throw new Error('queue lost')
+    if (options.submit === 'drop') return { drop: 'the turn was interrupted' }
     return { text: e.text }
   })
   on('process.run', (_, e) => {
@@ -200,6 +205,7 @@ test('/irsim Leads resolves the board to its page and registers the session', as
     id: SESSION,
     label: 'design-app abcdef',
     cwd: '/work/design-app',
+    agent: 'claude-code',
   })
   expect(w.processes.some((argv) => argv.includes(url))).toBe(true)
   expect(w.statuses).toContain('canvas http://localhost:3238 · listening')
@@ -220,6 +226,101 @@ test('the poll submits one prompt when claim returns comments and none when it r
     body: { sessionId: SESSION },
     port: '3238',
   })
+})
+
+const claimCalls = (w: { calls: Call[] }) =>
+  w.calls.filter((call) => call.path === '/api/comments/claim').length
+
+test('the poll does not claim while a main-loop turn runs and claims again after it completes', async ($, on) => {
+  const text = 'Design canvas: 1 comment on page sales (batch b_1).'
+  const w = world(on, { count: 1, text })
+  await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
+  await run($, 'irsim', '')
+
+  await $.turn.start({ text: 'go', turnId: 't1' })
+  await w.clock.advance(6000)
+  expect(claimCalls(w)).toBe(0)
+
+  await $.turn.start({ text: 'sub', turnId: 't2', agentId: 'agent-1' })
+  await $.turn.complete({ turnId: 't2', agentId: 'agent-1', reason: 'answer', answer: '', durationMs: 1 })
+  await w.clock.advance(4000)
+  expect(claimCalls(w)).toBe(0)
+
+  await $.turn.complete({ turnId: 't1', reason: 'answer', answer: '', durationMs: 1 })
+  await w.clock.advance(2000)
+  expect(claimCalls(w)).toBeGreaterThan(0)
+  expect(w.submitted).toEqual([text])
+})
+
+for (const submit of ['drop', 'reject'] as const) {
+  test(`a ${submit === 'drop' ? 'dropped' : 'rejected'} submit releases the claimed items`, async ($, on) => {
+    const text = 'Design canvas: 1 comment on page sales (batch b_1).'
+    const w = world(
+      on,
+      {
+        count: 3,
+        text,
+        comments: [{ id: 'c_1', newReplies: [{ at: '2026-11-08T10:00:00.000Z' }] }],
+        approvals: [{ id: 'a_1' }],
+        variants: [{ id: 'v_1' }],
+        pages: [{ id: 'p_1' }],
+      } as { count: number; text?: string },
+      { submit },
+    )
+    await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
+    await run($, 'irsim', '')
+
+    await w.clock.advance(2000)
+    expect(w.submitted).toEqual([text])
+    const released = w.calls.filter((call) => call.path === '/api/comments/release')
+    expect(released).toEqual([
+      {
+        method: 'POST',
+        path: '/api/comments/release',
+        body: {
+          sessionId: SESSION,
+          comments: ['c_1'],
+          approvals: ['a_1'],
+          variants: ['v_1'],
+          pages: ['p_1'],
+          replies: [{ comment: 'c_1', at: '2026-11-08T10:00:00.000Z' }],
+        },
+        port: '3238',
+      },
+    ])
+  })
+}
+
+test('the poll does not claim while a submit is pending and claims again once it resolves', async ($, on) => {
+  let finish: () => void = () => undefined
+  const hold = new Promise<void>((resolve) => {
+    finish = resolve
+  })
+  const w = world(on, { count: 1, text: 'Design canvas: 1 comment.' }, { hold })
+  await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
+  await run($, 'irsim', '')
+
+  await w.clock.advance(2000)
+  expect(w.submitted).toHaveLength(1)
+  const claims = claimCalls(w)
+  expect(claims).toBeGreaterThan(0)
+
+  await w.clock.advance(6000)
+  expect(claimCalls(w)).toBe(claims)
+  expect(w.submitted).toHaveLength(1)
+
+  finish()
+  await w.clock.advance(2000)
+  expect(claimCalls(w)).toBeGreaterThan(claims)
+})
+
+test('a delivered submit does not release', async ($, on) => {
+  const w = world(on, { count: 1, text: 'Design canvas: 1 comment.' })
+  await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
+  await run($, 'irsim', '')
+  await w.clock.advance(2000)
+  expect(w.submitted).toHaveLength(1)
+  expect(w.calls.some((call) => call.path === '/api/comments/release')).toBe(false)
 })
 
 test('the poll stays silent when claim returns zero and after /irsim-stop', async ($, on) => {
@@ -392,5 +493,5 @@ test('the doctor tool action returns the same lines as the command', async ($, o
   const viaCommand = await run($, 'irsim-doctor', '')
 
   expect(viaTool.result).toBe(viaCommand.text)
-  expect(viaTool.result).toContain('1 ok, 1 warning, 1 failed'.replace('2 ok', '2 ok'))
+  expect(viaTool.result).toContain('2 ok, 1 warning, 1 failed')
 })

@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process'
+import { startedFromCanvas } from '../../../lib/local-request'
 import { latestRelease } from '../../../lib/release'
 import { RESTART_CODE, exitProcess } from '../../../lib/restart'
 import { isUpdating, setUpdating } from '../../../lib/update-state'
@@ -35,31 +36,6 @@ const runUpdate = (launcher: string): Promise<string | null> =>
 
 const reply = (body: unknown, status: number): Response =>
   Response.json(body, { status, headers: NO_STORE })
-
-const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1'])
-
-const hostnameOf = (host: string): string | null => {
-  try {
-    return new URL(`http://${host}`).hostname
-  } catch {
-    return null
-  }
-}
-
-const startedFromCanvas = (request: Request): boolean => {
-  const host = request.headers.get('host') ?? new URL(request.url).host
-  const hostname = hostnameOf(host)
-  if (hostname === null || !LOCAL_HOSTS.has(hostname)) return false
-  const site = request.headers.get('sec-fetch-site')
-  if (site && site !== 'same-origin' && site !== 'none') return false
-  const origin = request.headers.get('origin')
-  if (origin === null) return true
-  try {
-    return new URL(origin).host === host
-  } catch {
-    return false
-  }
-}
 
 export async function POST(request: Request): Promise<Response> {
   if (!startedFromCanvas(request)) {

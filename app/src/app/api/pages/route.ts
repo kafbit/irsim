@@ -9,6 +9,7 @@ export async function GET(): Promise<Response> {
     pages.map((page) => ({
       id: page.id,
       title: page.title,
+      ...(page.icon ? { icon: page.icon } : {}),
       boardCount: page.boards.length,
       boards: page.boards.slice(0, 6).map((board) => board.name),
     })),

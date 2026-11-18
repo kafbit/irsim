@@ -51,7 +51,9 @@ export function UpdateNotice({ className }: { className?: string }) {
         ? `Restarting on ${version}`
         : kind === 'available'
           ? `irsim ${version} is available`
-          : `irsim ${version} is installed`
+          : kind === 'rebuild'
+            ? `A new build of irsim ${version} is installed`
+            : `irsim ${version} is installed`
 
   const detail = failed
     ? (error ?? 'The update failed.')
@@ -61,7 +63,9 @@ export function UpdateNotice({ className }: { className?: string }) {
         ? 'The page reloads when the canvas answers.'
         : kind === 'available'
           ? `You have ${running ?? 'an older version'}.`
-          : `This canvas still runs ${running ?? 'an older version'}. Restart it to use ${version}.`
+          : kind === 'rebuild'
+            ? 'This canvas still runs the previous build. Restart it to use the new one.'
+            : `This canvas still runs ${running ?? 'an older version'}. Restart it to use ${version}.`
 
   const busyLabel = busyLabelOf(phase, installing, version)
   const download = phase === 'updating' && progress?.stage === 'download' && progress.total > 0 ? progress : null

@@ -2,8 +2,10 @@
 
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { type ReactNode, Suspense } from 'react'
+import { type ReactNode, Suspense, useCallback } from 'react'
 import { PageCanvas } from './page-canvas'
+import { usePagesChanged } from './page-menu'
+import { useMountEffect } from './use-mount-effect'
 import type { PageManifest, PageSummary } from './types'
 import { type ApiState, useApi } from './use-api'
 
@@ -11,7 +13,18 @@ export const STATUS_TEXT =
   'flex h-screen flex-col items-center justify-center gap-3 text-sm text-muted-foreground'
 
 /** Wraps every route in the LTR chrome shell; the boards inside the frames keep their own direction. */
+const NATIVE_MENU = 'input, textarea, select, [contenteditable=""], [contenteditable="true"]'
+
 export function Shell({ children }: { children: ReactNode }) {
+  useMountEffect(() => {
+    const block = (event: MouseEvent) => {
+      const target = event.target instanceof Element ? event.target : null
+      if (event.defaultPrevented || target?.closest(NATIVE_MENU)) return
+      event.preventDefault()
+    }
+    document.addEventListener('contextmenu', block)
+    return () => document.removeEventListener('contextmenu', block)
+  })
   return (
     <div dir="ltr" lang="en" className="min-h-screen bg-surface text-foreground">
       <Suspense fallback={null}>{children}</Suspense>
@@ -34,13 +47,20 @@ function PageData({ pageId }: { pageId: string }) {
   const play = params.get('play')
   const manifest = useApi<PageManifest>(`/api/pages/${encodeURIComponent(pageId)}`)
   const pages = useApi<PageSummary[]>('/api/pages')
+  usePagesChanged(pages.refetch)
+  const refetchManifest = manifest.refetch
+  const refetchPages = pages.refetch
+  const onCanvasChange = useCallback(() => {
+    refetchManifest()
+    refetchPages()
+  }, [refetchManifest, refetchPages])
 
   if (manifest.status === 'ready') {
     return (
       <PageCanvas
         key={board ?? ''}
         manifest={manifest.data}
-        onCanvasChange={manifest.refetch}
+        onCanvasChange={onCanvasChange}
         pages={pages.status === 'ready' ? pages.data : []}
         focus={board}
         play={play === 'full' || play === 'canvas' ? play : null}

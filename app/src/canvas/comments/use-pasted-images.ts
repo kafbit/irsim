@@ -1,9 +1,13 @@
 'use client'
 
-import { useRef, useState, type ClipboardEvent } from 'react'
+import { useEffect, useId, useRef, useState, type ClipboardEvent } from 'react'
 import { UploadError, uploadImage } from './use-comments'
 
 export const MAX_IMAGES = 4
+
+const withImages = new Set<string>()
+
+export const hasUnsentImages = (): boolean => withImages.size > 0
 
 const imageFiles = (data: DataTransfer): File[] => {
   const files = Array.from(data.files).filter((file) => file.type.startsWith('image/'))
@@ -21,6 +25,23 @@ export function usePastedImages(initial: string[] = []) {
   const [message, setMessage] = useState<string | null>(null)
   const reserved = useRef(initial.length)
   const epoch = useRef(0)
+  const id = useId()
+
+  const saved = useRef(initial)
+  const savedKey = initial.join('\n')
+
+  useEffect(() => {
+    saved.current = savedKey === '' ? [] : savedKey.split('\n')
+  }, [savedKey])
+
+  useEffect(() => {
+    const changed =
+      images.length !== saved.current.length || images.some((image, i) => image !== saved.current[i])
+    if (changed && images.length > 0) withImages.add(id)
+    else withImages.delete(id)
+  }, [images, id, savedKey])
+
+  useEffect(() => () => void withImages.delete(id), [id])
 
   const add = async (file: File) => {
     const mine = epoch.current
