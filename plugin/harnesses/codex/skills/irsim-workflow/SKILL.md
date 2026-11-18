@@ -29,6 +29,7 @@ It does not apply to a change that alters nothing a person sees (a refactor, a s
 - Put one screen in one section, and each group of its states in a sub-section. Sections nest at most 3 levels.
 - `color` is one of `gray` (the default), `blue`, `green`, `amber`, `purple` and `red`. Use it to tell groups apart, for example `red` for error states.
 - Place boards 80 units apart so frame titles and section labels have room.
+- A new board without x and y is placed under all existing boards of its page, and a move that overlaps another board pushes that board apart, so do not place boards by hand.
 
 ## Rules
 

@@ -1,0 +1,7 @@
+- [x] 1. Decide module format (TS vs .mjs) so `build-canvas.mjs` and the app share one implementation
+- [x] 2. `board-placement.ts`: findOverlaps, placeAtEnd, placeBeside, resolveCollisions, with unit tests
+- [x] 3. Use placeAtEnd in `build-canvas.mjs`, test: new board over kept boards lands below them
+- [x] 4. Use resolveCollisions in `applyEdit` (boards and sections), tests in canvas-layout tests
+- [x] 5. Use the same module in `use-board-layout.ts` for drag, nudge and add-beside previews
+- [x] 6. Update `plugin/skills/irsim-workflow/SKILL.md` (and the codex copy): agents no longer hand-place boards
+- [x] 7. Final verify: affected vitest files, lint, typecheck; PR checklist

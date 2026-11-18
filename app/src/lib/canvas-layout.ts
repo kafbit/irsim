@@ -1,3 +1,5 @@
+import { findOverlaps, GAP, resolveCollisions } from './board-placement.mjs'
+
 export const MIN_BOARD_WIDTH = 240
 export const MIN_BOARD_HEIGHT = 160
 
@@ -145,6 +147,64 @@ export function validateSections(sections: SectionEntry[]): string | null {
 
 const GEOMETRY = ['x', 'y', 'width', 'height'] as const
 
+type PlacedRect = { name: string; x: number; y: number; width: number; height: number; section?: unknown }
+
+/**
+ * The positions the neighbours of the `edited` boards move to so that none is closer than `GAP` to
+ * an edited one. The edited boards stay. The boards of one top level section move together, as one
+ * rect, and count as one rect when one of them is edited. Overlaps the edit did not touch are left
+ * alone. Returns the new x and y by board name, for the boards that moved.
+ */
+export function resolveMoves(
+  boards: PlacedRect[],
+  sections: { id: string; parent?: string | null }[],
+  edited: Iterable<string>,
+): Map<string, { x: number; y: number }> {
+  const parentOf = new Map(sections.map((entry) => [entry.id, entry.parent ?? null]))
+  const unitOf = (board: PlacedRect): string => {
+    let id: string | null =
+      typeof board.section === 'string' && parentOf.has(board.section) ? board.section : null
+    if (id === null) return `board:${board.name}`
+    for (let depth = 0; depth < 10; depth += 1) {
+      const parent: string | null = parentOf.get(id) ?? null
+      if (parent === null || !parentOf.has(parent)) break
+      id = parent
+    }
+    return `section:${id}`
+  }
+  const groups = new Map<string, PlacedRect[]>()
+  for (const board of boards) {
+    const key = unitOf(board)
+    groups.set(key, [...(groups.get(key) ?? []), board])
+  }
+  const units = [...groups].map(([name, members]) => {
+    const left = Math.min(...members.map((member) => member.x))
+    const top = Math.min(...members.map((member) => member.y))
+    const right = Math.max(...members.map((member) => member.x + member.width))
+    const bottom = Math.max(...members.map((member) => member.y + member.height))
+    return { name, x: left, y: top, width: right - left, height: bottom - top }
+  })
+  const names = new Set(edited)
+  const touched = new Set(boards.filter((board) => names.has(board.name)).map(unitOf))
+  if (touched.size === 0) return new Map()
+  const hit = new Set<string>()
+  for (const [a, b] of findOverlaps(units, GAP)) {
+    if (touched.has(a) && !touched.has(b)) hit.add(b)
+    if (touched.has(b) && !touched.has(a)) hit.add(a)
+  }
+  if (hit.size === 0) return new Map()
+  const fixed = units.filter((unit) => !hit.has(unit.name)).map((unit) => unit.name)
+  const result = new Map<string, { x: number; y: number }>()
+  for (const [key, to] of resolveCollisions(units, fixed, GAP)) {
+    const unit = units.find((candidate) => candidate.name === key)
+    if (!unit) continue
+    for (const member of groups.get(key) ?? []) {
+      result.set(member.name, { x: member.x + to.x - unit.x, y: member.y + to.y - unit.y })
+    }
+  }
+  return result
+}
+
 /**
  * Returns a copy of `canvas` with `edit` applied to `page`: board geometry (rounded) and section
  * membership, and section upserts and removals. Sections are applied first, so a board can join a
@@ -233,6 +293,17 @@ export function applyEdit(canvas: CanvasFile, page: string, edit: CanvasEdit): P
       next = rest as CanvasBoardEntry
     }
     boards.push(next)
+  }
+
+  const edited = [...edits]
+    .filter(([, item]) => GEOMETRY.some((key) => item[key] !== undefined) || item.section !== undefined)
+    .map(([name]) => name)
+  if (edited.length > 0) {
+    const moved = resolveMoves(boards as PlacedRect[], sections, edited)
+    for (const [index, board] of boards.entries()) {
+      const to = moved.get(board.name)
+      if (to) boards[index] = { ...board, ...to }
+    }
   }
 
   const nextPage: CanvasPageEntry = sectionsTouched

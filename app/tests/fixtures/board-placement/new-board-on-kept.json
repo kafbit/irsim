@@ -1,0 +1,17 @@
+{
+  "description": "New boards go under all kept boards, left aligned with them, and wrap at the row width",
+  "fn": "placeAtEnd",
+  "gap": 80,
+  "rowWidth": 1500,
+  "rects": [
+    { "name": "A", "x": 100, "y": 0, "width": 400, "height": 300 },
+    { "name": "B", "x": 580, "y": 40, "width": 400, "height": 500 },
+    { "name": "C", "x": 100, "y": 380, "width": 400, "height": 300 }
+  ],
+  "sizes": [
+    { "width": 800, "height": 600 },
+    { "width": 800, "height": 400 },
+    { "width": 300, "height": 200 }
+  ],
+  "expected": [{ "x": 100, "y": 760 }, { "x": 100, "y": 1440 }, { "x": 980, "y": 1440 }]
+}

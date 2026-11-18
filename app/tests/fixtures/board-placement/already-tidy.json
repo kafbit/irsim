@@ -1,0 +1,12 @@
+{
+  "description": "Boards that are 80 apart are not moved",
+  "fn": "resolveCollisions",
+  "gap": 80,
+  "rects": [
+    { "name": "A", "x": 0, "y": 0, "width": 400, "height": 300 },
+    { "name": "B", "x": 480, "y": 0, "width": 400, "height": 300 },
+    { "name": "C", "x": 0, "y": 380, "width": 400, "height": 300 }
+  ],
+  "fixed": ["A"],
+  "expected": {}
+}

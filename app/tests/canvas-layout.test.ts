@@ -280,3 +280,55 @@ describe('moving a board smaller than the minimum', () => {
     expect(applyEdit(small(), 'p', { boards: [{ name: 'Bar', height: 100 }] })).toMatchObject({ status: 400 })
   })
 })
+
+describe('applyEdit collisions', () => {
+  const row = (): CanvasFile => ({
+    version: 1,
+    pages: [
+      {
+        id: 'p',
+        title: 'P',
+        sections: [{ id: 's', title: 'S' }],
+        boards: [
+          { name: 'A', x: 0, y: 0, width: 400, height: 300 },
+          { name: 'B', x: 480, y: 0, width: 400, height: 300 },
+          { name: 'C', x: 0, y: 380, width: 400, height: 300 },
+          { name: 'M1', x: 2000, y: 0, width: 400, height: 300, section: 's' },
+          { name: 'M2', x: 2480, y: 0, width: 400, height: 300, section: 's' },
+          { name: 'X', x: 5000, y: 0, width: 400, height: 300 },
+          { name: 'Y', x: 5100, y: 100, width: 400, height: 300 },
+        ],
+      },
+    ],
+  })
+  const boardOf = (canvas: CanvasFile, name: string) =>
+    canvas.pages[0]?.boards.find((entry) => entry.name === name)
+
+  it('keeps the edited board where it is and moves the board it overlaps', () => {
+    const next = placed(applyEdit(row(), 'p', { boards: [{ name: 'A', x: 200, y: 0 }] }))
+    expect(boardOf(next, 'A')).toMatchObject({ x: 200, y: 0 })
+    expect(boardOf(next, 'B')).toMatchObject({ x: 680, y: 0 })
+    expect(boardOf(next, 'C')).toMatchObject({ x: 0, y: 380 })
+  })
+
+  it('changes nothing else when the edit overlaps nothing', () => {
+    const next = placed(applyEdit(row(), 'p', { boards: [{ name: 'A', x: 0, y: -400 }] }))
+    expect(boardOf(next, 'B')).toMatchObject({ x: 480, y: 0 })
+  })
+
+  it('leaves an overlap the edit did not touch', () => {
+    const next = placed(applyEdit(row(), 'p', { boards: [{ name: 'A', x: 0, y: -400 }] }))
+    expect(boardOf(next, 'X')).toMatchObject({ x: 5000, y: 0 })
+    expect(boardOf(next, 'Y')).toMatchObject({ x: 5100, y: 100 })
+  })
+
+  it('moves the boards of a section together as one rect', () => {
+    const next = placed(applyEdit(row(), 'p', { boards: [{ name: 'B', x: 1900, y: 0 }] }))
+    expect(boardOf(next, 'B')).toMatchObject({ x: 1900, y: 0 })
+    const m1 = boardOf(next, 'M1')
+    const m2 = boardOf(next, 'M2')
+    expect(m1?.x).toBeGreaterThan(2000)
+    expect((m2?.x as number) - (m1?.x as number)).toBe(480)
+    expect(m1?.y).toBe(0)
+  })
+})

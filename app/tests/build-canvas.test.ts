@@ -58,6 +58,28 @@ describe('irsim build', () => {
     expect(boards.find((b) => b.name === 'G')).toMatchObject({ x: 9120, y: 0 })
   })
 
+  it('puts a board without x and y under the existing boards of the unsorted page', () => {
+    add('Leads', 'Leads', { width: 800, height: 600 })
+    writeFileSync(
+      join(dir, 'canvas.json'),
+      JSON.stringify({
+        version: 1,
+        pages: [
+          {
+            id: 'unsorted',
+            title: 'Unsorted',
+            boards: [{ name: 'Leads', title: 'Leads', x: 100, y: 50, width: 800, height: 600 }],
+          },
+        ],
+      }),
+    )
+    add('Reports', 'Reports', { width: 800, height: 600 })
+    run()
+    const boards = canvas().pages.find((page) => page.id === 'unsorted')?.boards ?? []
+    expect(boards.find((b) => b.name === 'Leads')).toMatchObject({ x: 100, y: 50 })
+    expect(boards.find((b) => b.name === 'Reports')).toMatchObject({ x: 100, y: 730 })
+  })
+
   it('keeps existing pages, positions, overrides and bindings and adds the new board to unsorted', () => {
     add('Leads', 'Leads')
     writeFileSync(
