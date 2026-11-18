@@ -36,6 +36,13 @@ describe('sectionTidyEdits', () => {
     expect(names).not.toContain('sub')
   })
 
+  it('wraps from the left edge of the area and to its inner width when an area is given', () => {
+    const area = { x: 400, y: 0, width: 128 + 260, height: 600 }
+    const edit = sectionTidyEdits(section, boards, { mode: 'wrap', gap: 40, area })
+    const xs = Object.fromEntries(Object.entries(geometry(edit)).map(([name, [x]]) => [name, x]))
+    expect(xs).toEqual({ b: 464, c: 604, a: 464 })
+  })
+
   it('stores the wrap layout and puts the old one back on undo', () => {
     const edit = sectionTidyEdits(section, boards, { mode: 'wrap', gap: 40, width: 260 })
     expect(edit?.after.sections?.set?.[0]).toMatchObject({ id: 's1', layout: { mode: 'wrap', gap: 40 } })

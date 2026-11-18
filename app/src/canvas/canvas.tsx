@@ -2,9 +2,9 @@
 
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { type ReactNode, Suspense } from 'react'
+import { type ReactNode, Suspense, useCallback } from 'react'
 import { PageCanvas } from './page-canvas'
-import { usePagesRefresh } from './page-menu'
+import { usePagesChanged } from './page-menu'
 import { useMountEffect } from './use-mount-effect'
 import type { PageManifest, PageSummary } from './types'
 import { type ApiState, useApi } from './use-api'
@@ -47,14 +47,20 @@ function PageData({ pageId }: { pageId: string }) {
   const play = params.get('play')
   const manifest = useApi<PageManifest>(`/api/pages/${encodeURIComponent(pageId)}`)
   const pages = useApi<PageSummary[]>('/api/pages')
-  usePagesRefresh(pages.refetch)
+  usePagesChanged(pages.refetch)
+  const refetchManifest = manifest.refetch
+  const refetchPages = pages.refetch
+  const onCanvasChange = useCallback(() => {
+    refetchManifest()
+    refetchPages()
+  }, [refetchManifest, refetchPages])
 
   if (manifest.status === 'ready') {
     return (
       <PageCanvas
         key={board ?? ''}
         manifest={manifest.data}
-        onCanvasChange={manifest.refetch}
+        onCanvasChange={onCanvasChange}
         pages={pages.status === 'ready' ? pages.data : []}
         focus={board}
         play={play === 'full' || play === 'canvas' ? play : null}

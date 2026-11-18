@@ -51,7 +51,7 @@ async function poll($: Engine): Promise<void> {
     if (claim.count > 0 && claim.text) {
       const delivered = await $.prompt
         .submit({ text: claim.text })
-        .then((result) => result.drop === undefined)
+        .then((result) => result?.drop === undefined)
         .catch(() => false)
       if (!delivered)
         await api($, '/api/comments/release', {

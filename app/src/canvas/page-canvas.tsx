@@ -46,7 +46,7 @@ import {
   withMembership,
 } from './sections'
 import { SectionLayer } from './section-layer'
-import { DEFAULT_GAP, directMembers, sectionTidyEdits, type TidyRequest } from './tidy-section'
+import { DEFAULT_GAP, directMembers, sectionTidyEdits, type TidyRequest, wrapWidth } from './tidy-section'
 import { SettingsDialog } from './settings-dialog'
 import { Sidebar } from './sidebar'
 import { pendingOf } from './approvals/pending'
@@ -298,6 +298,10 @@ export function PageCanvas({
     () => placedSections(sections, boards),
     [sections, boards],
   )
+  const placedRef = useRef(placedSectionList)
+  useEffect(() => {
+    placedRef.current = placedSectionList
+  })
   const toggleSidebar = useCallback(() => {
     setSidebarShown((shown) => {
       writeSidebar(!shown)
@@ -382,7 +386,15 @@ export function PageCanvas({
       const current = latestEdit.current
       const section = current.sections.find((candidate) => candidate.id === id)
       if (!section) return
-      const edits = sectionTidyEdits(section, current.boards, request)
+      const placed = placedRef.current.find((item) => item.section.id === id)
+      const width =
+        request.mode === 'wrap' && request.width === undefined && placed
+          ? wrapWidth(placed.bounds, directMembers(id, current.boards))
+          : request.width
+      const edits = sectionTidyEdits(section, current.boards, {
+        ...request,
+        ...(width === undefined ? {} : { width }),
+      })
       if (edits) editSections(`tidy of ${section.title}`, edits.before, edits.after)
     },
     [editSections],
@@ -956,8 +968,9 @@ export function PageCanvas({
             page={manifest.id}
             canVary={!manifest.boards.find((board) => board.name === pick.board)?.variantOf}
             onSave={async (body, images, sendTo) => {
-              await comments.create({ ...pick, page: manifest.id, body, images }, sendTo)
+              const problem = await comments.create({ ...pick, page: manifest.id, body, images }, sendTo)
               setPick(null)
+              if (problem) setNotice(`Saved as a draft. Sending failed: ${problem}`, 'error')
             }}
             onSent={(count) => {
               const title = boards.find((board) => board.name === pick.board)?.title || pick.board

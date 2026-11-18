@@ -37,12 +37,16 @@ import type { PageSummary } from './types'
 
 const PAGES_CHANGED = 'canvas:pages-changed'
 
-export function usePagesRefresh(refetch: () => void) {
-  useEvents({ onBoard: () => {}, onComments: () => {}, onCanvas: refetch })
+export function usePagesChanged(refetch: () => void) {
   useEffect(() => {
     window.addEventListener(PAGES_CHANGED, refetch)
     return () => window.removeEventListener(PAGES_CHANGED, refetch)
   }, [refetch])
+}
+
+export function usePagesRefresh(refetch: () => void) {
+  useEvents({ onBoard: () => {}, onComments: () => {}, onCanvas: refetch })
+  usePagesChanged(refetch)
 }
 
 export async function patchPage(body: { page: string; title?: string; icon?: string | null }) {

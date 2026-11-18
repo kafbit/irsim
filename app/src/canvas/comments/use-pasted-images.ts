@@ -27,10 +27,19 @@ export function usePastedImages(initial: string[] = []) {
   const epoch = useRef(0)
   const id = useId()
 
+  const saved = useRef(initial)
+  const savedKey = initial.join('\n')
+
   useEffect(() => {
-    if (images.length > 0) withImages.add(id)
+    saved.current = savedKey === '' ? [] : savedKey.split('\n')
+  }, [savedKey])
+
+  useEffect(() => {
+    const changed =
+      images.length !== saved.current.length || images.some((image, i) => image !== saved.current[i])
+    if (changed && images.length > 0) withImages.add(id)
     else withImages.delete(id)
-  }, [images, id])
+  }, [images, id, savedKey])
 
   useEffect(() => () => void withImages.delete(id), [id])
 

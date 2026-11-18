@@ -90,13 +90,16 @@ export function useComments(pageId: string) {
     write('POST', '/api/comments/send', { sessionId, page: pageId, ids: [id] })
 
   const actions = {
-    create: async (input: NewComment, sendTo: string | null = null) => {
+    create: async (input: NewComment, sendTo: string | null = null): Promise<string | null> => {
       let id: unknown
       await write('POST', '/api/comments', input, (created) => {
         id = (created as { id?: unknown } | null)?.id
       })
-      if (!sendTo || typeof id !== 'string') return
-      await sendOne(id, sendTo).catch(() => {})
+      if (!sendTo || typeof id !== 'string') return null
+      return sendOne(id, sendTo).then(
+        () => null,
+        (failure: unknown) => String((failure as Error)?.message ?? failure),
+      )
     },
     edit: (id: string, body: string, images: string[]) =>
       write('PATCH', `/api/comments/${id}`, { body, images }),

@@ -27,7 +27,8 @@ export const wrapWidth = (area: Rect, members: Member[]): number =>
   Math.max(area.width - SECTION_PAD * 2, widest(members))
 
 /**
- * The edit that tidies the boards a section holds itself, from the top left of their bounding box,
+ * The edit that tidies the boards a section holds itself, from the top left of their bounding box
+ * (from the left edge of `area` when given),
  * and the edit that puts them back. Sub-sections stay where they are. Wrap stores the layout on the
  * section, every other mode clears it. `area` is stored as the section area in the same edit.
  * `null` when nothing changes.
@@ -52,11 +53,13 @@ export function sectionTidyEdits(
       width,
       height: height + TITLE_BAR,
     })),
-    { x: bounds.x, y: bounds.y },
+    { x: area ? area.x + SECTION_PAD : bounds.x, y: bounds.y },
     {
       mode,
       gap,
-      ...(mode === 'wrap' ? { width: request.width ?? bounds.width } : {}),
+      ...(mode === 'wrap'
+        ? { width: request.width ?? (area ? wrapWidth(area, members) : bounds.width) }
+        : {}),
       ...(columns === undefined ? {} : { columns }),
     },
   )
