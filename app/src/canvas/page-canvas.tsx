@@ -394,6 +394,9 @@ export function PageCanvas({
       const edits = sectionTidyEdits(section, current.boards, {
         ...request,
         ...(width === undefined ? {} : { width }),
+        ...(width !== undefined && request.width === undefined && placed
+          ? { originX: placed.bounds.x + SECTION_PAD }
+          : {}),
       })
       if (edits) editSections(`tidy of ${section.title}`, edits.before, edits.after)
     },
@@ -1090,6 +1093,7 @@ export function PageCanvas({
           start={playStart}
           canVary={!manifest.boards.find((board) => board.name === fullBoard.name)?.variantOf}
           onApproveAndBuild={approveAndBuild}
+          onNotice={setNotice}
         />
       ) : null}
     </div>

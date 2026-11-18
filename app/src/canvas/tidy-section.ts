@@ -13,6 +13,7 @@ export type TidyRequest = {
   columns?: number
   rows?: number
   width?: number
+  originX?: number
   area?: Rect
 }
 
@@ -53,7 +54,7 @@ export function sectionTidyEdits(
       width,
       height: height + TITLE_BAR,
     })),
-    { x: area ? area.x + SECTION_PAD : bounds.x, y: bounds.y },
+    { x: request.originX ?? (area ? area.x + SECTION_PAD : bounds.x), y: bounds.y },
     {
       mode,
       gap,

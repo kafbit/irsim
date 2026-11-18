@@ -122,6 +122,7 @@ export function PlayView({
   start = null,
   canVary = true,
   onApproveAndBuild,
+  onNotice,
 }: {
   board: PlacedBoard
   reload: number
@@ -132,6 +133,7 @@ export function PlayView({
   start?: { view: CommentView; commentId: string } | null
   canVary?: boolean
   onApproveAndBuild?: ((comment: Comment) => Promise<void>) | undefined
+  onNotice?: (message: string, tone: 'error') => void
 }) {
   const [space, setSpace] = useState<Size | null>(null)
   const [state, setState] = useState<ViewportState>(() =>
@@ -506,7 +508,7 @@ export function PlayView({
                         page={page}
                         onSent={() => setPicked(null)}
                         onSave={async (body, images, sendTo) => {
-                          await thread.create(
+                          const problem = await thread.create(
                             {
                               ...pick,
                               page,
@@ -517,6 +519,7 @@ export function PlayView({
                             sendTo,
                           )
                           setPicked(null)
+                          if (problem) onNotice?.(`Saved as a draft. Sending failed: ${problem}`, 'error')
                         }}
                         onCancel={() => setPicked(null)}
                       />
