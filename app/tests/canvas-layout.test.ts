@@ -336,6 +336,27 @@ describe('applyEdit collisions', () => {
     expect(section?.y).toBe(-40 + (m1.y - 0))
   })
 
+  it('moves the stored area of a section when an edit moves all its boards by the same distance', () => {
+    const canvas = row()
+    canvas.pages[0]!.sections = [{ id: 's', title: 'S', x: 1960, y: -40, width: 960, height: 380 } as never]
+    const next = placed(
+      applyEdit(canvas, 'p', {
+        boards: [
+          { name: 'M1', x: 2100, y: 0 },
+          { name: 'M2', x: 2580, y: 0 },
+        ],
+      }),
+    )
+    const section = (next.pages[0]?.sections as { id: string; x: number }[]).find((entry) => entry.id === 's')
+    expect(section?.x).toBe(2060)
+  })
+
+  it('does not push anything when an edit only changes a section membership', () => {
+    const next = placed(applyEdit(row(), 'p', { boards: [{ name: 'A', section: 's' }] }))
+    expect(boardOf(next, 'B')).toMatchObject({ x: 480, y: 0 })
+    expect(boardOf(next, 'M1')).toMatchObject({ x: 2000, y: 0 })
+  })
+
   it('keeps the edited board where it is and moves the board it overlaps', () => {
     const next = placed(applyEdit(row(), 'p', { boards: [{ name: 'A', x: 200, y: 0 }] }))
     expect(boardOf(next, 'A')).toMatchObject({ x: 200, y: 0 })

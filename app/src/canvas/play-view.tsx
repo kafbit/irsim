@@ -238,6 +238,8 @@ export function PlayView({
     scrollFrameTo(frameRef.current?.contentWindow, comment)
   }, [ready, thread.comments])
 
+  const relayout = useRef<ReturnType<typeof setTimeout>>(undefined)
+
   const locate = (comment: Comment) => {
     setActiveId(comment.id)
     if (comment.board !== board.name) {
@@ -248,11 +250,18 @@ export function PlayView({
     if (view && (view.width !== shown.width || view.height !== shown.height)) {
       setState(stateFromView(view))
       setPicked(null)
-      setTimeout(() => scrollFrameTo(frameRef.current?.contentWindow, comment), RELAYOUT_MS)
+      clearTimeout(relayout.current)
+      relayout.current = setTimeout(
+        () => scrollFrameTo(frameRef.current?.contentWindow, comment),
+        RELAYOUT_MS,
+      )
       return
     }
+    clearTimeout(relayout.current)
     requestAnimationFrame(() => scrollFrameTo(frameRef.current?.contentWindow, comment))
   }
+
+  useEffect(() => () => clearTimeout(relayout.current), [])
 
   const openThread = useCallback((id: string) => {
     setActiveId(id)

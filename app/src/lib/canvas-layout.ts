@@ -149,22 +149,20 @@ const GEOMETRY = ['x', 'y', 'width', 'height'] as const
 
 type PlacedRect = { name: string; x: number; y: number; width: number; height: number; section?: unknown }
 type AreaSection = { id: string; parent?: string | null; x?: unknown; y?: unknown; width?: unknown; height?: unknown }
-type Shift = { dx: number; dy: number }
 
 /**
  * The moves that keep the neighbours of the `edited` boards `GAP` away from them. The edited
  * boards stay. The boards of one top level section move together, as one rect that also covers the
  * stored area of the section and counts as one rect when one of them is edited. A pair that was
- * already closer than `GAP` in `before` is not pushed. `boards` are the new x and y by board name,
- * `sections` the shift of every section whose unit moved.
+ * already closer than `GAP` in `before` is not pushed. `boards` are the new x and y by board name.
  */
 export function resolveLayout(
   boards: PlacedRect[],
   sections: AreaSection[],
   edited: Iterable<string>,
   before: PlacedRect[] = boards,
-): { boards: Map<string, { x: number; y: number }>; sections: Map<string, Shift> } {
-  const none = { boards: new Map<string, { x: number; y: number }>(), sections: new Map<string, Shift>() }
+): { boards: Map<string, { x: number; y: number }> } {
+  const none = { boards: new Map<string, { x: number; y: number }>() }
   const parentOf = new Map(sections.map((entry) => [entry.id, entry.parent ?? null]))
   const rootOf = (id: string): string => {
     let root = id
@@ -187,12 +185,16 @@ export function resolveLayout(
     const rects = new Map<string, PlacedRect[]>()
     for (const board of list) {
       const key = unitOf(board)
-      rects.set(key, [...(rects.get(key) ?? []), board])
+      const list = rects.get(key) ?? []
+      list.push(board)
+      rects.set(key, list)
     }
     const areas = new Map<string, ReturnType<typeof areaOf>[]>()
     for (const entry of sections) {
       const key = `section:${rootOf(entry.id)}`
-      areas.set(key, [...(areas.get(key) ?? []), areaOf(entry)])
+      const list = areas.get(key) ?? []
+      list.push(areaOf(entry))
+      areas.set(key, list)
     }
     const units = new Map<string, { name: string; x: number; y: number; width: number; height: number }>()
     for (const [name, members] of rects) {
@@ -225,11 +227,9 @@ export function resolveLayout(
   for (const [key, to] of resolveCollisions(list, fixed, GAP)) {
     const unit = now.get(key)
     if (!unit) continue
-    const shift = { dx: to.x - unit.x, dy: to.y - unit.y }
     for (const member of groups.get(key) ?? []) {
-      result.boards.set(member.name, { x: member.x + shift.dx, y: member.y + shift.dy })
+      result.boards.set(member.name, { x: member.x + to.x - unit.x, y: member.y + to.y - unit.y })
     }
-    for (const entry of sections) if (`section:${rootOf(entry.id)}` === key) result.sections.set(entry.id, shift)
   }
   return result
 }
@@ -241,6 +241,41 @@ export const resolveMoves = (
   edited: Iterable<string>,
   before: PlacedRect[] = boards,
 ): Map<string, { x: number; y: number }> => resolveLayout(boards, sections, edited, before).boards
+
+/** A stored section area shifts with its boards when every board in the section, or in a section below it, moved by the same distance. */
+function shiftAreas(
+  sections: SectionEntry[],
+  before: PlacedRect[],
+  after: PlacedRect[],
+  skip: Set<string>,
+): SectionEntry[] {
+  const parentOf = new Map(sections.map((entry) => [entry.id, entry.parent ?? null]))
+  const inside = (board: PlacedRect, id: string): boolean => {
+    let at = typeof board.section === 'string' ? board.section : null
+    for (let depth = 0; at !== null && depth < 10; depth += 1) {
+      if (at === id) return true
+      at = parentOf.get(at) ?? null
+    }
+    return false
+  }
+  const was = new Map(before.map((board) => [board.name, board]))
+  let changed = false
+  const next = sections.map((entry) => {
+    const stored = [entry.x, entry.y, entry.width, entry.height].every((value) => Number.isFinite(value))
+    if (!stored || skip.has(entry.id)) return entry
+    const members = after.filter((board) => inside(board, entry.id))
+    const deltas = members.map((board) => {
+      const old = was.get(board.name)
+      return old ? { dx: board.x - old.x, dy: board.y - old.y } : null
+    })
+    const [first] = deltas
+    if (!first || (first.dx === 0 && first.dy === 0)) return entry
+    if (!deltas.every((delta) => delta && delta.dx === first.dx && delta.dy === first.dy)) return entry
+    changed = true
+    return { ...entry, x: (entry.x as number) + first.dx, y: (entry.y as number) + first.dy }
+  })
+  return changed ? next : sections
+}
 
 /**
  * Returns a copy of `canvas` with `edit` applied to `page`: board geometry (rounded) and section
@@ -333,22 +368,23 @@ export function applyEdit(canvas: CanvasFile, page: string, edit: CanvasEdit): P
   }
 
   const edited = [...edits]
-    .filter(([, item]) => GEOMETRY.some((key) => item[key] !== undefined) || item.section !== undefined)
+    .filter(([, item]) => GEOMETRY.some((key) => item[key] !== undefined))
     .map(([name]) => name)
+  const original = sections
   if (edited.length > 0) {
     const moved = resolveLayout(boards as PlacedRect[], sections, edited, target.boards as PlacedRect[])
     for (const [index, board] of boards.entries()) {
       const to = moved.boards.get(board.name)
       if (to) boards[index] = { ...board, ...to }
     }
-    if (moved.sections.size > 0) sectionsTouched = true
-    sections = sections.map((entry) => {
-      const shift = moved.sections.get(entry.id)
-      return shift && Number.isFinite(entry.x) && Number.isFinite(entry.y)
-        ? { ...entry, x: (entry.x as number) + shift.dx, y: (entry.y as number) + shift.dy }
-        : entry
-    })
   }
+  sections = shiftAreas(
+    sections,
+    target.boards as PlacedRect[],
+    boards as PlacedRect[],
+    new Set((edit.sections?.set ?? []).map((entry) => entry.id)),
+  )
+  if (sections !== original) sectionsTouched = true
 
   const nextPage: CanvasPageEntry = sectionsTouched
     ? { ...target, sections, boards }
