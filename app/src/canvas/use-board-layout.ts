@@ -123,13 +123,19 @@ export function useBoardLayout(
   })
 
   /** `moves` and the moves of the neighbours they push apart, as the server resolves them. */
-  const withNeighbours = useCallback((moves: Move[]): Move[] => {
+  const withNeighbours = useCallback((moves: Move[], drop?: { section: string | null }): Move[] => {
     const rects = new Map(moves.map((move) => [move.name, move.rect]))
-    const current = boardsRef.current.map((board) => ({ ...board, ...rects.get(board.name) }))
+    const current = boardsRef.current.map((board) => {
+      const moved = rects.get(board.name)
+      if (!moved) return board
+      const joined = drop ? { section: drop.section ?? undefined } : {}
+      return { ...board, ...moved, ...joined }
+    })
     const pushed = resolveMoves(
       current,
       stateRef.current.sections,
       moves.map((move) => move.name),
+      boardsRef.current,
     )
     const extra: Move[] = []
     for (const [name, to] of pushed) {
@@ -239,8 +245,8 @@ export function useBoardLayout(
       label?: string | { section: string | null },
       drop?: { section: string | null },
     ) => {
-      const moves = withNeighbours(dragged)
       const target = typeof label === 'object' ? label : drop
+      const moves = withNeighbours(dragged, target)
       const name = typeof label === 'string' ? label : undefined
       const names = dragged.map((move) => move.name)
       const text = name ?? describe(kind, names)

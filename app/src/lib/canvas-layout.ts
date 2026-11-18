@@ -148,62 +148,99 @@ export function validateSections(sections: SectionEntry[]): string | null {
 const GEOMETRY = ['x', 'y', 'width', 'height'] as const
 
 type PlacedRect = { name: string; x: number; y: number; width: number; height: number; section?: unknown }
+type AreaSection = { id: string; parent?: string | null; x?: unknown; y?: unknown; width?: unknown; height?: unknown }
+type Shift = { dx: number; dy: number }
 
 /**
- * The positions the neighbours of the `edited` boards move to so that none is closer than `GAP` to
- * an edited one. The edited boards stay. The boards of one top level section move together, as one
- * rect, and count as one rect when one of them is edited. Overlaps the edit did not touch are left
- * alone. Returns the new x and y by board name, for the boards that moved.
+ * The moves that keep the neighbours of the `edited` boards `GAP` away from them. The edited
+ * boards stay. The boards of one top level section move together, as one rect that also covers the
+ * stored area of the section and counts as one rect when one of them is edited. A pair that was
+ * already closer than `GAP` in `before` is not pushed. `boards` are the new x and y by board name,
+ * `sections` the shift of every section whose unit moved.
  */
-export function resolveMoves(
+export function resolveLayout(
   boards: PlacedRect[],
-  sections: { id: string; parent?: string | null }[],
+  sections: AreaSection[],
   edited: Iterable<string>,
-): Map<string, { x: number; y: number }> {
+  before: PlacedRect[] = boards,
+): { boards: Map<string, { x: number; y: number }>; sections: Map<string, Shift> } {
+  const none = { boards: new Map<string, { x: number; y: number }>(), sections: new Map<string, Shift>() }
   const parentOf = new Map(sections.map((entry) => [entry.id, entry.parent ?? null]))
-  const unitOf = (board: PlacedRect): string => {
-    let id: string | null =
-      typeof board.section === 'string' && parentOf.has(board.section) ? board.section : null
-    if (id === null) return `board:${board.name}`
+  const rootOf = (id: string): string => {
+    let root = id
     for (let depth = 0; depth < 10; depth += 1) {
-      const parent: string | null = parentOf.get(id) ?? null
+      const parent: string | null = parentOf.get(root) ?? null
       if (parent === null || !parentOf.has(parent)) break
-      id = parent
+      root = parent
     }
-    return `section:${id}`
+    return root
   }
-  const groups = new Map<string, PlacedRect[]>()
-  for (const board of boards) {
-    const key = unitOf(board)
-    groups.set(key, [...(groups.get(key) ?? []), board])
+  const unitOf = (board: PlacedRect): string =>
+    typeof board.section === 'string' && parentOf.has(board.section)
+      ? `section:${rootOf(board.section)}`
+      : `board:${board.name}`
+  const areaOf = (entry: AreaSection) =>
+    [entry.x, entry.y, entry.width, entry.height].every((value) => Number.isFinite(value))
+      ? { x: entry.x as number, y: entry.y as number, width: entry.width as number, height: entry.height as number }
+      : null
+  const unitsOf = (list: PlacedRect[]) => {
+    const rects = new Map<string, PlacedRect[]>()
+    for (const board of list) {
+      const key = unitOf(board)
+      rects.set(key, [...(rects.get(key) ?? []), board])
+    }
+    const areas = new Map<string, ReturnType<typeof areaOf>[]>()
+    for (const entry of sections) {
+      const key = `section:${rootOf(entry.id)}`
+      areas.set(key, [...(areas.get(key) ?? []), areaOf(entry)])
+    }
+    const units = new Map<string, { name: string; x: number; y: number; width: number; height: number }>()
+    for (const [name, members] of rects) {
+      const covered = [...members, ...(areas.get(name) ?? []).filter((area) => area !== null)] as Omit<PlacedRect, 'name'>[]
+      const left = Math.min(...covered.map((item) => item.x))
+      const top = Math.min(...covered.map((item) => item.y))
+      const right = Math.max(...covered.map((item) => item.x + item.width))
+      const bottom = Math.max(...covered.map((item) => item.y + item.height))
+      units.set(name, { name, x: left, y: top, width: right - left, height: bottom - top })
+    }
+    return { units, rects }
   }
-  const units = [...groups].map(([name, members]) => {
-    const left = Math.min(...members.map((member) => member.x))
-    const top = Math.min(...members.map((member) => member.y))
-    const right = Math.max(...members.map((member) => member.x + member.width))
-    const bottom = Math.max(...members.map((member) => member.y + member.height))
-    return { name, x: left, y: top, width: right - left, height: bottom - top }
-  })
+  const { units: now, rects: groups } = unitsOf(boards)
   const names = new Set(edited)
   const touched = new Set(boards.filter((board) => names.has(board.name)).map(unitOf))
-  if (touched.size === 0) return new Map()
+  if (touched.size === 0) return none
+  const wasClose = new Set(
+    findOverlaps([...unitsOf(before).units.values()], GAP).flatMap(([a, b]) => [`${a}|${b}`, `${b}|${a}`]),
+  )
   const hit = new Set<string>()
-  for (const [a, b] of findOverlaps(units, GAP)) {
+  for (const [a, b] of findOverlaps([...now.values()], GAP)) {
+    if (wasClose.has(`${a}|${b}`)) continue
     if (touched.has(a) && !touched.has(b)) hit.add(b)
     if (touched.has(b) && !touched.has(a)) hit.add(a)
   }
-  if (hit.size === 0) return new Map()
-  const fixed = units.filter((unit) => !hit.has(unit.name)).map((unit) => unit.name)
-  const result = new Map<string, { x: number; y: number }>()
-  for (const [key, to] of resolveCollisions(units, fixed, GAP)) {
-    const unit = units.find((candidate) => candidate.name === key)
+  if (hit.size === 0) return none
+  const list = [...now.values()]
+  const fixed = list.filter((unit) => !hit.has(unit.name)).map((unit) => unit.name)
+  const result = { ...none }
+  for (const [key, to] of resolveCollisions(list, fixed, GAP)) {
+    const unit = now.get(key)
     if (!unit) continue
+    const shift = { dx: to.x - unit.x, dy: to.y - unit.y }
     for (const member of groups.get(key) ?? []) {
-      result.set(member.name, { x: member.x + to.x - unit.x, y: member.y + to.y - unit.y })
+      result.boards.set(member.name, { x: member.x + shift.dx, y: member.y + shift.dy })
     }
+    for (const entry of sections) if (`section:${rootOf(entry.id)}` === key) result.sections.set(entry.id, shift)
   }
   return result
 }
+
+/** The board moves of `resolveLayout`. */
+export const resolveMoves = (
+  boards: PlacedRect[],
+  sections: AreaSection[],
+  edited: Iterable<string>,
+  before: PlacedRect[] = boards,
+): Map<string, { x: number; y: number }> => resolveLayout(boards, sections, edited, before).boards
 
 /**
  * Returns a copy of `canvas` with `edit` applied to `page`: board geometry (rounded) and section
@@ -228,7 +265,7 @@ export function applyEdit(canvas: CanvasFile, page: string, edit: CanvasEdit): P
         : sections.map((candidate, at) => (at === index ? { ...candidate, ...entry } : candidate))
     removed.delete(entry.id)
   }
-  const sectionsTouched = edit.sections !== undefined
+  let sectionsTouched = edit.sections !== undefined
   // Children of a removed section move up to its parent.
   const parentOf = new Map(sections.map((candidate) => [candidate.id, candidate.parent ?? null]))
   sections = sections
@@ -299,11 +336,18 @@ export function applyEdit(canvas: CanvasFile, page: string, edit: CanvasEdit): P
     .filter(([, item]) => GEOMETRY.some((key) => item[key] !== undefined) || item.section !== undefined)
     .map(([name]) => name)
   if (edited.length > 0) {
-    const moved = resolveMoves(boards as PlacedRect[], sections, edited)
+    const moved = resolveLayout(boards as PlacedRect[], sections, edited, target.boards as PlacedRect[])
     for (const [index, board] of boards.entries()) {
-      const to = moved.get(board.name)
+      const to = moved.boards.get(board.name)
       if (to) boards[index] = { ...board, ...to }
     }
+    if (moved.sections.size > 0) sectionsTouched = true
+    sections = sections.map((entry) => {
+      const shift = moved.sections.get(entry.id)
+      return shift && Number.isFinite(entry.x) && Number.isFinite(entry.y)
+        ? { ...entry, x: (entry.x as number) + shift.dx, y: (entry.y as number) + shift.dy }
+        : entry
+    })
   }
 
   const nextPage: CanvasPageEntry = sectionsTouched
