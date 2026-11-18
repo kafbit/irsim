@@ -36,6 +36,9 @@ describe('bridge', () => {
         if (request.url === '/api/comments/claim' && request.method === 'POST') {
           return json({ count: 1, text: claimText, comments: [], approvals: [] })
         }
+        if (request.url === '/api/comments/release' && request.method === 'POST') {
+          return json({ ok: true })
+        }
         if (request.url?.startsWith('/api/comments/c_1')) return json({ ok: true })
         if (request.url?.startsWith('/api/sessions/') && request.method === 'DELETE') {
           return json({ ok: true })
@@ -90,6 +93,28 @@ describe('bridge', () => {
     const text = (await bridge(['claim', '--session', 'abc123def', '--cwd', ROOT])).trim()
     expect(text).toBe(claimText)
     expect(received.at(-1)?.body).toEqual({ sessionId: 'abc123def' })
+  })
+
+  it('releases the ids of a claim that was not delivered', async () => {
+    const claimed = {
+      count: 3,
+      text: claimText,
+      comments: [{ id: 'c_1', newReplies: [{ at: '2026-11-08T10:00:00.000Z' }] }, { id: 'c_2' }],
+      approvals: [{ id: 'a_1' }],
+      variants: [{ id: 'v_1' }],
+      pages: [{ id: 'p_1' }],
+    }
+    await bridge(['release', '--session', 'abc123def', '--cwd', ROOT, '--claim', JSON.stringify(claimed)])
+    const release = received.find((one) => one.path === '/api/comments/release')
+    expect(release?.method).toBe('POST')
+    expect(release?.body).toEqual({
+      sessionId: 'abc123def',
+      comments: ['c_1', 'c_2'],
+      approvals: ['a_1'],
+      variants: ['v_1'],
+      pages: ['p_1'],
+      replies: [{ comment: 'c_1', at: '2026-11-08T10:00:00.000Z' }],
+    })
   })
 
   it('forces Codex to continue when the canvas has comments', async () => {

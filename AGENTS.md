@@ -2,15 +2,18 @@
 
 ## The canvas app has boards
 
-`design/` holds boards that draw the irsim canvas app itself, on the page `canvas-app` (`/p/canvas-app`).
+`design/` holds boards that draw the irsim canvas app itself, on two pages.
+The page `canvas-app` (`/p/canvas-app`) holds the app screens and their parts.
+The page `canvas-system` (`/p/canvas-system`) holds the `UpdateNotice*` and `CanvasSettings*` state boards, except `CanvasAppSettings`, which stays on `canvas-app`.
 The boards and the app in `app/src/canvas/` must show the same thing.
 A change to one updates the other in the same pull request.
 
 | App source | Board |
 |---|---|
-| `canvas/sidebar.tsx` | `CanvasSidebar`, `CanvasSidebarSections` |
-| `canvas/page-index.tsx` | `CanvasPages` |
-| `canvas/inspector.tsx`, `canvas/approvals/approve-box.tsx` | `CanvasInspector`, `CanvasInspectorMulti`, `CanvasInspectorImports`, `CanvasInspectorImportsExpanded`, `CanvasInspectorMultiShared` (all selected boards in one section, with Delete section) |
+| `canvas/sidebar.tsx` | `CanvasSidebar`, `CanvasSidebarSections`, `CanvasSidebarGroups`, `CanvasSidebarAdd`, `CanvasSidebarSectionsCollapsed`, `CanvasSidebarGroupMenu`, `CanvasSidebarPageMenu`, `CanvasSidebarFrameMenu`, `CanvasSidebarSectionMenu`, `CanvasSidebarIconPicker` |
+| `canvas/page-index.tsx` | `CanvasPages`, `CanvasPagesGroups`, `CanvasPagesDrag`, `CanvasPagesAdd`, `CanvasPagesGroupMenu`, `CanvasPagesPageMenu`, `CanvasPagesRenaming`, `CanvasPagesIconPicker` |
+| `canvas/page-groups.ts`, `canvas/use-page-groups.ts` | `CanvasPagesGroups`, `CanvasPagesDrag`, `CanvasSidebarGroups`, `CanvasSidebarGroupMenu`, `CanvasPagesGroupMenu` |
+| `canvas/inspector.tsx`, `canvas/approvals/approve-box.tsx` | `CanvasInspector`, `CanvasInspectorMulti`, `CanvasInspectorImports`, `CanvasInspectorImportsExpanded`, `CanvasInspectorMultiShared` (all selected boards in one section, with Delete section), `CanvasInspectorTidy`, `CanvasInspectorTidyWrap` (section tidy: row, column, wrap, grid; prop `tidy`) |
 | `canvas/variants/variants-box.tsx` | `CanvasInspector` (modes `variants`, `variant-sent` and `variant`), `CanvasInspectorVariants`, `CanvasInspectorVariantSent`, `CanvasInspectorVariant` |
 | `canvas/top-bar.tsx` | `CanvasTopBar`, `CanvasTopBarMenu`, `CanvasTopBarIdle` |
 | `canvas/toolbar.tsx` | `CanvasToolbar`, `CanvasToolbarComment` |
@@ -22,17 +25,18 @@ A change to one updates the other in the same pull request.
 | `canvas/toast.tsx` | `CanvasToast` |
 | `canvas/search-dialog.tsx` | `CanvasSearch`, `CanvasSearchRecent`, `CanvasSearchEmpty` |
 | `canvas/search-dialog.tsx` (its search field in the top bar) | `CanvasTopBar` |
-| `canvas/section-layer.tsx` | `CanvasSection`, `CanvasSectionHover`, `CanvasSectionRenaming`, `CanvasSectionNested`, `CanvasSectionSelected`, `CanvasSectionDrop`, `CanvasSectionVariants` |
+| `canvas/section-layer.tsx` | `CanvasSection`, `CanvasSectionHover`, `CanvasSectionRenaming`, `CanvasSectionNested`, `CanvasSectionNestedFar` (section labels paint above frame titles, the parent label above sub-section labels, and the label is smaller when zoomed out), `CanvasSectionSelected`, `CanvasSectionDrop`, `CanvasSectionVariants` |
 | `canvas/compare-view.tsx` | `CanvasCompare` (prop `error` for the Choose failure banner, prop `confirm` for the Choose and Keep original confirmation; Discard variants opens the Keep original one), `CanvasCompareNarrow`, `CanvasCompareError`, `CanvasCompareConfirm` |
 | `canvas/marquee.tsx`, `canvas/history.ts` | `CanvasAppMarquee`, `CanvasAppMultiSelected`, `CanvasAppUndoToast` |
-| `canvas/comments/thread-panel.tsx`, `canvas/comments/comment-card.tsx`, `canvas/comments/comment-actions.tsx` | `CanvasThread`, `CanvasThreadResolved`, `CanvasThreadEmpty`, `CanvasThreadViewing`, `CanvasThreadSessions`, `CanvasThreadResolveMenu` (the Approve and build split button with Resolve in its menu), `CanvasThreadNoSession` (Send and the draft send button disabled), `CanvasThreadNoTarget` (the comment session picker with no session, Approve and build disabled), `CanvasThreadReplyImages` (pasted images in the reply box, a sent reply with an image; prop `attach` for the Attach images button) |
-| `canvas/comments/comment-form.tsx` | `CanvasCommentForm`, `CanvasCommentFormVariants` |
-| `canvas/comments/session-row.tsx`, `canvas/comments/use-session.ts` | `CanvasSession`, `CanvasSessionSeveral`, `CanvasSessionPick`, `CanvasSessionNone`, and its place in `CanvasTopBar` and `CanvasThread` |
+| `canvas/comments/thread-panel.tsx`, `canvas/comments/comment-card.tsx`, `canvas/comments/comment-actions.tsx` | `CanvasThread`, `CanvasThreadResolved`, `CanvasThreadEmpty`, `CanvasThreadViewing`, `CanvasThreadSessions`, `CanvasThreadResolveMenu` (the Reply split button with Resolve and Approve and build in its menu, and the check button left of it that resolves the thread), `CanvasThreadNoSession` (Send and the draft send button disabled), `CanvasThreadNoTarget` (the comment session picker with no session, Approve and build disabled), `CanvasThreadReplyImages` (pasted images in the reply box, a sent reply with an image; prop `attach` for the Attach images button) |
+| `canvas/comments/comment-form.tsx` | `CanvasCommentForm` (prop `send` for the Send to the active agent checkbox), `CanvasCommentFormVariants`, `CanvasCommentFormAutoSend`, `CanvasCommentFormAutoSendNone` (the checkbox disabled with no session) |
+| `canvas/comments/session-row.tsx`, `canvas/comments/use-session.ts` | `CanvasSession`, `CanvasSessionSeveral`, `CanvasSessionOneOpen` (the menu opens with a single session), `CanvasSessionPick`, `CanvasSessionNone`, and its place in `CanvasTopBar` and `CanvasThread` |
 | `canvas/play-view.tsx` | `CanvasPlayView` and the `CanvasPlayView*` state boards (`Fit`, `Menu`, `Responsive`, `Commenting`, `ZoomMenu`, `Tall`, `Contain`) |
 | `canvas/viewport-bar.tsx` | `CanvasPlayView` (its header) |
 | `canvas/frame.tsx`, `canvas/overlay.tsx` | `CanvasFrame` and the `CanvasFrame*` state boards, among them `CanvasFrameCommentingTitle` for the frame title in comment mode, `CanvasFrameThumbnailStale` for the Outdated badge and `CanvasFrameGenerating` for the Not changed yet badge of a variant and `CanvasFrameNew` for the New badge, `CanvasFrameMenu` and `CanvasFrameMenuNoSession` for the right click menu (props `menu` and `session`) |
-| `canvas/context-menu.tsx` | `CanvasContextMenu` (prop `target`: `frame`, `frames`, `section`, `part`, `mixed`), shown in `CanvasFrameMenu`, `CanvasFrameMenuNoSession`, `CanvasFrameMenuMany`, `CanvasSectionMenu`, `CanvasSectionMenuPart`, `CanvasSectionMenuMixed` (`CanvasSection` prop `menu`) |
-| `canvas/update-notice.tsx`, `canvas/use-update.ts` | `UpdateNotice` and the `UpdateNotice*` state boards |
+| `canvas/context-menu.tsx` | `CanvasContextMenu` (prop `target`: `frame`, `frames`, `section`, `part`, `mixed`, `page`, `canvas`; prop `sidebar` adds Show on canvas; prop `submenu` draws the section tidy submenu: row, column, wrap, grid), `CanvasSectionMenuTidy`, `CanvasAppCanvasMenu`, shown in `CanvasFrameMenu`, `CanvasFrameMenuNoSession`, `CanvasFrameMenuMany`, `CanvasSectionMenu`, `CanvasSectionMenuPart`, `CanvasSectionMenuMixed` (`CanvasSection` prop `menu`) |
+| `canvas/icon-picker.tsx`, `ui/page-icon.tsx` | `CanvasIconPicker`, `CanvasIconPickerEmpty`, `CanvasPagesIconPicker`, `CanvasSidebarIconPicker` |
+| `canvas/update-notice.tsx`, `canvas/use-update.ts` | `UpdateNotice` and the `UpdateNotice*` state boards, among them `UpdateNoticeRebuild` for a new build of the running version |
 | `canvas/settings-dialog.tsx`, `canvas/use-doctor.ts` | `CanvasSettings` and the `CanvasSettings*` state boards (`Idle`, `Checking`, `Unavailable`, `Update`), `CanvasAppSettings` |
 | `canvas/canvas.tsx`, `canvas/page-canvas.tsx` and any layout of the parts above | `CanvasApp` and the `CanvasApp*` state boards, among them `CanvasAppSidebarHidden` |
 | `app/ui-tokens.css`, `app/globals.css` | the token block in every `Canvas*` and `UpdateNotice*` board |
@@ -40,10 +44,12 @@ A change to one updates the other in the same pull request.
 ## When you change the canvas app
 
 1. Load the `irsim-workflow` skill before changing what a screen shows.
-2. Change the board first, check it with `design_canvas {action: "check", page: "canvas-app"}`, and look at the screenshots.
+2. Change the board first, check it with `design_canvas {action: "check", page: "canvas-app"}` or `design_canvas {action: "check", page: "canvas-system"}`, and look at the screenshots.
+A page check can time out on a large page.
+Then check the changed boards one by one with `design_canvas {action: "check", board: "<Board>"}`, and check both pages when possible.
 3. Stop and wait for the user's confirmation before writing app code, as the skill says.
 4. After the code change, compare the board and the running canvas at the same width with Playwright screenshots, light and dark.
-5. A new part, state or prop gets a board or a prop on the existing board, a row in the table above, and a position on the `canvas-app` page in `design/canvas.json`.
+5. A new part, state or prop gets a board or a prop on the existing board, a row in the table above, and a position on its page and its section in `design/canvas.json`.
 6. A removed or renamed part removes or renames its boards and its table row.
 7. Use the tools already installed on the machine. Playwright launches the installed Chrome, Chromium, Brave or Edge (`channel` or `executablePath`); do not download Playwright's Chromium or add a heavy dependency where a lighter path exists.
 
@@ -76,5 +82,6 @@ The user accepts a board by looking at it in irsim (the Approve button or a repl
 
 ## Before you finish
 
-- `design_canvas {action: "check", page: "canvas-app"}` reports no errors and no warnings.
+- `design_canvas {action: "check", page: "canvas-app"}` and `design_canvas {action: "check", page: "canvas-system"}` report no errors and no warnings.
+- When a page check times out, the changed boards pass `design_canvas {action: "check", board: "<Board>"}` one by one.
 - The pull request description has the board checklist from `.github/pull_request_template.md` filled in.

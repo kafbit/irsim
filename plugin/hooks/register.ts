@@ -1,11 +1,12 @@
 import type { Register } from 'claude-code'
 import { api, doctorLines, listenKey, messageOf, registerSession, runDoctor } from './api'
 import { commentCounts, openCanvas, stopCanvas } from './canvas'
-import { stopPolling, syncPoll } from './poll'
+import { setTurnRunning, stopPolling, syncPoll } from './poll'
 import { TOOL_DESCRIPTION, TOOL_MATCH, TOOL_NAME, TOOL_SCHEMA, runTool } from './tool'
 
 export const register: Register = (on) => {
   on('session.start', async ($, e, next) => {
+    setTurnRunning(false)
     const started = await next(e)
     await $.command.register({
       name: 'irsim',
@@ -65,7 +66,13 @@ export const register: Register = (on) => {
     }
   })
 
+  on('turn.start', async ($, e, next) => {
+    if (e.agentId === undefined) setTurnRunning(true)
+    return next(e)
+  })
+
   on('turn.complete', async ($, e, next) => {
+    if (e.agentId === undefined) setTurnRunning(false)
     void syncPoll($).catch(() => undefined)
     return next(e)
   })

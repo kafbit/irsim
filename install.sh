@@ -159,6 +159,7 @@ install_remote() {
   echo "install: downloading $asset"
   gh release download "$tag" --repo "$repo" --pattern "$asset" --dir "$work"
   extract "$work/$asset" "$target"
+  printf '%s-%s\n' "$version" "$(date +%s)" > "$target/BUILD"
   activate "$version"
   echo "install: irsim $version installed in $target"
   finish
@@ -199,6 +200,7 @@ install_local() {
 
   target="$prefix/$version-local"
   extract "$tarball" "$target"
+  printf '%s-%s\n' "$version" "$(date +%s)" > "$target/BUILD"
   activate "$version-local"
   echo "install: irsim $version (local build of $dir) installed in $target"
   finish

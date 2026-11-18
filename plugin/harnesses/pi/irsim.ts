@@ -79,16 +79,30 @@ export default function (pi: ExtensionAPI): void {
         const current = contexts.get(sessionId)
         if (!current) return
         const claimed = await bridge(
-          ['claim', '--session', sessionId, '--cwd', current.cwd],
+          ['claim', '--session', sessionId, '--cwd', current.cwd, '--json'],
           current.cwd,
         )
         if (!claimed.ok || claimed.text === '') return
+        let count = 0
+        let text = ''
         try {
-          if (current.isIdle()) pi.sendUserMessage(claimed.text)
-          else pi.sendUserMessage(claimed.text, { deliverAs: 'followUp' })
+          ;({ count, text } = JSON.parse(claimed.text) as { count: number; text: string })
         } catch {
-          /* the session moved on */
+          return
         }
+        if (!(count > 0 && text)) return
+        let delivered = true
+        try {
+          if (current.isIdle()) pi.sendUserMessage(text)
+          else pi.sendUserMessage(text, { deliverAs: 'followUp' })
+        } catch {
+          delivered = false
+        }
+        if (!delivered)
+          await bridge(
+            ['release', '--session', sessionId, '--cwd', current.cwd, '--claim', claimed.text],
+            current.cwd,
+          )
       }, POLL_MS)
       timer.unref?.()
       timers.set(sessionId, timer)

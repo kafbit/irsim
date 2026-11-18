@@ -505,14 +505,17 @@ export function PlayView({
                         pick={shownPick}
                         page={page}
                         onSent={() => setPicked(null)}
-                        onSave={async (body, images) => {
-                          await thread.create({
-                            ...pick,
-                            page,
-                            view: picked.view,
-                            body,
-                            images,
-                          })
+                        onSave={async (body, images, sendTo) => {
+                          await thread.create(
+                            {
+                              ...pick,
+                              page,
+                              view: picked.view,
+                              body,
+                              images,
+                            },
+                            sendTo,
+                          )
                           setPicked(null)
                         }}
                         onCancel={() => setPicked(null)}

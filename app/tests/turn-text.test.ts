@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Comment } from '../src/lib/comments-types'
-import { REPLY_RULE, buildTurnText, buildVariantText } from '../src/lib/turn-text'
+import { REPLY_RULE, buildPageRequestText, buildTurnText, buildVariantText } from '../src/lib/turn-text'
 
 const comment = (overrides: Partial<Comment>): Comment => ({
   id: 'c_1',
@@ -310,5 +310,32 @@ describe('buildVariantText', () => {
     )
     expect(text).toContain('   Like this.\n   image: /data/images/i_a.png\n')
     expect(text).not.toContain('i_gone')
+  })
+})
+
+describe('buildPageRequestText', () => {
+  const request = (kind: 'icon' | 'reorganize') => ({
+    id: 'p_1',
+    page: 'sales',
+    kind,
+    sessionId: 's1',
+    at: '2026-11-18T00:00:00.000Z',
+    status: 'queued' as const,
+  })
+
+  it('asks for a Lucide icon and nothing else', () => {
+    const text = buildPageRequestText([request('icon')], { sales: 'Sales' })
+    expect(text).toContain('an icon for page Sales (sales)')
+    expect(text).toContain('kebab-case')
+    expect(text).toContain('"icon" on that page in design/canvas.json')
+    expect(text.endsWith(REPLY_RULE)).toBe(true)
+  })
+
+  it('asks to tidy the page by editing only canvas.json', () => {
+    const text = buildPageRequestText([request('reorganize')], { sales: 'Sales' })
+    expect(text).toContain('tidy page Sales (sales)')
+    expect(text).toContain('left to right in flow order')
+    expect(text).toContain('Edit only design/canvas.json')
+    expect(text).toContain('design_canvas {action: "check", page: "sales"}')
   })
 })

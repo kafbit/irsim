@@ -7,9 +7,12 @@ import {
   addReply,
   claim,
   createComment,
+  createPageRequest,
+  createVariantRequest,
   deleteComment,
   listComments,
   listSessions,
+  release,
   removeSession,
   sendDrafts,
   updateComment,
@@ -460,5 +463,102 @@ describe('comments store', () => {
     it('resolves at once when nothing is queued', async () => {
       await whenWritesIdle(5000)
     })
+  })
+})
+
+describe('release', () => {
+  let dir: string
+  const saved = process.env.IRSIM_DATA_DIR
+  const none = { comments: [], approvals: [], variants: [], replies: [] }
+
+  beforeEach(async () => {
+    dir = mkdtempSync(join(tmpdir(), 'canvas-data-'))
+    process.env.IRSIM_DATA_DIR = dir
+    await upsertSession({ id: 's1', label: 's', cwd: '/s' })
+    await upsertSession({ id: 's2', label: 't', cwd: '/t' })
+  })
+  afterEach(() => {
+    if (saved === undefined) delete process.env.IRSIM_DATA_DIR
+    else process.env.IRSIM_DATA_DIR = saved
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  const sent = async (sessionId = 's1') => {
+    const comment = await createComment(input())
+    await sendDrafts({ sessionId })
+    return comment
+  }
+
+  it('puts a claimed comment and its reply back so the next claim returns them', async () => {
+    const comment = await sent()
+    await claim('s1')
+    await addReply(comment.id, { author: 'user', body: 'More' })
+    const claimed = await claim('s1')
+    const at = claimed.comments[0]?.newReplies[0]?.at as string
+    await release('s1', { ...none, comments: [comment.id], replies: [{ comment: comment.id, at }] })
+    const again = await claim('s1')
+    expect(again.count).toBe(1)
+    expect(again.comments[0]?.newReplies.map((reply) => reply.body)).toEqual(['More'])
+    await release('s1', { ...none, comments: [comment.id] })
+    expect((await listComments())[0]?.status).toBe('queued')
+  })
+
+  it('puts a claimed variant request and approval back', async () => {
+    const request = await createVariantRequest({
+      page: 'sales',
+      base: 'Leads',
+      variants: [{ name: 'LeadsA', label: 'A', direction: 'bolder' }],
+      note: '',
+      sessionId: 's1',
+    })
+    if (typeof request === 'string') throw new Error(request)
+    writeFileSync(
+      join(dir, 'approvals.json'),
+      JSON.stringify([
+        {
+          id: 'a_1',
+          page: 'sales',
+          board: 'Leads',
+          note: '',
+          sessionId: 's1',
+          hash: 'h',
+          status: 'queued',
+          createdAt: '2026-11-08T10:00:00.000Z',
+        },
+      ]),
+    )
+    const claimed = await claim('s1')
+    expect(claimed.variants.map((one) => one.id)).toEqual([request.id])
+    expect(claimed.approvals.map((one) => one.id)).toEqual(['a_1'])
+    expect((await claim('s1')).count).toBe(0)
+    await release('s1', { ...none, variants: [request.id], approvals: ['a_1'] })
+    const again = await claim('s1')
+    expect(again.variants.map((one) => one.id)).toEqual([request.id])
+    expect(again.approvals.map((one) => one.id)).toEqual(['a_1'])
+  })
+
+  it('puts a claimed page request back', async () => {
+    const request = await createPageRequest({ page: 'sales', kind: 'icon', sessionId: 's1' })
+    if (typeof request === 'string') throw new Error(request)
+    const claimed = await claim('s1')
+    expect(claimed.pages.map((one) => one.id)).toEqual([request.id])
+    expect(claimed.text).toContain('icon')
+    expect((await claim('s1')).count).toBe(0)
+    await release('s1', { ...none, pages: [request.id] })
+    expect((await claim('s1')).pages.map((one) => one.id)).toEqual([request.id])
+  })
+
+  it('ignores resolved comments and the items of other sessions', async () => {
+    const mine = await sent('s1')
+    const theirs = await sent('s2')
+    await claim('s1')
+    await claim('s2')
+    await updateComment(mine.id, { status: 'resolved' })
+    await release('s1', { ...none, comments: [mine.id, theirs.id] })
+    const byId = new Map((await listComments()).map((c) => [c.id, c.status]))
+    expect(byId.get(mine.id)).toBe('resolved')
+    expect(byId.get(theirs.id)).toBe('delivered')
+    expect((await claim('s1')).count).toBe(0)
+    expect((await claim('s2')).count).toBe(0)
   })
 })

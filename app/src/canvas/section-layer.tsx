@@ -12,7 +12,7 @@ import { SECTION_TONES } from './section-colors'
 import { type PlacedSection, SECTION_LABEL } from './sections'
 
 const DRAG_THRESHOLD = 3
-
+const LABEL_Z_BASE = 50
 
 const rectOf = ({ x, y, width, height }: Rect): Rect => ({ x, y, width, height })
 const same = (a: Rect, b: Rect) =>
@@ -87,7 +87,8 @@ const HANDLES: { handle: Handle; left: string; top: string; cursor: string }[] =
 
 /**
  * The sections, in one layer under the frames: a tinted rectangle with a border, and a label pill
- * above its top left corner at constant screen size, so a member frame never covers the label.
+ * above its top left corner. The label paints above the frames, a parent label above its sub-section
+ * labels, and its screen size grows slightly with zoom (`--label-scale`).
  * Parents come before their sub-sections. Only the label takes the pointer. A click selects the
  * member boards, Shift adds them, a drag moves them all with one commit, and a double click renames
  * the section.
@@ -112,6 +113,7 @@ export const SectionLayer = memo(function SectionLayer({
   onResizeSection,
 }: Props) {
   const [liveRect, setLiveRect] = useState<{ id: string; rect: Rect } | null>(null)
+  const maxDepth = sections.reduce((deepest, { depth }) => Math.max(deepest, depth), 0)
 
   const press = (event: PointerEvent<HTMLElement>, placed: PlacedSection) => {
     if (event.button !== 0 || !movable) return
@@ -214,8 +216,9 @@ export const SectionLayer = memo(function SectionLayer({
         (next.clientY - clientY) / k,
         { width: 1, height: 1 },
       )
-      // The area always holds the boards and sub-sections, so a resize cannot cut one out.
-      rect = rectOf(boundsOf([dragged, placed.fit]) ?? dragged)
+      // The area always holds the boards and sub-sections, so a resize cannot cut one out. A wrap
+      // section is the exception: its boards reflow to the new width when the resize is saved.
+      rect = placed.section.layout ? dragged : rectOf(boundsOf([dragged, placed.fit]) ?? dragged)
       setLiveRect({ id: placed.section.id, rect })
     }
     const up = () => end(true)
@@ -273,7 +276,8 @@ export const SectionLayer = memo(function SectionLayer({
                 bottom: 'calc(100% + var(--inv, 1) * 6px)',
                 maxWidth: `calc(var(--k, 1) * ${bounds.width}px)`,
                 height: SECTION_LABEL,
-                transform: 'scale(var(--inv, 1))',
+                transform: 'scale(calc(var(--inv, 1) * var(--label-scale, 1)))',
+                zIndex: LABEL_Z_BASE + (maxDepth - depth),
               }}
             >
               {renaming === section.id ? (

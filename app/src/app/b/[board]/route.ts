@@ -25,7 +25,13 @@ const envFor = (board: string): CanvasEnv => ({
 
 // Bump when the frame document's shape changes: the closure hash covers the boards, not this
 // route, and a stale 304 hands the new runtime a document it cannot read.
-const FORMAT = 'f2'
+const FORMAT = 'f3'
+
+const ZOOM_GUARD =
+  "addEventListener('wheel',function(e){if(!(e.ctrlKey||e.metaKey))return;e.preventDefault();" +
+  "parent.postMessage({type:'wheel',board:(window.__CANVAS_ENV__||{}).board,details:{deltaX:e.deltaX," +
+  "deltaY:e.deltaY,deltaMode:e.deltaMode,ctrlKey:e.ctrlKey,metaKey:e.metaKey,clientX:e.clientX," +
+  "clientY:e.clientY}},'*')},{passive:false,capture:true})"
 
 const matches = (header: string | null, etag: string): boolean =>
   header !== null &&
@@ -79,6 +85,7 @@ export async function GET(
       '</head>',
       () =>
         `<script>window.__CANVAS_ENV__=${escape(envFor(board))}</script>` +
+        `<script>${ZOOM_GUARD}</script>` +
         `<script type="application/json" id="dc-bundle">${bundle}</script>` +
         `<template id="dc-root">${source.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</template></head>`,
     )

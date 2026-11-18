@@ -37,10 +37,13 @@ body{margin:0}
 <button type="button" style="display: inline-flex; align-items: center; justify-content: center; height: 32px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--background); color: var(--foreground); font: inherit; font-size: 13px; font-weight: 500; white-space: nowrap;">Cancel (Esc)</button>
 <button type="button" style="display: inline-flex; align-items: center; justify-content: center; height: 32px; padding: 0 12px; border: 1px solid {{saveBg}}; border-radius: 10px; background: {{saveBg}}; color: {{saveFg}}; font: inherit; font-size: 13px; font-weight: 600; white-space: nowrap;" aria-disabled="{{saveDisabled}}">{{saveLabel}}</button>
 </div>
+<sc-if value="{{showAutoSend}}" hint-placeholder-val="{{true}}">
+<label style="display: flex; align-items: flex-start; gap: 8px; padding-top: 8px; border-top: 1px solid var(--border); cursor: {{autoCursor}}; opacity: {{autoOpacity}};"><span role="checkbox" aria-checked="{{autoChecked}}" aria-disabled="{{autoDisabled}}" style="display: inline-grid; place-items: center; flex-shrink: 0; width: 16px; height: 16px; margin-top: 2px; box-sizing: border-box; border: 1px solid {{boxBorder}}; border-radius: 4px; background: {{boxBg}}; color: var(--primary-foreground);"><sc-if value="{{autoOn}}" hint-placeholder-val="{{false}}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></sc-if></span><span style="display: flex; flex-direction: column; gap: 2px; min-width: 0;"><span style="font-size: 13px; line-height: 20px; color: var(--foreground);">Send to the active agent</span><span style="font-size: 12px; line-height: 16px; color: var(--muted-foreground);">{{autoNote}}</span></span></label>
+</sc-if>
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"mode":{"editor":"enum","default":"comment","options":["comment","variants"]},"count":{"editor":"enum","default":"3","options":["2","3"]},"session":{"editor":"enum","default":"one","options":["one","several","none"]},"$preview":{"width":368,"height":360}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"mode":{"editor":"enum","default":"comment","options":["comment","variants"]},"count":{"editor":"enum","default":"3","options":["2","3"]},"session":{"editor":"enum","default":"one","options":["one","several","none"]},"send":{"editor":"enum","default":"off","options":["off","on"]},"$preview":{"width":368,"height":400}}'>
 class Component extends DCLogic {
   renderVals() {
     const { theme, mode, count } = this.props
@@ -48,6 +51,8 @@ class Component extends DCLogic {
     const n = String(count) === '2' ? 2 : 3
     const session = this.props.session || 'one'
     const blocked = variants && session !== 'one'
+    const noAgent = session === 'none'
+    const auto = !variants && !noAgent && this.props.send === 'on'
     return {
       themeClass: theme === 'dark' ? 'dark' : '',
       theme: theme === 'dark' ? 'dark' : 'light',
@@ -69,7 +74,16 @@ class Component extends DCLogic {
       threeChecked: n === 3 ? 'true' : 'false',
       twoBg: n === 2 ? 'var(--card)' : 'transparent', twoFg: n === 2 ? 'var(--foreground)' : 'var(--muted-foreground)',
       threeBg: n === 3 ? 'var(--card)' : 'transparent', threeFg: n === 3 ? 'var(--foreground)' : 'var(--muted-foreground)',
-      saveLabel: variants ? 'Generate ' + n : 'Save (Ctrl+Enter)',
+      saveLabel: variants ? 'Generate ' + n : auto ? 'Send (Ctrl+Enter)' : 'Save (Ctrl+Enter)',
+      showAutoSend: !variants,
+      autoOn: auto,
+      autoChecked: auto ? 'true' : 'false',
+      autoDisabled: noAgent ? 'true' : 'false',
+      autoCursor: noAgent ? 'not-allowed' : 'pointer',
+      autoOpacity: noAgent ? '0.6' : '1',
+      boxBorder: auto ? 'var(--primary)' : 'var(--input)',
+      boxBg: auto ? 'var(--primary)' : 'transparent',
+      autoNote: noAgent ? 'No agent session listening. Run /irsim in your coding agent.' : auto ? 'Your next comments are sent too. Turn it off to keep them as drafts.' : 'Saved comments stay drafts until you send them.',
     }
   }
 }

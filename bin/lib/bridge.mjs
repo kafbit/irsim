@@ -221,6 +221,21 @@ const register = async (port, { agent, session, cwd }, env = process.env) => {
 const claim = async (port, session) =>
   request(port, '/api/comments/claim', { method: 'POST', body: { sessionId: session } })
 
+const release = async (port, session, claimed) =>
+  request(port, '/api/comments/release', {
+    method: 'POST',
+    body: {
+      sessionId: session,
+      comments: (claimed.comments ?? []).map((comment) => comment.id),
+      approvals: (claimed.approvals ?? []).map((approval) => approval.id),
+      variants: (claimed.variants ?? []).map((one) => one.id),
+      pages: (claimed.pages ?? []).map((one) => one.id),
+      replies: (claimed.comments ?? []).flatMap((comment) =>
+        (comment.newReplies ?? []).map((reply) => ({ comment: comment.id, at: reply.at })),
+      ),
+    },
+  })
+
 const leave = async (port, session) =>
   request(port, `/api/sessions/${encodeURIComponent(session)}`, { method: 'DELETE' })
 
@@ -624,6 +639,12 @@ export const runBridge = async (args) => {
       else if (result.text) console.log(result.text)
       return
     }
+    case 'release': {
+      if (!session) throw new Error('release needs --session')
+      if (typeof flags.claim !== 'string') throw new Error('release needs --claim <claim json>')
+      await release(port, session, JSON.parse(flags.claim))
+      return
+    }
     case 'leave':
       if (!session) throw new Error('leave needs --session')
       await leave(port, session)
@@ -644,6 +665,7 @@ export const runBridge = async (args) => {
           'commands:',
           '  register --session <id> [--agent <id>] [--cwd <dir>]   register a session',
           '  claim --session <id> [--json]                          claim queued comments',
+          '  release --session <id> --claim <json>                  put a claim that was not delivered back',
           '  leave --session <id>                                   unregister a session',
           '  tool --action <name> [--page] [--board] [--id] [--body] run a design_canvas action',
           '  hook codex <Event>                                     serve one Codex hook (stdin JSON)',

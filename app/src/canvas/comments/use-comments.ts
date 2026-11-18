@@ -4,7 +4,7 @@ import { useCallback, useRef, useState } from 'react'
 import { useMountEffect } from '../use-mount-effect'
 import type { Comment, NewComment } from './types'
 
-async function request(method: string, url: string, body?: unknown): Promise<void> {
+async function request(method: string, url: string, body?: unknown): Promise<unknown> {
   const response = await fetch(url, {
     method,
     cache: 'no-store',
@@ -12,7 +12,7 @@ async function request(method: string, url: string, body?: unknown): Promise<voi
       ? {}
       : { headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }),
   })
-  if (response.ok) return
+  if (response.ok) return response.json().catch(() => null)
   const detail = await response.json().catch(() => null)
   const message = (detail as { error?: unknown } | null)?.error
   throw new Error(typeof message === 'string' ? message : `HTTP ${response.status}`)
@@ -72,10 +72,10 @@ export function useComments(pageId: string) {
   })
 
   const write = useCallback(
-    async (method: string, url: string, body?: unknown) => {
+    async (method: string, url: string, body?: unknown, onResult?: (result: unknown) => void) => {
       setError(null)
       try {
-        await request(method, url, body)
+        onResult?.(await request(method, url, body))
       } catch (failure) {
         setError(String((failure as Error)?.message ?? failure))
         throw failure
@@ -86,8 +86,18 @@ export function useComments(pageId: string) {
     [refetch],
   )
 
+  const sendOne = (id: string, sessionId: string) =>
+    write('POST', '/api/comments/send', { sessionId, page: pageId, ids: [id] })
+
   const actions = {
-    create: (input: NewComment) => write('POST', '/api/comments', input),
+    create: async (input: NewComment, sendTo: string | null = null) => {
+      let id: unknown
+      await write('POST', '/api/comments', input, (created) => {
+        id = (created as { id?: unknown } | null)?.id
+      })
+      if (!sendTo || typeof id !== 'string') return
+      await sendOne(id, sendTo).catch(() => {})
+    },
     edit: (id: string, body: string, images: string[]) =>
       write('PATCH', `/api/comments/${id}`, { body, images }),
     resolve: (id: string) => write('PATCH', `/api/comments/${id}`, { status: 'resolved' }),
@@ -99,8 +109,7 @@ export function useComments(pageId: string) {
       }),
     remove: (id: string) => write('DELETE', `/api/comments/${id}`),
     send: (sessionId: string) => write('POST', '/api/comments/send', { sessionId, page: pageId }),
-    sendOne: (id: string, sessionId: string) =>
-      write('POST', '/api/comments/send', { sessionId, page: pageId, ids: [id] }),
+    sendOne,
     retarget: (id: string, sessionId: string) =>
       write('PATCH', `/api/comments/${id}`, { sessionId }),
   }

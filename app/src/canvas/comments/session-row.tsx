@@ -75,7 +75,6 @@ export function SessionRow({
     setOpen(true)
   }
   const onKeyDown = (event: KeyboardEvent) => {
-    if (!several) return
     if (event.key === 'Escape') {
       if (open) {
         event.preventDefault()
@@ -104,13 +103,13 @@ export function SessionRow({
       <button
         type="button"
         aria-label="Agent session"
-        aria-haspopup={several ? 'listbox' : 'false'}
+        aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? listId : undefined}
         aria-activedescendant={open ? `${listId}-${active}` : undefined}
-        onClick={() => (several ? (open ? setOpen(false) : openMenu()) : undefined)}
+        onClick={() => (open ? setOpen(false) : openMenu())}
         onKeyDown={onKeyDown}
-        className={`flex w-full items-center gap-2.5 border border-border bg-card px-2.5 text-start ${compact ? 'rounded-lg py-[5px]' : 'rounded-[10px] py-2'}  text-foreground focus-visible:outline-2 focus-visible:outline-ring ${several ? 'cursor-pointer' : 'cursor-default'}`}
+        className={`flex w-full items-center gap-2.5 border border-border bg-card px-2.5 text-start ${compact ? 'rounded-lg py-[5px]' : 'rounded-[10px] py-2'}  text-foreground focus-visible:outline-2 focus-visible:outline-ring cursor-pointer`}
       >
         {current ? <AgentLogo agent={current.agent} /> : null}
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -120,13 +119,11 @@ export function SessionRow({
           {current && !compact ? <Branch branch={current.branch} listening /> : null}
         </span>
         {several ? (
-          <>
-            <span className="inline-flex h-5 shrink-0 items-center rounded-full bg-muted px-1.5 text-[11px] font-medium text-muted-foreground">
-              {sessions.length}
-            </span>
-            <ChevronsUpDown aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
-          </>
+          <span className="inline-flex h-5 shrink-0 items-center rounded-full bg-muted px-1.5 text-[11px] font-medium text-muted-foreground">
+            {sessions.length}
+          </span>
         ) : null}
+        <ChevronsUpDown aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
       </button>
       {open ? (
         <ul

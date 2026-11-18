@@ -66,7 +66,9 @@ export type SectionEntry = {
   y?: number | null
   width?: number | null
   height?: number | null
+  layout?: { mode: 'wrap'; gap: number } | null
 }
+export type PageEdit = { title?: string; icon?: string | null }
 export type CanvasEdit = {
   boards?: BoardEdit[]
   sections?: { set?: SectionEntry[]; remove?: string[] }
@@ -79,11 +81,12 @@ const withParent = (entry: SectionEntry, parent: string | null): SectionEntry =>
 
 /** Drops a `null` parent or color, which an edit uses to clear the field. */
 const clean = (entry: SectionEntry): SectionEntry => {
-  const { parent, color, x, y, width, height, ...rest } = entry
+  const { parent, color, x, y, width, height, layout, ...rest } = entry
   const stored = [x, y, width, height].every((value) => Number.isFinite(value))
   return {
     ...rest,
     ...(parent ? { parent } : {}),
+    ...(layout ? { layout: { mode: layout.mode, gap: Math.round(layout.gap) } } : {}),
     ...(color && color !== 'gray' ? { color } : {}),
     ...(stored
       ? {
@@ -114,6 +117,13 @@ export function validateSections(sections: SectionEntry[]): string | null {
     }
     if (given.length === 4 && ((entry.width as number) <= 0 || (entry.height as number) <= 0)) {
       return `section ${entry.id} needs a positive width and height`
+    }
+    if (entry.layout != null) {
+      const { mode, gap } = entry.layout
+      if (mode !== 'wrap') return `section ${entry.id} has an unknown layout mode`
+      if (typeof gap !== 'number' || !Number.isFinite(gap) || gap < 0 || gap > 400) {
+        return `the layout gap of section ${entry.id} must be a number from 0 to 400`
+      }
     }
     let depth = 1
     const seen = new Set([entry.id])
@@ -233,5 +243,43 @@ export function applyEdit(canvas: CanvasFile, page: string, edit: CanvasEdit): P
       ...canvas,
       pages: canvas.pages.map((entry) => (entry === target ? nextPage : entry)),
     },
+  }
+}
+
+export const MAX_PAGE_TITLE = 120
+
+/**
+ * Returns a copy of `canvas` with the page's title and icon edited. A `null` icon removes it. Fails
+ * with 404 for an unknown page and 400 for an empty or long title or an icon `isIcon` rejects.
+ */
+export function editPage(
+  canvas: CanvasFile,
+  page: string,
+  edit: { title?: unknown; icon?: unknown },
+  isIcon: (name: string) => boolean,
+): Placement {
+  const target = canvas.pages.find((candidate) => candidate.id === page)
+  if (!target) return { error: `no page named ${page}`, status: 404 }
+  const next: CanvasPageEntry = { ...target }
+  if (edit.title !== undefined) {
+    if (typeof edit.title !== 'string' || edit.title.trim() === '') {
+      return { error: 'title must be a non-empty string', status: 400 }
+    }
+    const title = edit.title.trim()
+    if (title.length > MAX_PAGE_TITLE) {
+      return { error: `title is at most ${MAX_PAGE_TITLE} characters`, status: 400 }
+    }
+    next.title = title
+  }
+  if (edit.icon === null) {
+    delete next.icon
+  } else if (edit.icon !== undefined) {
+    if (typeof edit.icon !== 'string' || !isIcon(edit.icon)) {
+      return { error: 'unknown icon', status: 400 }
+    }
+    next.icon = edit.icon
+  }
+  return {
+    canvas: { ...canvas, pages: canvas.pages.map((entry) => (entry === target ? next : entry)) },
   }
 }

@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs'
+import { mkdirSync, writeFileSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -9,7 +9,7 @@ vi.mock('../src/lib/release', () => ({ latestRelease }))
 
 const { GET } = await import('../src/app/api/version/route')
 
-const KEYS = ['IRSIM_VERSION', 'IRSIM_PREFIX', 'IRSIM_LAUNCHER'] as const
+const KEYS = ['IRSIM_VERSION', 'IRSIM_PREFIX', 'IRSIM_LAUNCHER', 'IRSIM_BUILD'] as const
 
 describe('GET /api/version', () => {
   let dir: string
@@ -41,6 +41,8 @@ describe('GET /api/version', () => {
       latest: null,
       releaseUrl: null,
       canUpdate: false,
+      build: null,
+      installedBuild: null,
     })
     expect(latestRelease).not.toHaveBeenCalled()
   })
@@ -57,8 +59,22 @@ describe('GET /api/version', () => {
       latest: '0.3.0',
       releaseUrl: 'https://example.test/v0.3.0',
       canUpdate: true,
+      build: null,
+      installedBuild: null,
     })
     expect(latestRelease).toHaveBeenCalledTimes(1)
+  })
+
+  it('answers the running and installed build stamps', async () => {
+    mkdirSync(join(dir, '0.2.0'))
+    writeFileSync(join(dir, '0.2.0', 'BUILD'), '0.2.0-200\n')
+    symlinkSync('0.2.0', join(dir, 'current'))
+    process.env.IRSIM_PREFIX = dir
+    process.env.IRSIM_BUILD = '0.2.0-100'
+    process.env.IRSIM_LAUNCHER = join(dir, '0.2.0', 'bin', 'irsim')
+    const body = await (await GET(new Request('http://localhost/api/version?latest=0'))).json()
+    expect(body.build).toBe('0.2.0-100')
+    expect(body.installedBuild).toBe('0.2.0-200')
   })
 
   it('answers installed null and no update when current cannot be resolved', async () => {
@@ -83,6 +99,8 @@ describe('GET /api/version', () => {
       latest: null,
       releaseUrl: null,
       canUpdate: true,
+      build: null,
+      installedBuild: null,
     })
     expect(latestRelease).not.toHaveBeenCalled()
   })

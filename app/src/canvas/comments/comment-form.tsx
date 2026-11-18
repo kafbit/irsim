@@ -2,11 +2,12 @@
 
 import { placeText } from '../../lib/place-text'
 import { Button, Textarea } from '../../ui'
-import { LayoutGrid } from 'lucide-react'
+import { Check, LayoutGrid } from 'lucide-react'
 import { useState } from 'react'
 import { ImageStrip } from './image-strip'
 import { SessionRow } from './session-row'
 import type { PickedElement, Session } from './types'
+import { useAutoSend } from './auto-send'
 import { usePastedImages } from './use-pasted-images'
 
 const focusOnMount = (element: HTMLTextAreaElement | null) => element?.focus()
@@ -30,7 +31,7 @@ export function CommentForm({
   onCancel,
 }: {
   pick: PickedElement
-  onSave: (body: string, images: string[]) => Promise<void>
+  onSave: (body: string, images: string[], sendTo: string | null) => Promise<void>
   onGenerate?: ((note: string, count: number, images: string[]) => Promise<void>) | undefined
   canGenerate?: boolean
   /** The agent sessions the variants go to. Generate waits until one is picked. */
@@ -50,6 +51,9 @@ export function CommentForm({
   const [variants, setVariants] = useState(false)
   const [count, setCount] = useState<number>(3)
   const pasted = usePastedImages()
+  const [autoSend, setAutoSend] = useAutoSend()
+  const sessionId = session?.sessionId ?? null
+  const sending = autoSend && sessionId !== null
   const text = body.trim()
   const generating = variants && onGenerate !== undefined
   const ready = text !== '' && pasted.uploading === 0 && (!generating || canGenerate)
@@ -60,7 +64,7 @@ export function CommentForm({
     setError(null)
     try {
       if (generating) await onGenerate(text, count, pasted.images)
-      else await onSave(text, pasted.images)
+      else await onSave(text, pasted.images, sending ? sessionId : null)
     } catch (failure) {
       setError(
         generating
@@ -177,9 +181,42 @@ export function CommentForm({
           Cancel (Esc)
         </Button>
         <Button size="sm" disabled={!ready} pending={pending} onClick={save}>
-          {generating ? `Generate ${count}` : 'Save (Ctrl+Enter)'}
+          {generating ? `Generate ${count}` : sending ? 'Send (Ctrl+Enter)' : 'Save (Ctrl+Enter)'}
         </Button>
       </div>
+      {variants ? null : (
+        <label
+          className={`flex items-start gap-2 border-t border-border pt-2 ${
+            sessionId ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'
+          }`}
+        >
+          <span className="relative mt-0.5 inline-grid size-4 shrink-0 place-items-center">
+            <input
+              type="checkbox"
+              checked={sending}
+              disabled={!sessionId || pending}
+              onChange={(event) => setAutoSend(event.target.checked)}
+              className="peer absolute inset-0 m-0 size-4 appearance-none rounded border border-input bg-transparent checked:border-primary checked:bg-primary"
+            />
+            <Check
+              size={12}
+              strokeWidth={3}
+              aria-hidden="true"
+              className="pointer-events-none relative hidden text-primary-foreground peer-checked:block"
+            />
+          </span>
+          <span className="flex min-w-0 flex-col gap-0.5">
+            <span className="text-[13px] leading-5 text-foreground">Send to the active agent</span>
+            <span className="text-xs leading-4 text-muted-foreground">
+              {!sessionId
+                ? 'No agent session listening. Run /irsim in your coding agent.'
+                : sending
+                  ? 'Your next comments are sent too. Turn it off to keep them as drafts.'
+                  : 'Saved comments stay drafts until you send them.'}
+            </span>
+          </span>
+        </label>
+      )}
     </>
   )
 }

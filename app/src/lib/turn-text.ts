@@ -1,4 +1,4 @@
-import type { Approval, Comment, Reply, VariantRequest } from './comments-types'
+import type { Approval, Comment, PageRequest, Reply, VariantRequest } from './comments-types'
 import { agentName } from './agents'
 import { isWholeBoard, placeText, targetText } from './place-text'
 import { viewportLine } from './view-label'
@@ -157,5 +157,29 @@ export const buildVariantText = (
     }),
     `   Keep each board's size and the board conventions. Run design_canvas {action: "check", board} on each and look at the screenshot. Do not edit ${request.base}.dc.html; the user compares the variants and chooses one in irsim.`,
   ])
+  return [...lines, REPLY_RULE].join('\n')
+}
+
+/** The turn for page requests: an icon for the page, or a tidy layout of its boards, both edits of canvas.json. */
+export const buildPageRequestText = (
+  requests: PageRequest[],
+  titles: Record<string, string> = {},
+  designFolder = 'design',
+): string => {
+  const lines = requests.flatMap((request) => {
+    const title = titles[request.page] ?? request.page
+    return request.kind === 'icon'
+      ? [
+          `Design canvas: the user asked for an icon for page ${title} (${request.page}).`,
+          `   Choose a Lucide icon that fits the page and its boards. The name is kebab-case and must exist in lucide-react.`,
+          `   Set it as "icon" on that page in ${designFolder}/canvas.json. Change nothing else.`,
+        ]
+      : [
+          `Design canvas: the user asked you to tidy page ${title} (${request.page}).`,
+          `   Group the boards of the page into sections by flow or feature. Create sections, and sub-sections where they help.`,
+          `   Lay the boards out left to right in flow order with even gaps, and avoid overlaps.`,
+          `   Edit only ${designFolder}/canvas.json (positions and sections), not the board files. Then run design_canvas {action: "check", page: "${request.page}"}.`,
+        ]
+  })
   return [...lines, REPLY_RULE].join('\n')
 }

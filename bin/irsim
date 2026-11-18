@@ -292,6 +292,54 @@ const register = async (design) => {
   }
 }
 
+const buildStamp = () => {
+  const f = join(ROOT, 'BUILD')
+  return existsSync(f) ? readFileSync(f, 'utf8').trim() || null : null
+}
+
+const fetchBuild = async (port) => {
+  try {
+    const response = await fetch(`http://localhost:${port}/api/version?latest=0`, {
+      signal: AbortSignal.timeout(1500),
+    })
+    if (!response.ok) return undefined
+    const body = await response.json()
+    return body.build ?? null
+  } catch {
+    return undefined
+  }
+}
+
+const restartRunning = async (port, url, stamp) => {
+  const running = await fetchBuild(port)
+  if (running === undefined || running === stamp) return false
+  let response
+  try {
+    response = await fetch(`http://localhost:${port}/api/restart`, {
+      method: 'POST',
+      signal: AbortSignal.timeout(5000),
+    })
+  } catch {
+    return false
+  }
+  if (response.status === 409 || response.status === 404) {
+    console.log(`irsim: ${url} runs an older build, stop it and run irsim serve again`)
+    return true
+  }
+  if (response.status !== 202) return false
+  console.log(`irsim: ${url} (restarting on the new build)`)
+  const deadline = Date.now() + 30_000
+  while (Date.now() < deadline) {
+    await new Promise((done) => setTimeout(done, 500))
+    if ((await fetchBuild(port)) === stamp) {
+      console.log(`irsim: ${url} (running the new build)`)
+      return true
+    }
+  }
+  console.log('irsim: the canvas did not come back on the new build, stop it and run irsim serve')
+  return true
+}
+
 const serve = async (args) => {
   const opts = parse(args, { '--design-dir': 'value', '--port': 'value' })
   const cwd = process.cwd()
@@ -309,6 +357,8 @@ const serve = async (args) => {
   }
   const url = `http://localhost:${port}`
   if (serving) {
+    const stamp = buildStamp()
+    if (stamp !== null && (await restartRunning(port, url, stamp))) return
     console.log(`irsim: ${url} (already running)`)
     return
   }
@@ -320,6 +370,7 @@ const serve = async (args) => {
     PORT: String(port),
     HOSTNAME: '127.0.0.1',
     IRSIM_VERSION: installedVersion(),
+    IRSIM_BUILD: buildStamp() ?? '',
     IRSIM_LAUNCHER: join(ROOT, 'bin', 'irsim'),
     IRSIM_PREFIX: prefix ?? '',
   }

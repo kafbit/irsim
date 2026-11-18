@@ -57,3 +57,20 @@ export function writeSidebar(shown: boolean) {
     localStorage.setItem(SIDEBAR_KEY, shown ? 'shown' : 'hidden')
   } catch {}
 }
+
+const collapsedKey = (pageId: string) => `canvas:collapsed-sections:${pageId}`
+
+export function readCollapsedSections(pageId: string): string[] {
+  try {
+    const parsed: unknown = JSON.parse(localStorage.getItem(collapsedKey(pageId)) ?? '[]')
+    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : []
+  } catch {
+    return []
+  }
+}
+
+export function writeCollapsedSections(pageId: string, ids: string[]) {
+  try {
+    localStorage.setItem(collapsedKey(pageId), JSON.stringify(ids))
+  } catch {}
+}

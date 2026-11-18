@@ -22,6 +22,7 @@ export type CanvasSection = {
   y?: number
   width?: number
   height?: number
+  layout?: { mode: 'wrap'; gap: number }
 }
 
 /**
@@ -40,8 +41,9 @@ export type ManifestBoard = CanvasBoard & {
 export type PageManifest = {
   id: string
   title: string
+  icon?: string
   sections: CanvasSection[]
   boards: ManifestBoard[]
 }
 
-export type PageSummary = { id: string; title: string; boardCount: number; boards: string[] }
+export type PageSummary = { id: string; title: string; icon?: string; boardCount: number; boards: string[] }

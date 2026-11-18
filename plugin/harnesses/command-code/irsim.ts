@@ -67,9 +67,21 @@ export default function (cmd: ModApi): void {
   const startPolling = (): void => {
     stopPolling()
     polling = cmd.clock.every(POLL_MS, async () => {
-      const claimed = await runBridge(['claim', '--session', sessionId, '--cwd', cwd])
+      const claimed = await runBridge(['claim', '--session', sessionId, '--cwd', cwd, '--json'])
       if (!claimed.ok || claimed.text === '') return
-      cmd.sendUserMessage(claimed.text)
+      let count = 0
+      let text = ''
+      try {
+        ;({ count, text } = JSON.parse(claimed.text) as { count: number; text: string })
+      } catch {
+        return
+      }
+      if (!(count > 0 && text)) return
+      try {
+        await cmd.sendUserMessage(text)
+      } catch {
+        await runBridge(['release', '--session', sessionId, '--cwd', cwd, '--claim', claimed.text])
+      }
     })
   }
 

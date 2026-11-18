@@ -13,6 +13,7 @@ import {
   type SectionState,
   withMembership,
 } from './sections'
+import { clearLayoutEdits } from './tidy-section'
 import type { CanvasSection } from './types'
 import { useMountEffect } from './use-mount-effect'
 
@@ -81,9 +82,27 @@ export function useBoardLayout(
   const nudgeTimer = useRef(0)
   const errorTimer = useRef(0)
   const baseRef = useRef(base)
+  const stateRef = useRef(sectionState)
   useEffect(() => {
     baseRef.current = base
+    stateRef.current = sectionState
   })
+
+  /** Sections with a stored layout that these moves break: a frame moved or resized by hand, not the whole section. */
+  const layoutClears = useCallback((moves: Move[]) => {
+    const { sections, sectionOf } = stateRef.current
+    const moved = new Set(moves.map((move) => move.name))
+    const translated = moves.every(
+      ({ rect, before }) => rect.width === before.width && rect.height === before.height,
+    )
+    const hit = sections.filter((section) => {
+      if (!section.layout) return false
+      const direct = Object.entries(sectionOf).filter(([, id]) => id === section.id)
+      if (!direct.some(([name]) => moved.has(name))) return false
+      return !(translated && direct.every(([name]) => moved.has(name)))
+    })
+    return clearLayoutEdits(hit)
+  }, [])
 
   const boards = useMemo(
     () =>
@@ -139,9 +158,14 @@ export function useBoardLayout(
 
   const persist = useCallback(
     (moves: Move[], label: string, merge?: string) => {
-      const { before, after } = editsOf(moves)
+      const geometry = editsOf(moves)
+      const cleared = layoutClears(moves)
+      const before: CanvasEdit = { ...geometry.before, ...cleared?.before }
+      const after: CanvasEdit = { ...geometry.after, ...cleared?.after }
+      if (cleared) applyLocal(cleared.after)
       const saved = send(pageId, after).then((result) => {
         if (result.ok) return history.record(label, before, after, merge)
+        if (cleared) applyLocal(cleared.before)
         setPlaced((current) => ({
           ...current,
           ...Object.fromEntries(moves.map(({ name, before: rect }) => [name, rect])),
@@ -151,7 +175,7 @@ export function useBoardLayout(
       })
       saves.current = saves.current.then(() => saved)
     },
-    [fail, history, pageId],
+    [applyLocal, fail, history, layoutClears, pageId],
   )
 
   const flush = useCallback(() => {
@@ -201,6 +225,7 @@ export function useBoardLayout(
         names.some((item) => (sectionState.sectionOf[item] ?? null) !== target.section)
       ) {
         const { before, after } = editsOf(moves)
+        const cleared = layoutClears(moves)
         const assigned = assignEdits(names, boards, target.section)
         const join = (geometry: CanvasEdit, section: CanvasEdit): CanvasEdit => ({
           boards: (geometry.boards ?? []).map((item) => ({
@@ -209,7 +234,11 @@ export function useBoardLayout(
           })),
         })
         setLive(null)
-        editSections(text, join(before, assigned.before), join(after, assigned.after))
+        editSections(
+          text,
+          { ...join(before, assigned.before), ...cleared?.before },
+          { ...join(after, assigned.after), ...cleared?.after },
+        )
         return
       }
       flush()
@@ -220,7 +249,7 @@ export function useBoardLayout(
       setLive(null)
       persist(moves, text)
     },
-    [boards, describe, editSections, flush, persist, sectionState.sectionOf],
+    [boards, describe, editSections, flush, layoutClears, persist, sectionState.sectionOf],
   )
 
   const nudge = useCallback(

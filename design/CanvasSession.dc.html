@@ -27,8 +27,8 @@ body{margin:0}
 </span>
 <sc-if value="{{several}}" hint-placeholder-val="{{false}}">
 <span style="flex-shrink: 0; display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: 9999px; background: var(--muted); font-size: 11px; font-weight: 500; color: var(--muted-foreground);">3</span>
-<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: var(--muted-foreground);"><path d="m7 15 5 5 5-5"></path><path d="m7 9 5-5 5 5"></path></svg>
 </sc-if>
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: var(--muted-foreground);"><path d="m7 15 5 5 5-5"></path><path d="m7 9 5-5 5 5"></path></svg>
 </button>
 </sc-if>
 <sc-if value="{{noSession}}" hint-placeholder-val="{{false}}">
@@ -57,7 +57,7 @@ body{margin:0}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"one","options":["one","several","several-open","pick","none"]},"size":{"editor":"enum","default":"regular","options":["regular","compact"]},"agent":{"editor":"enum","default":"claude-code","options":["claude-code", "codex", "opencode", "pi", "command-code", "other"]},"$preview":{"width":288,"height":260}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"one","options":["one","one-open","several","several-open","pick","none"]},"size":{"editor":"enum","default":"regular","options":["regular","compact"]},"agent":{"editor":"enum","default":"claude-code","options":["claude-code", "codex", "opencode", "pi", "command-code", "other"]},"$preview":{"width":288,"height":260}}'>
 class Component extends DCLogic {
   renderVals() {
     const { theme, state } = this.props
@@ -65,15 +65,16 @@ class Component extends DCLogic {
     const agent = this.props.agent || 'claude-code'
     const flags = (id) => ({ isClaude: id === 'claude-code', isCodex: id === 'codex', isOpencode: id === 'opencode', isPi: id === 'pi', isCommand: id === 'command-code', isOther: id === 'other' })
     const several = state === 'several' || state === 'several-open' || state === 'pick'
-    const open = state === 'several-open'
-    const sessions = [
+    const open = state === 'several-open' || state === 'one-open'
+    const all = [
       { title: 'Frame sections and variant selection', branch: 'feat/sections-variants', selected: 'true', bg: 'var(--accent)', check: '✓', ...flags('claude-code') },
       { title: 'Doctor and settings page', branch: 'feat/doctor-settings', selected: 'false', bg: 'transparent', check: '', ...flags('codex') },
       { title: 'Install flags', branch: 'feat/install-flags', selected: 'false', bg: 'transparent', check: '', ...flags('opencode') },
     ]
+    const sessions = state === 'one-open' ? all.slice(0, 1) : all
     return {
       themeClass: theme === 'dark' ? 'dark' : '',
-      pad: open ? '176px 16px 16px' : '16px',
+      pad: open ? `${sessions.length * 50 + 26}px 16px 16px` : '16px',
       cur: flags(agent),
       showLogo: state !== 'pick',
       noLogo: state === 'pick',
@@ -81,9 +82,9 @@ class Component extends DCLogic {
       noSession: state === 'none',
       several,
       menuOpen: open,
-      popup: several ? 'listbox' : 'false',
+      popup: 'listbox',
       open: open ? 'true' : 'false',
-      cursor: several ? 'pointer' : 'default',
+      cursor: 'pointer',
       picked: state !== 'pick',
       twoLine: state !== 'pick' && !compact,
       regular: !compact,

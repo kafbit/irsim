@@ -4,9 +4,11 @@ export type VersionInfo = {
   latest: string | null
   releaseUrl: string | null
   canUpdate: boolean
+  build: string | null
+  installedBuild: string | null
 }
 
-export type Notice = { kind: 'available' | 'restart'; version: string; releaseUrl: string | null }
+export type Notice = { kind: 'available' | 'restart' | 'rebuild'; version: string; releaseUrl: string | null }
 
 const split = (version: string): { core: number[]; pre: string[] } => {
   const [withoutBuild = ''] = version.split('+')
@@ -53,5 +55,14 @@ export const noticeOf = (info: VersionInfo): Notice | null => {
   if (newer(info.installed, info.running)) {
     return { kind: 'restart', version: info.installed, releaseUrl: null }
   }
+  if (
+    info.installedBuild !== null &&
+    info.installedBuild !== info.build &&
+    info.installed === info.running
+  ) {
+    return { kind: 'rebuild', version: info.installed, releaseUrl: null }
+  }
   return null
 }
+
+export const identityOf = (info: VersionInfo): string => info.build ?? info.running

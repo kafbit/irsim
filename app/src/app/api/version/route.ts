@@ -1,6 +1,12 @@
 import { latestRelease } from '../../../lib/release'
 import type { VersionInfo } from '../../../lib/version-info'
-import { canUpdate, installedVersion, runningVersion } from '../../../lib/version-state'
+import {
+  canUpdate,
+  installedBuild,
+  installedVersion,
+  runningBuild,
+  runningVersion,
+} from '../../../lib/version-state'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -17,6 +23,8 @@ export async function GET(request?: Request): Promise<Response> {
     latest: release?.version ?? null,
     releaseUrl: release?.url ?? null,
     canUpdate: canUpdate(installed),
+    build: runningBuild(),
+    installedBuild: await installedBuild(),
   }
   return Response.json(info, { headers: { 'Cache-Control': 'no-store' } })
 }
