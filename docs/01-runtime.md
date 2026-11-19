@@ -112,6 +112,22 @@ whose props changed is re-rendered in place, not remounted.
 The runtime posts `{type:'ready'|'error'|'strings', board, details}` to `parent`; the canvas
 uses `ready` to stop the loading skeleton and `strings` to fill the coverage panel.
 
+## Shared folder
+
+`<design>/shared/` holds files that every board frame can use.
+The name is fixed and there is no config.
+
+1. Every `*.css` file, in path order, is injected as one `<style data-irsim-shared>` right after the opening `<head>` tag of each frame.
+2. Every `*.js` and `*.mjs` file is loaded with `import()` before the boards render.
+   The module namespace reaches each board script as `shared.<name>`.
+   The name is the camelCase of the path without its extension, split on `/`, `-`, `_` and `.`.
+   `table-sort.js` becomes `shared.tableSort` and `ui/format.js` becomes `shared.uiFormat`.
+   A module that fails to load is reported as a `shared` problem and skipped.
+3. Any other file is served at `/b/shared/<path>`, so a board references it as `./shared/<path>`.
+4. Files and folders whose name starts with `.` are ignored.
+5. A change in the folder reloads every open frame and refreshes every thumbnail.
+6. `irsim export` copies the folder to `b/shared` and injects the same style and module list.
+
 ## Sections
 
 `canvas.json` can group a page's boards in `sections`.

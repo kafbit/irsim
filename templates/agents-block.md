@@ -10,4 +10,5 @@ The boards in `design/` are the design, shown by irsim (`irsim serve`). Load the
 - Keep the boards in step with the app: a later screen change updates its board in the same change.
 - A pull request that changes UI source must change a board, or state that nothing visible changed.
 - A review does not review board files. It checks that the boards and the app in the pull request show the same thing; the user accepts a board by looking at it in irsim.
+- Styles that many boards share go in `design/shared/*.css`, helpers in `design/shared/*.js` (the exports reach a board script as `shared.<name>`, for example `design/shared/table-sort.js` as `shared.tableSort`), and images and fonts in `design/shared/`, referenced as `./shared/<path>`. Keep components as `dc-import` boards.
 <!-- IRSIM_END -->

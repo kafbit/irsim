@@ -41,5 +41,15 @@ export function useBoardReloads() {
     })
   }, [])
 
-  return { counters, reload }
+  const reloadAll = useCallback(() => {
+    const names = [...closures.current.keys()]
+    if (names.length === 0) return
+    setCounters((current) => {
+      const next = { ...current }
+      for (const name of names) next[name] = (next[name] ?? 0) + 1
+      return next
+    })
+  }, [])
+
+  return { counters, reload, reloadAll }
 }

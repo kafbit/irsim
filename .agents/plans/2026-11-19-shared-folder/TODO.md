@@ -1,0 +1,7 @@
+- [x] Server: shared folder reader, closure hash, frame route injection, asset route, watcher event
+- [x] Runtime: load shared modules, pass `shared` to board scripts
+- [x] Canvas: reload every frame on a shared change
+- [x] Export: inject CSS and modules, copy the folder
+- [x] Tests for each part
+- [x] Docs: runtime doc, agents block, irsim-workflow skill
+- [x] Verify, PR, tell the CRM session

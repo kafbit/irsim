@@ -25,7 +25,7 @@ const envFor = (board: string): CanvasEnv => ({
 
 // Bump when the frame document's shape changes: the closure hash covers the boards, not this
 // route, and a stale 304 hands the new runtime a document it cannot read.
-const FORMAT = 'f3'
+const FORMAT = 'f4'
 
 const ZOOM_GUARD =
   "addEventListener('wheel',function(e){if(!(e.ctrlKey||e.metaKey))return;e.preventDefault();" +
@@ -56,7 +56,7 @@ export async function GET(
   if (!BOARD_NAME.test(board)) {
     return new Response('invalid board name', { status: 400 })
   }
-  const { boards, missing, hash } = await closureOf(board)
+  const { boards, missing, hash, shared } = await closureOf(board)
   const source = boards[board]
   if (source === undefined) {
     return new Response(`no board named ${board}`, { status: 404 })
@@ -73,10 +73,18 @@ export async function GET(
   }
   const escape = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u003c')
   const imports = Object.fromEntries(Object.entries(boards).filter(([name]) => name !== board))
-  const bundle = escape({ root: board, boards: imports, missing })
+  const bundle = escape({ root: board, boards: imports, missing, shared: shared.modules })
   const open = source.search(/<x-dc[\s>]/)
   const shell = open < 0 ? source : `${source.slice(0, open)}<x-dc></x-dc>\n</body>\n</html>\n`
-  const html = shell
+  const style = shared.css
+    ? `<style data-irsim-shared>${shared.css.replace(/<\/style/gi, '<\\/style')}</style>`
+    : ''
+  const head = /<head(?:\s[^>]*)?>/i.exec(shell)
+  const html = (
+    head && style
+      ? `${shell.slice(0, head.index + head[0].length)}${style}${shell.slice(head.index + head[0].length)}`
+      : shell
+  )
     .replace(
       /<script\s+src="\.\/support\.js"\s*><\/script>/g,
       '<script type="module" src="/runtime/support.js"></script>',
@@ -84,6 +92,7 @@ export async function GET(
     .replace(
       '</head>',
       () =>
+        (head ? '' : style) +
         `<script>window.__CANVAS_ENV__=${escape(envFor(board))}</script>` +
         `<script>${ZOOM_GUARD}</script>` +
         `<script type="application/json" id="dc-bundle">${bundle}</script>` +

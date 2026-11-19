@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { readFile, stat } from 'node:fs/promises'
 import { join } from 'node:path'
 import { designDir } from './design-dir'
+import { readShared, type Shared } from './shared-folder'
 
 /**
  * `hash` follows file stamps (mtime and size), cheap for caching. `content` follows the sources
@@ -14,9 +15,10 @@ export type Closure = {
   hash: string
   content: string
   render: string
+  shared: { css: string; modules: string[] }
 }
 
-type Entry = { closure: Closure; stamps: Map<string, string> }
+type Entry = { closure: Closure; stamps: Map<string, string>; shared: string }
 
 const IMPORT = /<dc-import\s+name=(?:"([^"]*)"|'([^']*)')/g
 
@@ -41,14 +43,15 @@ const stampOf = async (dir: string, name: string): Promise<string> => {
   }
 }
 
-const unchanged = async (dir: string, entry: Entry): Promise<boolean> => {
+const unchanged = async (dir: string, entry: Entry, sharedStamp: string): Promise<boolean> => {
+  if (entry.shared !== sharedStamp) return false
   const current = await Promise.all(
     [...entry.stamps.keys()].map(async (name) => [name, await stampOf(dir, name)] as const),
   )
   return current.every(([name, stamp]) => entry.stamps.get(name) === stamp)
 }
 
-const build = async (dir: string, board: string): Promise<Entry> => {
+const build = async (dir: string, board: string, shared: Shared): Promise<Entry> => {
   const boards: Record<string, string> = {}
   const stamps = new Map<string, string>()
   const missing: string[] = []
@@ -72,6 +75,7 @@ const build = async (dir: string, board: string): Promise<Entry> => {
         .filter(([, stamp]) => stamp !== 'missing')
         .sort(([a], [b]) => (a < b ? -1 : 1))
         .map(([name, stamp]) => `${name}:${stamp}`)
+        .concat(`shared:${shared.stamp}`)
         .join('\n'),
     )
     .digest('hex')
@@ -81,6 +85,7 @@ const build = async (dir: string, board: string): Promise<Entry> => {
       Object.keys(boards)
         .sort()
         .map((name) => `${name}\n${boards[name]}`)
+        .concat(`shared\n${shared.content}`)
         .join('\n\0'),
     )
     .digest('hex')
@@ -93,11 +98,16 @@ const build = async (dir: string, board: string): Promise<Entry> => {
           .filter((name) => name !== board)
           .sort()
           .map((name) => `${name}\n${boards[name]}`),
+        `shared\n${shared.content}`,
       ].join('\n\0'),
     )
     .digest('hex')
     .slice(0, 12)
-  return { closure: { boards, missing, hash, content, render }, stamps }
+  return {
+    closure: { boards, missing, hash, content, render, shared: { css: shared.css, modules: shared.modules } },
+    stamps,
+    shared: shared.stamp,
+  }
 }
 
 /**
@@ -108,8 +118,9 @@ export const closureOf = async (board: string): Promise<Closure> => {
   const dir = designDir()
   const key = `${dir}\n${board}`
   const cached = cache.get(key)
-  if (cached && (await unchanged(dir, cached))) return cached.closure
-  const entry = await build(dir, board)
+  const shared = await readShared()
+  if (cached && (await unchanged(dir, cached, shared.stamp))) return cached.closure
+  const entry = await build(dir, board, shared)
   cache.set(key, entry)
   return entry.closure
 }

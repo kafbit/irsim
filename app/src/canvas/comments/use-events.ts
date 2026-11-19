@@ -8,6 +8,7 @@ type Handlers = {
   onApprovals?: () => void
   onThumb?: (board: string, ok: boolean) => void
   onCanvas?: () => void
+  onShared?: () => void
 }
 
 /**
@@ -15,7 +16,7 @@ type Handlers = {
  * also runs when the stream (re)opens, to catch up on writes missed while it was down. Both
  * handlers are read once, at mount, so they must be stable.
  */
-export function useEvents({ onBoard, onComments, onApprovals, onThumb, onCanvas }: Handlers) {
+export function useEvents({ onBoard, onComments, onApprovals, onThumb, onCanvas, onShared }: Handlers) {
   useMountEffect(() => {
     const source = new EventSource('/api/events')
     source.addEventListener('open', onComments)
@@ -31,6 +32,7 @@ export function useEvents({ onBoard, onComments, onApprovals, onThumb, onCanvas 
       } catch {}
     })
     if (onCanvas) source.addEventListener('canvas', onCanvas)
+    if (onShared) source.addEventListener('shared', onShared)
     if (onThumb) {
       source.addEventListener('thumb', (event) => {
         try {
