@@ -1,0 +1,12 @@
+{
+  "description": "A section is the bounds of its boards: the fixed section stays and the section dropped on it moves as one rect",
+  "fn": "resolveCollisions",
+  "gap": 80,
+  "rects": [
+    { "name": "sectionA", "x": 0, "y": 0, "width": 1000, "height": 600 },
+    { "name": "sectionB", "x": 800, "y": 200, "width": 1000, "height": 600 },
+    { "name": "sectionC", "x": 3000, "y": 0, "width": 500, "height": 500 }
+  ],
+  "fixed": ["sectionA"],
+  "expected": { "sectionB": { "x": 1080, "y": 200 } }
+}

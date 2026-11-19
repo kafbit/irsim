@@ -1,0 +1,12 @@
+{
+  "description": "A board dropped between two fixed boards with no room between them moves to the nearest spot clear of both, not back and forth between them",
+  "fn": "resolveCollisions",
+  "gap": 80,
+  "rects": [
+    { "name": "A", "x": 0, "y": 0, "width": 400, "height": 300 },
+    { "name": "B", "x": 500, "y": 0, "width": 400, "height": 300 },
+    { "name": "M", "x": 350, "y": 0, "width": 200, "height": 300 }
+  ],
+  "fixed": ["A", "B"],
+  "expected": { "M": { "x": 350, "y": 380 } }
+}

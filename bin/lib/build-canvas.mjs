@@ -1,8 +1,28 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-const ROW_WIDTH = 12000
 const GAP = 80
+const ROW_WIDTH = 12000
+
+/** Positions for `sizes` below every `existing` rect, left aligned, wrapping at `ROW_WIDTH`. Same rule as `placeAtEnd` in `app/src/lib/board-placement.mjs`, which the shipped app cannot import from here. */
+const placeAtEnd = (existing, sizes) => {
+  const left = existing.length > 0 ? Math.min(...existing.map((rect) => rect.x)) : 0
+  let rowY = existing.length > 0 ? Math.max(...existing.map((rect) => rect.y + rect.height)) + GAP : 0
+  let cursorX = left
+  let rowHeight = 0
+  return sizes.map((size) => {
+    if (cursorX > left && cursorX - left + size.width > ROW_WIDTH) {
+      rowY += rowHeight + GAP
+      cursorX = left
+      rowHeight = 0
+    }
+    const position = { x: Math.round(cursorX), y: Math.round(rowY) }
+    cursorX += size.width + GAP
+    rowHeight = Math.max(rowHeight, size.height)
+    return position
+  })
+}
+
 const DEFAULT_SIZE = { width: 1440, height: 900 }
 const UNSORTED = { id: 'unsorted', title: 'Unsorted' }
 const SUFFIX = '.dc.html'
@@ -101,21 +121,25 @@ export const buildCanvas = (designDir) => {
       .map((name) => ({ name, ...readBoard(readFileSync(join(designDir, `${name}${SUFFIX}`), 'utf8')) }))
     const sectionIds = new Set((page.sections ?? []).map((entry) => entry.id))
     const boards = []
-    let cursorX = 0
-    let rowY = 0
-    let rowHeight = 0
+    const placedOf = (board) => {
+      const kept = earlier.get(board.name)
+      return Number.isFinite(kept?.x) && Number.isFinite(kept?.y) ? kept : null
+    }
+    const keptRects = sized
+      .filter((board) => placedOf(board))
+      .map((board) => ({ ...board, x: placedOf(board).x, y: placedOf(board).y }))
+    const fresh = sized.filter((board) => !placedOf(board))
+    const spots = new Map(
+      placeAtEnd(keptRects, fresh).map((spot, index) => [fresh[index].name, spot]),
+    )
     for (const board of sized) {
       const kept = earlier.get(board.name)
-      if (cursorX > 0 && cursorX + board.width > ROW_WIDTH) {
-        rowY += rowHeight + GAP
-        cursorX = 0
-        rowHeight = 0
-      }
+      const spot = spots.get(board.name)
       boards.push({
         name: board.name,
         title: board.title,
-        x: kept?.x ?? cursorX,
-        y: kept?.y ?? rowY,
+        x: spot ? spot.x : kept.x,
+        y: spot ? spot.y : kept.y,
         width: board.width,
         height: board.height,
         ...(typeof kept?.interactive === 'boolean' ? { interactive: kept.interactive } : {}),
@@ -127,8 +151,6 @@ export const buildCanvas = (designDir) => {
         ...(typeof kept?.variantLabel === 'string' ? { variantLabel: kept.variantLabel } : {}),
         ...(typeof kept?.baseHash === 'string' ? { baseHash: kept.baseHash } : {}),
       })
-      cursorX += board.width + GAP
-      rowHeight = Math.max(rowHeight, board.height)
     }
     return {
       id: page.id,

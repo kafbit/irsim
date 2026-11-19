@@ -71,6 +71,8 @@ const store = (key: string, value: string) => {
   }
 }
 
+const RELAYOUT_MS = 250
+
 const scaled = (rect: Comment['rect'], k: number, scroll: { x: number; y: number }) => ({
   x: (rect.x - scroll.x) * k,
   y: (rect.y - scroll.y) * k,
@@ -236,6 +238,8 @@ export function PlayView({
     scrollFrameTo(frameRef.current?.contentWindow, comment)
   }, [ready, thread.comments])
 
+  const relayout = useRef<ReturnType<typeof setTimeout>>(undefined)
+
   const locate = (comment: Comment) => {
     setActiveId(comment.id)
     if (comment.board !== board.name) {
@@ -246,9 +250,18 @@ export function PlayView({
     if (view && (view.width !== shown.width || view.height !== shown.height)) {
       setState(stateFromView(view))
       setPicked(null)
+      clearTimeout(relayout.current)
+      relayout.current = setTimeout(
+        () => scrollFrameTo(frameRef.current?.contentWindow, comment),
+        RELAYOUT_MS,
+      )
+      return
     }
+    clearTimeout(relayout.current)
     requestAnimationFrame(() => scrollFrameTo(frameRef.current?.contentWindow, comment))
   }
+
+  useEffect(() => () => clearTimeout(relayout.current), [])
 
   const openThread = useCallback((id: string) => {
     setActiveId(id)
@@ -432,8 +445,17 @@ export function PlayView({
             onClick={() => setComment(!commenting)}
           >
             Comment
+            <kbd aria-hidden="true" className="rounded border border-border px-1 font-sans text-[11px] leading-4 text-muted-foreground">C</kbd>
           </Button>
-          <span className="shrink-0 text-xs text-muted-foreground">Esc to stop</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-keyshortcuts="Escape"
+            className="shrink-0 text-xs text-muted-foreground"
+            onClick={escape}
+          >
+            <kbd aria-hidden="true" className="rounded border border-border px-1 font-sans text-[11px] leading-4 text-muted-foreground">Esc</kbd> to stop
+          </Button>
         </div>
       </header>
       <div className="flex min-h-0 flex-1">

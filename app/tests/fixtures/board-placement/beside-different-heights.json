@@ -1,0 +1,20 @@
+{
+  "description": "A new board taller than its anchor pushes the boards in the rows it reaches, a short board pushes only the boards level with it, and boards left of the new board stay",
+  "fn": "placeBeside",
+  "gap": 80,
+  "rects": [
+    { "name": "A", "x": 0, "y": 0, "width": 400, "height": 300 },
+    { "name": "B", "x": 480, "y": 0, "width": 400, "height": 600 },
+    { "name": "C", "x": 960, "y": 0, "width": 400, "height": 200 },
+    { "name": "E", "x": 480, "y": 700, "width": 400, "height": 300 },
+    { "name": "G", "x": 0, "y": 700, "width": 400, "height": 300 },
+    { "name": "F", "x": 480, "y": 2000, "width": 400, "height": 300 }
+  ],
+  "anchor": "A",
+  "side": "right",
+  "size": { "width": 400, "height": 800 },
+  "expected": {
+    "placed": { "x": 480, "y": 0, "width": 400, "height": 800 },
+    "moved": { "B": { "x": 960, "y": 0 }, "E": { "x": 960, "y": 700 }, "C": { "x": 1440, "y": 0 } }
+  }
+}

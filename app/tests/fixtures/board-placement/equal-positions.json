@@ -1,0 +1,11 @@
+{
+  "description": "A board on the exact spot of a fixed square board moves right: the four shifts are equal, x goes before y and the positive direction first",
+  "fn": "resolveCollisions",
+  "gap": 80,
+  "rects": [
+    { "name": "A", "x": 0, "y": 0, "width": 400, "height": 400 },
+    { "name": "B", "x": 0, "y": 0, "width": 400, "height": 400 }
+  ],
+  "fixed": ["A"],
+  "expected": { "B": { "x": 480, "y": 0 } }
+}

@@ -1,0 +1,19 @@
+{
+  "description": "A new board left of the anchor pushes the boards on its left, and those that hit in turn, further left; a board far away stays",
+  "fn": "placeBeside",
+  "gap": 80,
+  "rects": [
+    { "name": "W", "x": 0, "y": 0, "width": 400, "height": 300 },
+    { "name": "X", "x": 500, "y": 0, "width": 400, "height": 300 },
+    { "name": "Y", "x": 1000, "y": 0, "width": 400, "height": 300 },
+    { "name": "Z", "x": 1600, "y": 0, "width": 400, "height": 300 },
+    { "name": "F", "x": 5000, "y": 0, "width": 400, "height": 300 }
+  ],
+  "anchor": "Y",
+  "side": "left",
+  "size": { "width": 300, "height": 300 },
+  "expected": {
+    "placed": { "x": 620, "y": 0, "width": 300, "height": 300 },
+    "moved": { "X": { "x": 140, "y": 0 }, "W": { "x": -340, "y": 0 } }
+  }
+}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { CanvasEdit } from '../lib/canvas-layout'
+import { type CanvasEdit, resolveMoves } from '../lib/canvas-layout'
 import { editsOf, type Move, moveRect } from './frame-edit'
 import type { PlacedBoard, Rect } from './geometry'
 import { type ApplyResult, createHistory, type Outcome } from './history'
@@ -21,7 +21,11 @@ const NUDGE_QUIET_MS = 400
 const ERROR_MS = 6000
 const GEOMETRY = ['x', 'y', 'width', 'height'] as const
 
-type Pending = { key: string; items: Map<string, { rect: Rect; before: Rect }> }
+type Pending = {
+  key: string
+  targets: string[]
+  items: Map<string, { rect: Rect; before: Rect }>
+}
 
 const rectOf = ({ x, y, width, height }: Rect): Rect => ({ x, y, width, height })
 
@@ -83,10 +87,7 @@ export function useBoardLayout(
   const errorTimer = useRef(0)
   const baseRef = useRef(base)
   const stateRef = useRef(sectionState)
-  useEffect(() => {
-    baseRef.current = base
-    stateRef.current = sectionState
-  })
+  const boardsRef = useRef<PlacedBoard[]>(base)
 
   /** Sections with a stored layout that these moves break: a frame moved or resized by hand, not the whole section. */
   const layoutClears = useCallback((moves: Move[]) => {
@@ -115,6 +116,36 @@ export function useBoardLayout(
       ),
     [base, placed, live, sectionState.sectionOf],
   )
+  useEffect(() => {
+    baseRef.current = base
+    stateRef.current = sectionState
+    boardsRef.current = boards
+  })
+
+  /** `moves` and the moves of the neighbours they push apart, as the server resolves them. */
+  const withNeighbours = useCallback((moves: Move[], drop?: { section: string | null }): Move[] => {
+    const rects = new Map(moves.map((move) => [move.name, move.rect]))
+    const current = boardsRef.current.map((board) => {
+      const moved = rects.get(board.name)
+      if (!moved) return board
+      const joined = drop ? { section: drop.section ?? undefined } : {}
+      return { ...board, ...moved, ...joined }
+    })
+    const pushed = resolveMoves(
+      current,
+      stateRef.current.sections,
+      moves.map((move) => move.name),
+      boardsRef.current,
+    )
+    const extra: Move[] = []
+    for (const [name, to] of pushed) {
+      const board = boardsRef.current.find((entry) => entry.name === name)
+      if (board && !rects.has(name)) {
+        extra.push({ name, rect: { ...rectOf(board), ...to }, before: rectOf(board) })
+      }
+    }
+    return [...moves, ...extra]
+  }, [])
 
   const applyLocal = useCallback((edit: CanvasEdit) => {
     setPlaced((current) => {
@@ -184,7 +215,7 @@ export function useBoardLayout(
     pending.current = null
     if (!waiting) return
     const moves = [...waiting.items].map(([name, { rect, before }]) => ({ name, rect, before }))
-    persist(moves, describe('nudge', [...waiting.items.keys()]), `nudge:${waiting.key}`)
+    persist(moves, describe('nudge', waiting.targets), `nudge:${waiting.key}`)
   }, [describe, persist])
 
   /**
@@ -209,14 +240,15 @@ export function useBoardLayout(
 
   const commit = useCallback(
     (
-      moves: Move[],
+      dragged: Move[],
       kind: 'move' | 'resize',
       label?: string | { section: string | null },
       drop?: { section: string | null },
     ) => {
       const target = typeof label === 'object' ? label : drop
+      const moves = withNeighbours(dragged, target)
       const name = typeof label === 'string' ? label : undefined
-      const names = moves.map((move) => move.name)
+      const names = dragged.map((move) => move.name)
       const text = name ?? describe(kind, names)
       // A frame dropped into or out of a section: the move and the new section are one edit, so
       // one undo puts both back.
@@ -249,7 +281,7 @@ export function useBoardLayout(
       setLive(null)
       persist(moves, text)
     },
-    [boards, describe, editSections, flush, layoutClears, persist, sectionState.sectionOf],
+    [boards, describe, editSections, flush, layoutClears, persist, sectionState.sectionOf, withNeighbours],
   )
 
   const nudge = useCallback(
@@ -260,15 +292,22 @@ export function useBoardLayout(
         .join('\0')
       if (pending.current && pending.current.key !== key) flush()
       const waiting = pending.current
-      const items = new Map<string, { rect: Rect; before: Rect }>()
-      for (const target of targets) {
+      const moves: Move[] = targets.map((target) => {
         const earlier = waiting?.items.get(target.name)
-        items.set(target.name, {
+        return {
+          name: target.name,
           rect: moveRect(earlier?.rect ?? target, dx, dy),
           before: earlier?.before ?? rectOf(target),
-        })
+        }
+      })
+      const items = new Map<string, { rect: Rect; before: Rect }>()
+      for (const { name, rect, before } of withNeighbours(moves)) {
+        items.set(name, { rect, before: waiting?.items.get(name)?.before ?? before })
       }
-      pending.current = { key, items }
+      for (const [name, earlier] of waiting?.items ?? []) {
+        if (!items.has(name)) items.set(name, earlier)
+      }
+      pending.current = { key, targets: targets.map((target) => target.name), items }
       setPlaced((current) => ({
         ...current,
         ...Object.fromEntries([...items].map(([name, { rect }]) => [name, rect])),
@@ -276,7 +315,7 @@ export function useBoardLayout(
       window.clearTimeout(nudgeTimer.current)
       nudgeTimer.current = window.setTimeout(flush, NUDGE_QUIET_MS)
     },
-    [flush],
+    [flush, withNeighbours],
   )
 
   const walk = useCallback(
