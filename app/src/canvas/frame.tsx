@@ -98,6 +98,7 @@ export const Frame = memo(function Frame({
   report,
   interacting,
   commenting,
+  selected,
   reload,
   approval,
   thumb,
@@ -112,6 +113,7 @@ export const Frame = memo(function Frame({
   report: Report | undefined
   interacting: boolean
   commenting: boolean
+  selected: boolean
   reload: number
   approval?: ApprovalState | undefined
   thumb?: Thumb | undefined
@@ -141,7 +143,8 @@ export const Frame = memo(function Frame({
   return (
     <div
       data-board={board.name}
-      className="absolute"
+      data-keep={selected || playing || commenting || mounted ? '' : undefined}
+      className="absolute [&[data-culled]:not([data-keep])]:[content-visibility:hidden]"
       style={{ left: board.x, top: board.y, width: board.width, height: board.height }}
     >
       <div

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback } from 'react'
+import { type RefObject, useCallback } from 'react'
 import type { Layout, Rect, Size, View } from './geometry'
 import { useCamera } from './use-camera'
 import { useGestures } from './use-gestures'
@@ -11,6 +11,7 @@ type Options = {
   focus: string | null
   hand: boolean
   marquee: boolean
+  marqueeRef: RefObject<HTMLDivElement | null>
   onCommit: (view: View, size: Size) => void
   onTap: (board: string | null, double: boolean, additive: boolean) => void
   onMarquee: (rect: Rect | null, additive: boolean, start: boolean) => void
@@ -26,6 +27,7 @@ export function useViewport({
   focus,
   hand,
   marquee,
+  marqueeRef,
   onCommit,
   onTap,
   onMarquee,
@@ -42,7 +44,14 @@ export function useViewport({
     focus,
     onCommit,
   })
-  const { wheelRef, setSpace, handlers } = useGestures({ camera, hand, marquee, onTap, onMarquee })
+  const { wheelRef, setSpace, handlers } = useGestures({
+    camera,
+    hand,
+    marquee,
+    marqueeRef,
+    onTap,
+    onMarquee,
+  })
 
   const viewportRef = useCallback(
     (element: HTMLDivElement | null) => {

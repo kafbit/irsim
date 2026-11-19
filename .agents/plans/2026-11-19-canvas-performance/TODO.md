@@ -1,0 +1,15 @@
+- [x] Research: profile, tldraw and Excalidraw
+- [x] Research: Penpot, OpenPencil, live HTML canvases
+- [x] Marquee outside React, world-anchored (typecheck, lint, marquee tests pass)
+- [x] Grid layer and changed-only camera writes, measured (pan 30/37 to 60 fps, style 1.8 s to 35 ms)
+- [x] Low-zoom level of detail (no rounded, clip, outline below the label scale): measured, no gain, reverted
+- [x] Off-screen culling with content-visibility (`use-culling.ts`): pan busy at fit 1.64 s to about 1.05 s, Layerize 839 to 330 ms; kept
+- [x] React memoisation of the shell: measured, within noise, reverted (the 65 ms first-select long task is the cold Inspector mount, not re-renders)
+- [x] No new iframe boots while the camera moves: measured, no iframe mounts during gestures in the scripts, reverted
+- [x] Out-of-process board iframes: measured, no gain on pan (top frame busy about 20% higher, all boards share one extra process), not adopted; same-origin dependency list recorded in PLAN.md
+- [x] Frame titles `display:none` below the label scale: zoom worse (42 to 47 fps), reverted
+- [x] Zoom long tasks at fit zoom: cause is the section border and radius scaled by `--inv` (re-raster of the world layer); coarse `--k` steps and a throttled border variable were measured and reverted
+- [x] Section fill and border painted on one screen-space canvas (`section-paint.tsx`): fit zoom long-task ms lower in 3 of 3 A/B runs (best 1128 to 288 ms), 100% zoom 479 to 82 ms, pan unchanged; kept
+- [x] Browser check: marquee, section move, resize, drop ring, hover, theme, culling, comment mode, play view pass; window resize left the section canvas stretched, fixed with `Camera.resized()` redrawing listeners, rechecked
+- [x] ~~Board check~~ Not applicable: nothing visible changed
+- [x] Final A/B against origin/main (5 interleaved runs), typecheck, lint, affected tests (355 pass)

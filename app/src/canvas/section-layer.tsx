@@ -9,6 +9,7 @@ import type { Camera } from './camera'
 import { type Handle, moveRect, type Move, resizeRect } from './frame-edit'
 import { boundsOf, type PlacedBoard, type Rect } from './geometry'
 import { SECTION_TONES } from './section-colors'
+import { type LiveSection, type LiveSections } from './section-paint'
 import { type PlacedSection, SECTION_LABEL } from './sections'
 
 const DRAG_THRESHOLD = 3
@@ -51,8 +52,7 @@ function RenameField({ title, onDone }: { title: string; onDone: (title: string 
 
 type Props = {
   hovered: string | null
-  /** The section a dragged frame would be dropped into: a 2 px ring border. */
-  dropTarget?: string | null
+  live: LiveSections
   onHover: (id: string | null) => void
   sections: PlacedSection[]
   boards: PlacedBoard[]
@@ -94,7 +94,7 @@ const HANDLES: { handle: Handle; left: string; top: string; cursor: string }[] =
  * the section.
  */
 export const SectionLayer = memo(function SectionLayer({
-  dropTarget = null,
+  live,
   hovered,
   onHover,
   sections,
@@ -112,7 +112,11 @@ export const SectionLayer = memo(function SectionLayer({
   onMoveSection,
   onResizeSection,
 }: Props) {
-  const [liveRect, setLiveRect] = useState<{ id: string; rect: Rect } | null>(null)
+  const [liveRect, setLiveRectState] = useState<LiveSection>(null)
+  const setLiveRect = (value: LiveSection) => {
+    setLiveRectState(value)
+    live.set(value)
+  }
   const maxDepth = sections.reduce((deepest, { depth }) => Math.max(deepest, depth), 0)
 
   const press = (event: PointerEvent<HTMLElement>, placed: PlacedSection) => {
@@ -247,7 +251,6 @@ export const SectionLayer = memo(function SectionLayer({
         const tone = plain
           ? { area: 'var(--card)', text: 'var(--foreground)' }
           : SECTION_TONES[placed.color ?? 'gray']
-        const area = tone.area
         const subs = sections.filter((candidate) => candidate.section.parent === section.id).length
         const count =
           placed.own === 0 && subs > 0
@@ -257,23 +260,19 @@ export const SectionLayer = memo(function SectionLayer({
           <div
             key={section.id}
             data-section={section.id}
-            className="pointer-events-none absolute border-solid"
+            className="pointer-events-none absolute"
             style={{
-              borderRadius: 'calc(var(--inv, 1) * 12px)',
               left: bounds.x,
               top: bounds.y,
               width: bounds.width,
               height: bounds.height,
-              background: area,
-              borderWidth: `calc(var(--inv, 1) * ${dropTarget === section.id ? 2 : 1}px)`,
-              borderColor: active || dropTarget === section.id ? 'var(--ring)' : 'var(--border-strong)',
             }}
           >
             <div
               className="absolute flex origin-bottom-left items-center gap-2"
               style={{
-                insetInlineStart: 0,
-                bottom: 'calc(100% + var(--inv, 1) * 6px)',
+                insetInlineStart: 'calc(var(--inv, 1) * 1px)',
+                bottom: 'calc(100% + var(--inv, 1) * 7px)',
                 maxWidth: `calc(var(--k, 1) * ${bounds.width}px)`,
                 height: SECTION_LABEL,
                 transform: 'scale(calc(var(--inv, 1) * var(--label-scale, 1)))',

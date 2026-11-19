@@ -46,6 +46,7 @@ import {
   withMembership,
 } from './sections'
 import { SectionLayer } from './section-layer'
+import { LiveSections, SectionPaint } from './section-paint'
 import { DEFAULT_GAP, directMembers, sectionTidyEdits, type TidyRequest, wrapWidth } from './tidy-section'
 import { SettingsDialog } from './settings-dialog'
 import { Sidebar } from './sidebar'
@@ -68,12 +69,14 @@ import {
   usePlayLinks,
 } from './use-play-links'
 import { type CommandHandlers, useShortcuts } from './use-shortcuts'
+import { useCulling } from './use-culling'
 import { useViewport } from './use-viewport'
 import { ViewControls } from './view-controls'
 import { readMinimap, writeMinimap, readSidebar, writeSidebar} from './view-storage'
 
-const GRID_STYLE = {
-  backgroundColor: 'var(--surface)',
+const VIEWPORT_STYLE = { backgroundColor: 'var(--surface)' } as const
+
+const GRID_LAYER_STYLE = {
   backgroundImage:
     'radial-gradient(circle, color-mix(in srgb, var(--border-strong) calc(var(--grid-alpha, 0) * 1%), transparent) 1px, transparent 1.5px)',
   backgroundSize: 'var(--grid-size, 24px) var(--grid-size, 24px)',
@@ -144,6 +147,7 @@ export function PageCanvas({
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [renaming, setRenaming] = useState<string | null>(null)
   const [hoveredSection, setHoveredSection] = useState<string | null>(null)
+  const [liveSections] = useState(() => new LiveSections())
   const [menu, setMenu] = useState<{
     x: number
     y: number
@@ -157,26 +161,24 @@ export function PageCanvas({
   const [variantsFocus, setVariantsFocus] = useState<{ name: string; count: number } | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   const mounts = useMounts(boards)
-  const [marqueeRect, setMarquee] = useState<Rect | null>(null)
-  const cameraRef = useRef<{ view: { x: number; y: number; k: number } } | null>(null)
+  const marqueeRef = useRef<HTMLDivElement>(null)
   const marqueeBase = useRef<string[]>([])
+  const marqueeNames = useRef<string[] | null>(null)
   const latest = useRef({ selection, boards })
   useEffect(() => {
     latest.current = { selection, boards }
   })
-  const onMarquee = useCallback((rect: Rect | null, additive: boolean, start: boolean) => {
-    setMarquee(rect)
-    const view = cameraRef.current?.view
-    if (!rect || !view) return
-    if (start) marqueeBase.current = additive ? latest.current.selection.names : []
-    const world = {
-      x: (rect.x - view.x) / view.k,
-      y: (rect.y - view.y) / view.k,
-      width: rect.width / view.k,
-      height: rect.height / view.k,
+  const onMarquee = useCallback((world: Rect | null, additive: boolean, start: boolean) => {
+    if (!world) {
+      marqueeNames.current = null
+      return
     }
-    const names = boardsInRect(world, latest.current.boards)
-    dispatch({ type: 'set', names: [...marqueeBase.current, ...names] })
+    if (start) marqueeBase.current = additive ? latest.current.selection.names : []
+    const names = [...marqueeBase.current, ...boardsInRect(world, latest.current.boards)]
+    const last = marqueeNames.current
+    if (last && last.length === names.length && last.every((name, i) => name === names[i])) return
+    marqueeNames.current = names
+    dispatch({ type: 'set', names })
   }, [])
   const onTap = useCallback((name: string | null, double: boolean, additive: boolean) => {
     if (name === null) return additive ? undefined : dispatch({ type: 'select', name: null })
@@ -197,13 +199,12 @@ export function PageCanvas({
     focus,
     hand: tool === 'hand',
     marquee: tool === 'move',
+    marqueeRef,
     onCommit: mounts.update,
     onTap,
     onMarquee,
   })
-  useEffect(() => {
-    cameraRef.current = camera
-  })
+  useCulling(camera, boards)
   const comments = useComments(manifest.id)
   const reloads = useBoardReloads()
   const numbers = useMemo(() => numberComments(comments.comments), [comments.comments])
@@ -478,6 +479,7 @@ export function PageCanvas({
   // Bumped whenever what plays changes, so a slow cross-page lookup that Stop or Esc overtook
   // does not move the page afterwards.
   const playRun = useRef(0)
+  const selectedSet = useMemo(() => new Set(selection.names), [selection.names])
   const only = selection.names.length === 1 ? (selection.names[0] ?? null) : null
   const playing = fullPlay ?? (selection.interacting ? only : null)
   useEffect(() => {
@@ -894,8 +896,22 @@ export function PageCanvas({
         className={`relative min-w-0 flex-1 touch-none overflow-clip outline-none select-none ${
           tool === 'hand' ? 'cursor-grab' : ''
         }`}
-        style={GRID_STYLE}
+        style={VIEWPORT_STYLE}
       >
+        <div
+          data-canvas-grid=""
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0"
+          style={GRID_LAYER_STYLE}
+        />
+        <SectionPaint
+          camera={camera}
+          sections={placedSectionList}
+          live={liveSections}
+          hovered={hoveredSection}
+          selected={sectionSelected}
+          dropTarget={dropTarget ?? null}
+        />
         <div
           ref={worldRef}
           data-world=""
@@ -907,7 +923,7 @@ export function PageCanvas({
         >
           <SectionLayer
             hovered={hoveredSection}
-            dropTarget={dropTarget}
+            live={liveSections}
             onHover={setHoveredSection}
             sections={placedSectionList}
             boards={boards}
@@ -935,6 +951,7 @@ export function PageCanvas({
                 report={entry?.report}
                 interacting={selection.interacting && only === board.name}
                 commenting={commenting}
+                selected={selectedSet.has(board.name)}
                 reload={reloads.counters[board.name] ?? 0}
                 approval={approvals.stateOf(board.name)}
                 thumb={thumbs[board.name]}
@@ -961,7 +978,7 @@ export function PageCanvas({
           editable={moving && !selection.interacting}
           onResizeStart={frameEdit.onResizeDown}
         />
-        <Marquee rect={marqueeRect} />
+        <Marquee ref={marqueeRef} />
         {commenting && pick ? (
           <Composer
             key={`${pick.board}:${pick.file}:${pick.line}:${pick.rect.x}:${pick.rect.y}`}

@@ -12,7 +12,7 @@ const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)'
 /**
  * The live camera. Pan and zoom write `view` and one DOM update per animation frame (the world
  * transform, the `--k` and `--inv` variables the frame labels read, the grid variables on the
- * viewport); React hears about the view only through `onSettle`, 100 ms after the last `move`
+ * grid layer; unchanged values are not rewritten); React hears about the view only through `onSettle`, 100 ms after the last `move`
  * or at once after `jump` and the end of an animation.
  */
 export class Camera {
@@ -28,6 +28,8 @@ export class Camera {
   private settleTimer = 0
   private coolTimer = 0
   private labels = true
+  private gridLayer: HTMLElement | null = null
+  private written = new Map<string, string>()
 
   constructor(onSettle: (view: View, size: Size) => void) {
     this.onSettle = onSettle
@@ -35,13 +37,20 @@ export class Camera {
 
   setViewport(element: HTMLElement | null) {
     this.viewport = element
+    this.gridLayer = element?.querySelector<HTMLElement>(':scope > [data-canvas-grid]') ?? null
+    this.written.clear()
     this.draw()
   }
 
   setWorld(element: HTMLElement | null) {
     this.world = element
     this.labels = true
+    this.written.clear()
     this.draw()
+  }
+
+  worldElement(): HTMLElement | null {
+    return this.world
   }
 
   viewportElement(): HTMLElement | null {
@@ -123,6 +132,11 @@ export class Camera {
     this.settle()
   }
 
+  resized() {
+    this.schedule()
+    this.settle()
+  }
+
   settle() {
     window.clearTimeout(this.settleTimer)
     window.clearTimeout(this.coolTimer)
@@ -161,14 +175,20 @@ export class Camera {
     })
   }
 
+  private write(style: CSSStyleDeclaration, name: string, value: string) {
+    if (this.written.get(name) === value) return
+    this.written.set(name, value)
+    style.setProperty(name, value)
+  }
+
   private draw() {
     const { x, y, k } = this.view
     if (this.world) {
       const style = this.world.style
       style.transform = `translate(${x}px, ${y}px) scale(${k})`
-      style.setProperty('--k', String(k))
-      style.setProperty('--inv', String(1 / k))
-      style.setProperty('--label-scale', String(Math.min(1.25, Math.max(0.8, k ** 0.2))))
+      this.write(style, '--k', String(k))
+      this.write(style, '--inv', String(1 / k))
+      this.write(style, '--label-scale', String(Math.min(1.25, Math.max(0.8, k ** 0.2))))
       const labels = k >= LABELS_MIN_SCALE
       if (labels !== this.labels) {
         this.labels = labels
@@ -176,12 +196,17 @@ export class Camera {
       }
     }
     if (this.viewport) {
-      const grid = gridOf(this.view)
-      const style = this.viewport.style
-      style.setProperty('--grid-size', `${grid.size}px`)
-      style.setProperty('--grid-x', `${grid.x}px`)
-      style.setProperty('--grid-y', `${grid.y}px`)
-      style.setProperty('--grid-alpha', String(Math.round(grid.alpha * 100)))
+      if (!this.gridLayer) {
+        this.gridLayer = this.viewport.querySelector<HTMLElement>(':scope > [data-canvas-grid]')
+      }
+      if (this.gridLayer) {
+        const grid = gridOf(this.view)
+        const style = this.gridLayer.style
+        this.write(style, '--grid-size', `${grid.size}px`)
+        this.write(style, '--grid-x', `${grid.x}px`)
+        this.write(style, '--grid-y', `${grid.y}px`)
+        this.write(style, '--grid-alpha', String(Math.round(grid.alpha * 100)))
+      }
     }
     for (const listener of this.listeners) listener(this.view, this.size)
   }
