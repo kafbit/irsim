@@ -29,6 +29,8 @@ jobs:
             echo "tag $GITHUB_REF_NAME does not match app/package.json version $version, so the release assets would be named irsim-$version-*" >&2
             exit 1
           fi
+      - name: Check the versions agree
+        run: scripts/check-versions.sh
       - run: scripts/build-release.sh
       - name: Publish
         env:
@@ -36,3 +38,25 @@ jobs:
         run: |
           gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes
           gh release upload "$GITHUB_REF_NAME" dist/*.tar.gz --clobber
+
+  npm:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          registry-url: https://registry.npmjs.org
+      - name: Publish the connectors
+        working-directory: plugin
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if npm view "@kafbit/irsim-connectors@$version" version >/dev/null 2>&1; then
+            echo "@kafbit/irsim-connectors@$version is already published"
+            exit 0
+          fi
+          npm publish --provenance --access public

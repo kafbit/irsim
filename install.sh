@@ -26,7 +26,7 @@ Environment:
   IRSIM_VERSION    release to install, default latest, overridden by --version
 
 Examples:
-  gh api repos/kafbit/irsim/contents/install.sh --jq .content | base64 -d | bash -s -- --version 0.2.1
+  curl -fsSL https://raw.githubusercontent.com/kafbit/irsim/main/install.sh | bash -s -- --version 0.2.1
   ./install.sh --local
 USAGE
 }
@@ -127,17 +127,30 @@ MSG
 }
 
 install_remote() {
-  command -v gh >/dev/null || { echo "install: gh is required, see https://cli.github.com" >&2; exit 1; }
-  gh auth status >/dev/null 2>&1 || { echo "install: run gh auth login first, the repository is private" >&2; exit 1; }
+  local tag version asset target use_gh=0
+  if command -v gh >/dev/null && gh auth status >/dev/null 2>&1; then
+    use_gh=1
+  else
+    command -v curl >/dev/null || { echo "install: curl or an authenticated gh is required" >&2; exit 1; }
+  fi
 
-  local tag version asset target
   if [ "$requested" = latest ]; then
-    tag="$(gh release view --repo "$repo" --json tagName --jq .tagName)"
+    if [ "$use_gh" = 1 ]; then
+      tag="$(gh release view --repo "$repo" --json tagName --jq .tagName)"
+    else
+      tag="$(curl -fsSL "https://api.github.com/repos/$repo/releases/latest" | sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)"
+      [ -n "$tag" ] || { echo "install: could not read the latest release of $repo" >&2; exit 1; }
+    fi
   else
     tag="v${requested#v}"
-    if ! gh release view "$tag" --repo "$repo" >/dev/null 2>&1; then
+    if [ "$use_gh" = 1 ]; then
+      if ! gh release view "$tag" --repo "$repo" >/dev/null 2>&1; then
+        echo "install: no release $tag in $repo" >&2
+        gh release list --repo "$repo" --limit 10 >&2 || true
+        exit 1
+      fi
+    elif ! curl -fsSL "https://api.github.com/repos/$repo/releases/tags/$tag" >/dev/null 2>&1; then
       echo "install: no release $tag in $repo" >&2
-      gh release list --repo "$repo" --limit 10 >&2 || true
       exit 1
     fi
   fi
@@ -157,7 +170,11 @@ install_remote() {
   fi
 
   echo "install: downloading $asset"
-  gh release download "$tag" --repo "$repo" --pattern "$asset" --dir "$work"
+  if [ "$use_gh" = 1 ]; then
+    gh release download "$tag" --repo "$repo" --pattern "$asset" --dir "$work"
+  else
+    curl -fsSL -o "$work/$asset" "https://github.com/$repo/releases/download/$tag/$asset"
+  fi
   extract "$work/$asset" "$target"
   printf '%s-%s\n' "$version" "$(date +%s)" > "$target/BUILD"
   activate "$version"
