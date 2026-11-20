@@ -1,4 +1,5 @@
 import { mkdir, rename, rm, stat } from 'node:fs/promises'
+import { availableParallelism } from 'node:os'
 import { join } from 'node:path'
 import type { Browser } from 'playwright-core'
 import sharp from 'sharp'
@@ -10,7 +11,7 @@ import { emit } from './events'
 import { THUMB_WIDTH, thumbFile, thumbKey, thumbsDir } from './thumbs-dir'
 import { recordThumb } from './thumbs-index'
 
-const CONCURRENCY = 2
+const CONCURRENCY = Math.min(4, Math.max(2, Math.floor(availableParallelism() / 2)))
 
 type Job = { key: string; board: string; base: string; target: BoardTarget }
 
@@ -115,8 +116,8 @@ export const thumbKeyOf = async (
 }
 
 /**
- * Queues a render of the board's current version, two at a time. A thumbnail key already queued or
- * running is not added again. A version that failed, or any board once Chromium is missing,
+ * Queues a render of the board's current version, `CONCURRENCY` at a time (half the CPUs, from 2
+ * to 4). A thumbnail key already queued or running is not added again. A version that failed, or any board once Chromium is missing,
  * returns `'failed'` and is not retried in this process.
  */
 export const enqueueThumb = async (board: string, base: string): Promise<'queued' | 'failed'> => {
