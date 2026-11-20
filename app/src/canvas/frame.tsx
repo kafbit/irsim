@@ -24,22 +24,23 @@ function Placeholder({
   const [seen, setSeen] = useState<{ rev: number; state: 'loaded' | 'pending' | 'failed' } | null>(
     null,
   )
-  const [stale, setStale] = useState<{ rev: number; src: string } | null>(null)
+  const [staleSrc, setStaleSrc] = useState<string | null>(null)
   const current = seen?.rev === rev ? seen : null
   const failed = thumb?.ok === false || current?.state === 'failed'
   const pending = !failed && current?.state === 'pending'
   const src = `/api/thumbs/${encodeURIComponent(board.name)}?h=${board.hash}-${board.width}x${board.height}`
   const imageSrc = thumb ? `${src}&r=${thumb.rev}` : src
+  const old = staleSrc === imageSrc
   const onLoad = () => {
     setSeen({ rev, state: 'loaded' })
     void fetch(imageSrc)
       .then((response) => {
-        const old = response.headers.get('X-Thumb-Stale') === '1'
-        setStale(old ? { rev, src: imageSrc } : null)
-        onStale(rev, old)
+        const isOld = response.headers.get('X-Thumb-Stale') === '1'
+        setStaleSrc(isOld ? imageSrc : null)
+        onStale(rev, isOld)
       })
       .catch(() => {
-        setStale(null)
+        setStaleSrc(null)
         onStale(rev, false)
       })
   }
@@ -53,8 +54,12 @@ function Placeholder({
   }
   return (
     <div className="absolute inset-0 flex items-center justify-center text-3xl text-muted-foreground">
-      <div className={`absolute inset-0 bg-secondary ${pending ? 'animate-pulse' : ''}`} />
-      <span className="relative">{board.name}</span>
+      {old ? null : (
+        <>
+          <div className={`absolute inset-0 bg-secondary ${pending ? 'animate-pulse' : ''}`} />
+          <span className="relative">{board.name}</span>
+        </>
+      )}
       {(!live || seen !== null) && !failed && !pending ? (
         // oxlint-disable-next-line next/no-img-element -- dev canvas thumbnails are served by /api/thumbs, no optimiser
         <img
@@ -66,7 +71,7 @@ function Placeholder({
           decoding="async"
           onLoad={onLoad}
           onError={onError}
-          className={`absolute inset-0 size-full object-top ${stale?.src === imageSrc ? 'bg-transparent object-contain' : 'bg-white object-cover'}`}
+          className={`absolute inset-0 size-full object-top ${old ? 'bg-transparent object-contain' : 'bg-white object-cover'}`}
         />
       ) : null}
     </div>
