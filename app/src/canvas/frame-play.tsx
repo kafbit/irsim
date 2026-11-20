@@ -34,7 +34,7 @@ export function FramePlay({
 }) {
   return (
     <div
-      className="pointer-events-auto ms-auto flex shrink-0 items-center pb-1 in-data-labels-off:invisible"
+      className={`pointer-events-auto ms-auto flex shrink-0 items-center pb-1 in-data-labels-off:invisible ${playing ? '' : '@max-[119.99px]:hidden'}`}
       onPointerDown={keep}
     >
       {playing ? (
