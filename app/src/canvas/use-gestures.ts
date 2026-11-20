@@ -1,9 +1,9 @@
 'use client'
 
-import { type PointerEvent, useCallback, useRef } from 'react'
+import { type PointerEvent, type RefObject, useCallback, useRef } from 'react'
 import type { Camera } from './camera'
 import { type Rect, zoomAt } from './geometry'
-import { rectBetween } from './marquee'
+import { paintMarquee, rectBetween } from './marquee'
 import { type WheelInput, wheelView } from './wheel'
 
 const DRAG_THRESHOLD = 3
@@ -12,6 +12,10 @@ const DOUBLE_TAP_MS = 350
 type Drag = {
   sx: number
   sy: number
+  wx: number
+  wy: number
+  px: number
+  py: number
   vx: number
   vy: number
   moved: boolean
@@ -26,8 +30,9 @@ type Options = {
   hand: boolean
   /** True in the Move tool: a left-button mouse drag draws the selection rectangle instead of panning. */
   marquee: boolean
+  marqueeRef: RefObject<HTMLDivElement | null>
   onTap: (board: string | null, double: boolean, additive: boolean) => void
-  /** `rect` is in viewport pixels, `null` when the drag ends. `start` is true on the first call of a drag. */
+  /** `rect` is in world units, `null` when the drag ends. `start` is true on the first call of a drag. */
   onMarquee: (rect: Rect | null, additive: boolean, start: boolean) => void
 }
 
@@ -41,11 +46,49 @@ const boardOf = (target: EventTarget) =>
  * through the `Camera`; a pointer or wheel input ends a running animation. When panning with the
  * Hand tool or Space, a tap does nothing and a drag may start on a frame label.
  */
-export function useGestures({ camera, hand, marquee, onTap, onMarquee }: Options) {
+export function useGestures({ camera, hand, marquee, marqueeRef, onTap, onMarquee }: Options) {
   const drag = useRef<Drag | null>(null)
   const space = useRef(false)
   const dragged = useRef(false)
   const lastTap = useRef<{ board: string; at: number } | null>(null)
+  const viewportBox = useRef<HTMLElement | null>(null)
+  const marqueeFrame = useRef(0)
+
+  const cancelMarquee = () => {
+    cancelAnimationFrame(marqueeFrame.current)
+    marqueeFrame.current = 0
+  }
+
+  const requestMarquee = () => {
+    const current = drag.current
+    if (!current || current.mode !== 'marquee' || !current.moved || marqueeFrame.current) return
+    marqueeFrame.current = requestAnimationFrame(() => {
+      marqueeFrame.current = 0
+      const active = drag.current
+      const element = viewportBox.current
+      if (!active || active.mode !== 'marquee' || !element) return
+      const { x, y, k } = camera.view
+      const box = element.getBoundingClientRect()
+      const rect = rectBetween(
+        active.wx * k + x,
+        active.wy * k + y,
+        active.px - box.left,
+        active.py - box.top,
+      )
+      paintMarquee(marqueeRef.current, rect)
+      onMarquee(
+        {
+          x: (rect.x - x) / k,
+          y: (rect.y - y) / k,
+          width: rect.width / k,
+          height: rect.height / k,
+        },
+        active.additive,
+        !dragged.current,
+      )
+      dragged.current = true
+    })
+  }
 
   const syncMode = useCallback(
     (panning: boolean) => {
@@ -57,6 +100,7 @@ export function useGestures({ camera, hand, marquee, onTap, onMarquee }: Options
 
   const wheelRef = useCallback(
     (element: HTMLDivElement | null) => {
+      viewportBox.current = element
       if (!element) return
       const onWheel = (event: WheelEvent) => {
         event.preventDefault()
@@ -64,6 +108,7 @@ export function useGestures({ camera, hand, marquee, onTap, onMarquee }: Options
         camera.move(
           wheelView(camera.view, event, event.clientX - rect.left, event.clientY - rect.top),
         )
+        requestMarquee()
       }
       const blockPageZoom = (event: WheelEvent) => event.ctrlKey && event.preventDefault()
       const onFrameWheel = (event: MessageEvent) => {
@@ -79,6 +124,7 @@ export function useGestures({ camera, hand, marquee, onTap, onMarquee }: Options
         const px = box.left + (data.details.clientX ?? 0) * scale - rect.left
         const py = box.top + (data.details.clientY ?? 0) * scale - rect.top
         camera.move(wheelView(camera.view, data.details, px, py))
+        requestMarquee()
       }
       let startK = 1
       const onGestureStart = (event: Event) => {
@@ -94,6 +140,7 @@ export function useGestures({ camera, hand, marquee, onTap, onMarquee }: Options
         }
         const rect = element.getBoundingClientRect()
         camera.move(zoomAt(camera.view, startK * scale, clientX - rect.left, clientY - rect.top))
+        requestMarquee()
       }
       element.addEventListener('gesturestart', onGestureStart)
       element.addEventListener('gesturechange', onGestureChange)
@@ -108,7 +155,7 @@ export function useGestures({ camera, hand, marquee, onTap, onMarquee }: Options
         window.removeEventListener('message', onFrameWheel)
       }
     },
-    [camera],
+    [camera, marqueeRef, onMarquee],
   )
 
   const touches = useRef(new Map<number, { x: number; y: number }>())
@@ -135,10 +182,15 @@ export function useGestures({ camera, hand, marquee, onTap, onMarquee }: Options
     event.preventDefault()
     camera.focusViewport()
     camera.stop()
-    const { x, y } = camera.view
+    const { x, y, k } = camera.view
+    const box = event.currentTarget.getBoundingClientRect()
     drag.current = {
       sx: event.clientX,
       sy: event.clientY,
+      wx: (event.clientX - box.left - x) / k,
+      wy: (event.clientY - box.top - y) / k,
+      px: event.clientX,
+      py: event.clientY,
       vx: x,
       vy: y,
       moved: false,
@@ -183,18 +235,9 @@ export function useGestures({ camera, hand, marquee, onTap, onMarquee }: Options
       else syncMode(true)
     }
     if (current.mode === 'marquee') {
-      const box = event.currentTarget.getBoundingClientRect()
-      onMarquee(
-        rectBetween(
-          current.sx - box.left,
-          current.sy - box.top,
-          event.clientX - box.left,
-          event.clientY - box.top,
-        ),
-        current.additive,
-        !dragged.current,
-      )
-      dragged.current = true
+      current.px = event.clientX
+      current.py = event.clientY
+      requestMarquee()
       return
     }
     camera.move({ ...camera.view, x: current.vx + dx, y: current.vy + dy })
@@ -216,6 +259,8 @@ export function useGestures({ camera, hand, marquee, onTap, onMarquee }: Options
     if (!current) return
     syncMode(false)
     if (current.mode === 'marquee' && current.moved) {
+      cancelMarquee()
+      paintMarquee(marqueeRef.current, null)
       dragged.current = false
       onMarquee(null, current.additive, false)
       return

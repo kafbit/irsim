@@ -50,7 +50,7 @@ export function useCamera({ layout, pageId, focus, onCommit }: Options) {
       const measure = () => {
         camera.size = { width: element.clientWidth, height: element.clientHeight }
         if (camera.size.width === 0) return
-        if (fitted.current) return camera.settle()
+        if (fitted.current) return camera.resized()
         fitted.current = true
         const { layout, focus, pageId } = first.current
         const board = layout.boards.find((candidate) => candidate.name === focus)

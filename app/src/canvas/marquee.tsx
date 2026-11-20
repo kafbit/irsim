@@ -1,15 +1,30 @@
+import type { Ref } from 'react'
 import type { Rect } from './geometry'
 
-/** The selection rectangle while a drag on empty canvas runs. `rect` is in viewport pixels. It does not take the pointer. */
-export function Marquee({ rect }: { rect: Rect | null }) {
-  if (!rect) return null
+/** The selection rectangle while a drag on empty canvas runs. `paintMarquee` places it in viewport pixels. It does not take the pointer. */
+export function Marquee({ ref }: { ref: Ref<HTMLDivElement> }) {
   return (
     <div
+      ref={ref}
+      hidden
       aria-hidden="true"
       className="pointer-events-none absolute border border-ring bg-ring/8"
-      style={{ left: rect.x, top: rect.y, width: rect.width, height: rect.height }}
     />
   )
+}
+
+/** Places the rectangle without React, or hides it for `null`. */
+export function paintMarquee(element: HTMLElement | null, rect: Rect | null) {
+  if (!element) return
+  if (!rect) {
+    element.hidden = true
+    return
+  }
+  element.style.left = `${rect.x}px`
+  element.style.top = `${rect.y}px`
+  element.style.width = `${rect.width}px`
+  element.style.height = `${rect.height}px`
+  element.hidden = false
 }
 
 /** The rectangle between two corners, whichever way the drag went. */
