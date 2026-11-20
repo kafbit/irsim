@@ -26,6 +26,7 @@ body{margin:0}
 <button type="button" aria-haspopup="menu" aria-expanded="{{menuExpanded}}" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; box-sizing: border-box; padding: 0 10px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--foreground); font: inherit; font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer; border-color: var(--border-strong); background: {{presetBg}};"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>{{presetLabel}}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
 <div style="display: flex; align-items: center; gap: 6px; color: var(--muted-foreground);"><span aria-label="Width" style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 32px; box-sizing: border-box; border: 1px solid var(--input); border-radius: 8px; font-size: 13px; font-variant-numeric: tabular-nums; color: var(--foreground);">{{width}}</span>×<span aria-label="Height" style="display: inline-flex; align-items: center; justify-content: center; width: 56px; height: 32px; box-sizing: border-box; border: 1px solid var(--input); border-radius: 8px; font-size: 13px; font-variant-numeric: tabular-nums; color: var(--foreground);">{{height}}</span></div>
 <button type="button" aria-label="Rotate" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; box-sizing: border-box; padding: 0 10px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--foreground); font: inherit; font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer; width: 32px; padding: 0; color: var(--muted-foreground); opacity: {{rotateOpacity}};"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg></button>
+<button type="button" aria-label="Touch mode" aria-pressed="{{touch}}" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; box-sizing: border-box; padding: 0; width: 32px; border: 1px solid transparent; border-radius: 8px; background: {{touchBg}}; color: {{touchColor}}; font: inherit; font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 14a8 8 0 0 1-8 8"/><path d="M18 11v-1a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V9a2 2 0 0 0-2-2a2 2 0 0 0-2 2v1"/><path d="M10 9.5V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v10"/><path d="M18 11a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg></button>
 <button type="button" aria-haspopup="menu" aria-label="Zoom" aria-expanded="{{zoomExpanded}}" style="display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 32px; box-sizing: border-box; padding: 0 8px; border: 1px solid transparent; border-radius: 8px; background: {{zoomBg}}; color: var(--muted-foreground); font: inherit; font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; cursor: pointer;">{{zoom}}%<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
 <sc-if value="{{menuOpen}}" hint-placeholder-val="{{false}}">
 <div role="menu" aria-label="Viewport presets" style="position: absolute; left: 0; top: 40px; z-index: 5; display: flex; flex-direction: column; width: 248px; box-sizing: border-box; padding: 4px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); box-shadow: 0 14px 36px rgba(20,22,26,0.14);">
@@ -63,6 +64,9 @@ body{margin:0}
 <div aria-hidden="true" style="position: absolute; left: 50%; bottom: -14px; width: 48px; height: 6px; border-radius: 3px; background: var(--border-strong); transform: translateX(-50%); cursor: ns-resize;"></div>
 <div aria-hidden="true" style="position: absolute; right: -14px; bottom: -14px; width: 10px; height: 10px; border-radius: 3px; background: var(--border-strong); cursor: nwse-resize;"></div>
 </sc-if>
+<sc-if value="{{touch}}" hint-placeholder-val="{{false}}">
+<div aria-hidden="true" style="position: absolute; left: {{dotLeft}}px; top: {{dotTop}}px; width: 28px; height: 28px; box-sizing: border-box; border: 1px solid var(--foreground); border-radius: 50%; background: color-mix(in srgb, var(--foreground) 22%, transparent); transform: translate(-50%, -50%); pointer-events: none;"></div>
+</sc-if>
 <sc-if value="{{commenting}}" hint-placeholder-val="{{false}}">
 <div data-pin="" aria-label="Comment 1" style="position: absolute; left: {{pinLeft}}px; top: {{pinTop}}px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: var(--primary-foreground); font-size: 12px; font-weight: 600; transform: translate(-50%, -50%);">1<span aria-hidden="true" style="position: absolute; right: -2px; top: -2px; width: 8px; height: 8px; border-radius: 50%; background: var(--highlight);"></span></div>
 </sc-if>
@@ -81,10 +85,10 @@ body{margin:0}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"preset":{"editor":"enum","default":"phone","options":["fit","phone","large-phone","tablet","laptop","desktop","board","responsive"]},"menu":{"editor":"enum","default":"closed","options":["closed","open","zoom"]},"commenting":{"editor":"enum","default":"no","options":["no","yes"]},"rotated":{"editor":"enum","default":"no","options":["no","yes"]},"zoom":{"editor":"enum","default":"normal","options":["normal","fit-width","contain"]},"content":{"editor":"enum","default":"device","options":["device","tall"]},"$preview":{"width":1440,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"preset":{"editor":"enum","default":"phone","options":["fit","phone","large-phone","tablet","laptop","desktop","board","responsive"]},"menu":{"editor":"enum","default":"closed","options":["closed","open","zoom"]},"commenting":{"editor":"enum","default":"no","options":["no","yes"]},"rotated":{"editor":"enum","default":"no","options":["no","yes"]},"touch":{"editor":"enum","default":"auto","options":["auto","on","off"]},"zoom":{"editor":"enum","default":"normal","options":["normal","fit-width","contain"]},"content":{"editor":"enum","default":"device","options":["device","tall"]},"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
-    const { theme, preset, menu, commenting, rotated, zoom, content } = this.props
+    const { theme, preset, menu, commenting, rotated, zoom, content, touch } = this.props
     const presets = [
       { id: 'fit', label: 'Fit window', w: 960, h: 600, size: '' },
       { id: 'phone', label: 'Phone', w: 390, h: 844 },
@@ -127,6 +131,7 @@ class Component extends DCLogic {
               { left: 53, top: 24, width: 42, height: 44 },
             ]
         ).map((card) => ({ ...card, top: Math.round(boxH * card.top / 100), height: Math.round(boxH * card.height / 100) }))
+    const touchOn = touch === 'on' || (touch !== 'off' && ['phone', 'large-phone', 'tablet'].includes(current.id))
     const menuOpen = menu === 'open'
     return {
       themeClass: theme === 'dark' ? 'dark' : '',
@@ -139,6 +144,11 @@ class Component extends DCLogic {
       height: String(h),
       zoom: Math.round(k * 100),
       rotateOpacity: current.id === 'fit' ? 0.4 : 1,
+      touch: touchOn,
+      touchBg: touchOn ? 'var(--secondary)' : 'transparent',
+      touchColor: touchOn ? 'var(--foreground)' : 'var(--muted-foreground)',
+      dotLeft: Math.round(boxW * 0.72),
+      dotTop: Math.round(boxH * 0.76),
       commenting: commentingOn,
       commentBg: commentingOn ? 'var(--secondary)' : 'transparent',
       boxW,
@@ -162,7 +172,7 @@ class Component extends DCLogic {
       pinLeft: Math.round(boxW * (narrow ? 0.95 : 0.47)),
       pinTop: tall ? Math.round(110 * k) : Math.round(boxH * (narrow ? 0.14 : 0.24)),
       captionGap: current.id === 'responsive' ? 16 : 0,
-      caption: `${current.label} · ${w} × ${h}`,
+      caption: `${current.label} · ${w} × ${h}${touchOn ? ' · Touch' : ''}`,
       items: presets.map((item, index) => ({
         label: item.label,
         size: item.size === undefined ? `${item.w} × ${item.h}` : item.size,

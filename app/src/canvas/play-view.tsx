@@ -34,6 +34,7 @@ import {
   type ZoomMode,
   zoomScale,
 } from './viewport'
+import { attachTouch, touchOn, type TouchPref } from './touch'
 import { ViewportBar } from './viewport-bar'
 
 export { playScale } from './viewport'
@@ -143,6 +144,7 @@ export function PlayView({
   )
   const [zoom, setZoom] = useState<ZoomMode>(() => readZoom(readStored(ZOOM_KEY)))
   const [commenting, setCommenting] = useState(false)
+  const [touchPref, setTouchPref] = useState<TouchPref>(null)
   const [picked, setPicked] = useState<Picked | null>(null)
   const [panelOpen, setPanelOpen] = useState(start !== null)
   const [activeId, setActiveId] = useState<string | null>(start?.commentId ?? null)
@@ -185,6 +187,24 @@ export function PlayView({
   const boxHeight = shown.height * k
   const responsive = state.preset === 'responsive'
   const ready = readyKey === frameKey
+  const touch = touchOn(touchPref, state.preset)
+  const detachTouch = useRef<(() => void) | null>(null)
+
+  const syncTouch = () => {
+    detachTouch.current?.()
+    detachTouch.current = null
+    const doc = frameRef.current?.contentDocument
+    if (touch && doc && doc.readyState === 'complete') {
+      detachTouch.current = attachTouch(doc, { drag: !commenting })
+    }
+  }
+
+  // Syncs with the frame document, an external system: touch mode adds a style, a dot and drag scrolling to it.
+  useEffect(() => {
+    syncTouch()
+  }, [touch, commenting, frameKey])
+
+  useEffect(() => () => detachTouch.current?.(), [])
 
   const latest = useRef(shown)
   useEffect(() => {
@@ -429,10 +449,15 @@ export function PlayView({
           zoom={zoom}
           zoomDisabled={fillFit}
           boardSize={{ width: board.width, height: board.height }}
-          onPreset={(id) => change(presetState(id, board, shown))}
+          onPreset={(id) => {
+            setTouchPref(null)
+            change(presetState(id, board, shown))
+          }}
           onSize={(width, height) => change(withSize(state, width, height))}
           onRotate={() => change(rotate(state))}
           onZoom={changeZoom}
+          touch={touch}
+          onTouch={() => setTouchPref(touch ? 'off' : 'on')}
         />
         <div className="flex items-center justify-end gap-2">
           <Button
@@ -490,7 +515,10 @@ export function PlayView({
                       fillFit ? 'absolute inset-0 size-full' : 'absolute top-0 origin-top-left'
                     }`}
                     style={iframeStyle}
-                    onLoad={(event) => event.currentTarget.contentWindow?.focus()}
+                    onLoad={(event) => {
+                      event.currentTarget.contentWindow?.focus()
+                      syncTouch()
+                    }}
                   />
                 </div>
                 {responsive
@@ -555,7 +583,7 @@ export function PlayView({
                     responsive ? 'mt-4' : 'mt-2'
                   }`}
                 >
-                  {presetLabel(state.preset)} · {shown.width} × {shown.height}
+                  {presetLabel(state.preset)} · {shown.width} × {shown.height}{touch ? ' · Touch' : ''}
                 </p>
               )}
             </div>

@@ -148,7 +148,11 @@
         {
           "id": "full-screen-views-compare-view",
           "title": "Compare view",
-          "parent": "full-screen-views"
+          "parent": "full-screen-views",
+          "layout": {
+            "mode": "wrap",
+            "gap": 40
+          }
         }
       ],
       "boards": [
@@ -677,7 +681,7 @@
         {
           "name": "CanvasInspector",
           "title": "Canvas inspector",
-          "x": -1437,
+          "x": -1291,
           "y": 9886,
           "width": 288,
           "height": 820,
@@ -686,7 +690,7 @@
         {
           "name": "CanvasInspectorMulti",
           "title": "Canvas inspector: several boards",
-          "x": -1069,
+          "x": -923,
           "y": 9886,
           "width": 288,
           "height": 820,
@@ -695,7 +699,7 @@
         {
           "name": "CanvasInspectorMultiShared",
           "title": "Canvas inspector: several boards in one section",
-          "x": -701,
+          "x": -555,
           "y": 9886,
           "width": 288,
           "height": 820,
@@ -704,7 +708,7 @@
         {
           "name": "CanvasInspectorImports",
           "title": "Inspector: ten imports, first three shown",
-          "x": -333,
+          "x": -187,
           "y": 9886,
           "width": 288,
           "height": 820,
@@ -713,7 +717,7 @@
         {
           "name": "CanvasInspectorImportsExpanded",
           "title": "Inspector: ten imports, all shown",
-          "x": 35,
+          "x": 181,
           "y": 9886,
           "width": 288,
           "height": 820,
@@ -722,7 +726,7 @@
         {
           "name": "CanvasInspectorVariants",
           "title": "Canvas inspector: variants",
-          "x": -1437,
+          "x": -1291,
           "y": 10946,
           "width": 288,
           "height": 960,
@@ -731,7 +735,7 @@
         {
           "name": "CanvasInspectorVariantSent",
           "title": "Canvas inspector: variants sent",
-          "x": -1069,
+          "x": -923,
           "y": 10946,
           "width": 288,
           "height": 960,
@@ -740,7 +744,7 @@
         {
           "name": "CanvasInspectorVariant",
           "title": "Canvas inspector: variant board",
-          "x": -701,
+          "x": -555,
           "y": 10946,
           "width": 288,
           "height": 960,
@@ -1089,10 +1093,37 @@
           "section": "full-screen-views-play-view"
         },
         {
+          "name": "CanvasPlayViewTouch",
+          "title": "Play view: touch mode on a phone",
+          "x": -4211,
+          "y": 11578,
+          "width": 1440,
+          "height": 900,
+          "section": "full-screen-views-play-view"
+        },
+        {
+          "name": "CanvasPlayViewTouchOff",
+          "title": "Play view: touch mode turned off on a phone",
+          "x": -7251,
+          "y": 12558,
+          "width": 1440,
+          "height": 900,
+          "section": "full-screen-views-play-view"
+        },
+        {
+          "name": "CanvasPlayViewTouchResponsive",
+          "title": "Play view: touch mode turned on in Responsive",
+          "x": -5731,
+          "y": 12558,
+          "width": 1440,
+          "height": 900,
+          "section": "full-screen-views-play-view"
+        },
+        {
           "name": "CanvasCompare",
           "title": "Canvas compare",
-          "x": -7251,
-          "y": 12718,
+          "x": -7239,
+          "y": 13762,
           "width": 1440,
           "height": 900,
           "section": "full-screen-views-compare-view"
@@ -1100,8 +1131,8 @@
         {
           "name": "CanvasCompareNarrow",
           "title": "Canvas compare: 390 width",
-          "x": -5731,
-          "y": 12718,
+          "x": -5759,
+          "y": 13762,
           "width": 1440,
           "height": 900,
           "section": "full-screen-views-compare-view"
@@ -1109,8 +1140,8 @@
         {
           "name": "CanvasCompareError",
           "title": "Canvas compare: error",
-          "x": -4211,
-          "y": 12718,
+          "x": -4279,
+          "y": 13762,
           "width": 1440,
           "height": 900,
           "section": "full-screen-views-compare-view"
@@ -1118,8 +1149,8 @@
         {
           "name": "CanvasCompareConfirm",
           "title": "Canvas compare: confirm Choose",
-          "x": -7251,
-          "y": 13698,
+          "x": -7239,
+          "y": 14750,
           "width": 1440,
           "height": 900,
           "section": "full-screen-views-compare-view"
@@ -1235,7 +1266,7 @@
         {
           "name": "CanvasInspectorTidy",
           "title": "Canvas inspector: tidy a section as a grid",
-          "x": 383,
+          "x": 529,
           "y": 9886,
           "width": 288,
           "height": 820,
@@ -1244,7 +1275,7 @@
         {
           "name": "CanvasInspectorTidyWrap",
           "title": "Canvas inspector: tidy a section with wrap",
-          "x": 731,
+          "x": 877,
           "y": 9886,
           "width": 288,
           "height": 820,
