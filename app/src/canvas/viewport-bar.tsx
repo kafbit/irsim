@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
   IconButton,
 } from '../ui'
-import { Check, ChevronDown, Monitor, RotateIcon } from '../ui/icons'
+import { Check, ChevronDown, Monitor, Pointer, RotateIcon } from '../ui/icons'
 import { FIELD_EDGE } from '../ui/input'
 import { cn } from '../ui/cn'
 import { DEVICE_PRESETS, presetLabel } from '../lib/view-label'
@@ -82,6 +82,8 @@ export function ViewportBar({
   onSize,
   onRotate,
   onZoom,
+  touch,
+  onTouch,
 }: {
   state: ViewportState
   scale: number
@@ -92,6 +94,8 @@ export function ViewportBar({
   onSize: (width: number, height: number) => void
   onRotate: () => void
   onZoom: (mode: ZoomMode) => void
+  touch: boolean
+  onTouch: () => void
 }) {
   const row = (entry: Entry) => (
     <DropdownMenuItem
@@ -163,6 +167,13 @@ export function ViewportBar({
         disabled={state.preset === 'fit'}
         onClick={onRotate}
         className="size-8"
+      />
+      <IconButton
+        label="Touch mode"
+        aria-pressed={touch}
+        icon={<Pointer className="size-4" />}
+        onClick={onTouch}
+        className={cn('size-8', touch ? 'bg-secondary text-foreground' : '')}
       />
       <DropdownMenu dir="ltr">
         <DropdownMenuTrigger asChild>

@@ -1089,6 +1089,33 @@
           "section": "full-screen-views-play-view"
         },
         {
+          "name": "CanvasPlayViewTouch",
+          "title": "Play view: touch mode on a phone",
+          "x": -4211,
+          "y": 11578,
+          "width": 1440,
+          "height": 900,
+          "section": "full-screen-views-play-view"
+        },
+        {
+          "name": "CanvasPlayViewTouchOff",
+          "title": "Play view: touch mode turned off on a phone",
+          "x": -7251,
+          "y": 12558,
+          "width": 1440,
+          "height": 900,
+          "section": "full-screen-views-play-view"
+        },
+        {
+          "name": "CanvasPlayViewTouchResponsive",
+          "title": "Play view: touch mode turned on in Responsive",
+          "x": -5731,
+          "y": 12558,
+          "width": 1440,
+          "height": 900,
+          "section": "full-screen-views-play-view"
+        },
+        {
           "name": "CanvasCompare",
           "title": "Canvas compare",
           "x": -7251,

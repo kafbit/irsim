@@ -31,6 +31,7 @@ export {
   PanelTop,
   Play,
   Plus,
+  Pointer,
   RefreshCcw as RotateIcon,
   Rows3,
   Scan,
