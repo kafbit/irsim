@@ -63,10 +63,11 @@ describe('tuneResize', () => {
   })
 
   it('does not drop below the minimum width when snapping would cross', () => {
-    const near = { x: -100, y: 0, width: 100, height: 100 }
+    const near = { x: MIN_W - 102, y: 0, width: 100, height: 100 }
     const resized = { x: 0, y: 0, width: MIN_W + 3, height: 200 }
-    const result = tuneResize(resized, 'e', [{ ...near, x: -100 + MIN_W - 100 }], options)
-    expect(result.rect.width).toBeGreaterThanOrEqual(MIN_W)
+    const result = tuneResize(resized, 'e', [near], options)
+    expect(result.rect.width).toBe(MIN_W)
+    expect(result.guides).toEqual([])
   })
 
   it('leaves the fixed edges untouched', () => {
