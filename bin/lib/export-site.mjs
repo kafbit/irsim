@@ -3,6 +3,7 @@ import {
   cpSync,
   existsSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -66,25 +67,70 @@ export const readClosure = (sources, board) => {
   return { boards, missing }
 }
 
+const listShared = (root, prefix = '') => {
+  const found = []
+  for (const entry of readdirSync(join(root, prefix), { withFileTypes: true })) {
+    if (entry.name.startsWith('.')) continue
+    const path = prefix ? `${prefix}/${entry.name}` : entry.name
+    if (entry.isDirectory()) found.push(...listShared(root, path))
+    else if (entry.isFile()) found.push(path)
+  }
+  return found
+}
+
+/** The CSS and the script modules of `<design>/shared`, as `readShared` in the app reads them. */
+export const readSharedSync = (designDir) => {
+  const root = join(designDir, 'shared')
+  if (!existsSync(root)) return { css: '', modules: [] }
+  const files = listShared(root).sort((a, b) => (a < b ? -1 : 1))
+  let css = ''
+  const modules = []
+  for (const path of files) {
+    if (path.endsWith('.css')) css += `/* ${path} */\n${readFileSync(join(root, path), 'utf8')}\n`
+    else if (path.endsWith('.js') || path.endsWith('.mjs')) modules.push(path)
+  }
+  return { css, modules }
+}
+
 /**
  * One board as a frame the runtime can boot: the board's own head (with `./support.js` pointed at
  * the exported runtime), an empty `<x-dc>`, the canvas env, the root source once in
  * `<template id="dc-root">` and every imported board in `#dc-bundle`, so the frame fetches nothing
  * else. Mirrors `app/src/app/b/[board]/route.ts`.
  */
-export const frameDocument = (source, board, closure, runtimeHref = '../runtime/support.js') => {
+export const frameDocument = (
+  source,
+  board,
+  closure,
+  runtimeHref = '../runtime/support.js',
+  shared = { css: '', modules: [] },
+) => {
   const imports = Object.fromEntries(
     Object.entries(closure.boards).filter(([name]) => name !== board),
   )
-  const bundle = jsonForScript({ root: board, boards: imports, missing: closure.missing })
+  const bundle = jsonForScript({
+    root: board,
+    boards: imports,
+    missing: closure.missing,
+    shared: shared.modules,
+  })
   const env = { board, locale: 'ar', rev: 0, tokens: {}, strings: {}, values: {} }
   const open = source.search(/<x-dc[\s>]/)
   const shell = open < 0 ? source : `${source.slice(0, open)}<x-dc></x-dc>\n</body>\n</html>\n`
-  const document = shell.replace(
+  const style = shared.css
+    ? `<style data-irsim-shared>${shared.css.replace(/<\/style/gi, '<\\/style')}</style>`
+    : ''
+  const head = /<head(?:\s[^>]*)?>/i.exec(shell)
+  const styled =
+    head && style
+      ? `${shell.slice(0, head.index + head[0].length)}${style}${shell.slice(head.index + head[0].length)}`
+      : shell
+  const document = styled.replace(
     /<script\s+src="\.\/support\.js"\s*><\/script>/g,
     `<script type="module" src="${runtimeHref}"></script>`,
   )
   const injected =
+    (head ? '' : style) +
     `<script>window.__CANVAS_ENV__=${jsonForScript(env)}</script>` +
     `<script type="application/json" id="dc-bundle">${bundle}</script>` +
     `<template id="dc-root">${source.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</template>`
@@ -184,13 +230,18 @@ export const exportSite = ({ designDir, outDir, runtimeDir, title = 'irsim previ
   rmSync(join(out, 'runtime'), { recursive: true, force: true })
   mkdirSync(join(out, 'b'), { recursive: true })
 
+  const shared = readSharedSync(design)
   const missing = []
   for (const name of names) {
     const closure = readClosure(sources, name)
     for (const importName of closure.missing) missing.push(`${name} imports missing ${importName}`)
-    writeFileSync(join(out, 'b', `${name}.html`), frameDocument(sources.get(name), name, closure))
+    writeFileSync(join(out, 'b', `${name}.html`), frameDocument(sources.get(name), name, closure, undefined, shared))
   }
 
+  if (existsSync(join(design, 'shared'))) {
+    rmSync(join(out, 'b', 'shared'), { recursive: true, force: true })
+    cpSync(join(design, 'shared'), join(out, 'b', 'shared'), { recursive: true })
+  }
   cpSync(runtimeDir, join(out, 'runtime'), { recursive: true })
   copyFileSync(join(ASSETS, 'preview.css'), join(out, 'preview.css'))
   copyFileSync(join(ASSETS, 'preview.js'), join(out, 'preview.js'))

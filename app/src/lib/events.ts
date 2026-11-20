@@ -7,6 +7,7 @@ export type CanvasEvent =
   | { event: 'approvals'; data: { ids: string[] } }
   | { event: 'thumb'; data: { board: string; ok: boolean } }
   | { event: 'canvas'; data: Record<string, never> }
+  | { event: 'shared'; data: Record<string, never> }
 
 type Listener = (event: CanvasEvent) => void
 
@@ -38,7 +39,13 @@ const debounced = (file: string, send: () => void): void => {
   )
 }
 
-const onFile = (file: string): void => {
+const SHARED_PREFIX = 'shared/'
+
+const onFile = (raw: string): void => {
+  const file = raw.replace(/\\/g, '/')
+  if (file.startsWith(SHARED_PREFIX)) {
+    return debounced(SHARED_PREFIX, () => emit({ event: 'shared', data: {} }))
+  }
   if (file === CANVAS_FILE) return debounced(file, () => emit({ event: 'canvas', data: {} }))
   const board = BOARD_FILE.exec(file)?.[1]
   if (!board) return
@@ -48,7 +55,7 @@ const onFile = (file: string): void => {
 const ensureWatcher = (): void => {
   if (state.watcher) return
   try {
-    state.watcher = watch(designDir(), (_, file) => file && onFile(file))
+    state.watcher = watch(designDir(), { recursive: true }, (_, file) => file && onFile(file))
     state.watcher.on('error', () => {
       state.watcher?.close()
       state.watcher = null

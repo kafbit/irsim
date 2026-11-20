@@ -210,7 +210,7 @@ export function PageCanvas({
   const commenting = tool === 'comment'
   const playFlags = usePlayFlags(manifest.id)
   const approvals = useApprovals(manifest.id)
-  const { reload: reloadBoard } = reloads
+  const { reload: reloadBoard, reloadAll: reloadAllBoards } = reloads
   const { refresh: refreshFlags } = playFlags
   const { refetch: refetchApprovals } = approvals
   // A changed board may gain or lose its handlers and links, so its Play chip is read again, and
@@ -225,12 +225,19 @@ export function PageCanvas({
     },
     [reloadBoard, refreshFlags, refetchApprovals, onCanvasChange],
   )
+  const onSharedChange = useCallback(() => {
+    reloadAllBoards()
+    refreshFlags()
+    void refetchApprovals()
+    onCanvasChange?.()
+  }, [reloadAllBoards, refreshFlags, refetchApprovals, onCanvasChange])
   const [thumbs, setThumbs] = useState<Record<string, { rev: number; ok: boolean }>>({})
   const onThumb = useCallback((name: string, ok: boolean) => {
     setThumbs((prev) => ({ ...prev, [name]: { rev: (prev[name]?.rev ?? 0) + 1, ok } }))
   }, [])
   useEvents({
     onBoard: onBoardChange,
+    onShared: onSharedChange,
     onComments: comments.refetch,
     onApprovals: refetchApprovals,
     onThumb,

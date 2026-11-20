@@ -203,7 +203,7 @@ const renderImport = (node, scope, ctx, rs) => {
  *
  * @param {Document} doc
  * @param {Record<string, Board>} boards name to parsed board, including the root
- * @param {{ onError?: (error: unknown, where: string) => void }} [options]
+ * @param {{ onError?: (error: unknown, where: string) => void, shared?: Record<string, unknown> }} [options]
  * @returns {Ctx}
  */
 export const createContext = (doc, boards, options = {}) => {
@@ -211,7 +211,7 @@ export const createContext = (doc, boards, options = {}) => {
   const defs = new Map()
   for (const [name, board] of Object.entries(boards)) {
     const { props } = defaultsOf(board.props)
-    defs.set(name, { board, props, Ctor: instantiate(board.script) })
+    defs.set(name, { board, props, Ctor: instantiate(board.script, options.shared) })
   }
   /** @type {Ctx} */
   const ctx = {

@@ -131,6 +131,23 @@ describe('irsim export', () => {
     expect(frame).not.toContain('<dc-import name="Leaf">')
   })
 
+  it('injects the shared css after the head tag, lists the modules and copies the folder', () => {
+    add('Root', 'Root screen')
+    writeCanvas([{ id: 'main', title: 'Main', boards: [page('Root', 'Root screen')] }])
+    mkdirSync(join(dir, 'shared', 'ui'), { recursive: true })
+    writeFileSync(join(dir, 'shared', 'base.css'), '.a{color:red}')
+    writeFileSync(join(dir, 'shared', 'ui', 'format.js'), 'export const money = (n) => n')
+    writeFileSync(join(dir, 'shared', 'logo.svg'), '<svg></svg>')
+
+    expect(run().status).toBe(0)
+    const frame = read('b/Root.html')
+
+    expect(frame).toContain('<head><style data-irsim-shared>/* base.css */\n.a{color:red}\n</style>')
+    expect(frame).toContain('"shared":["ui/format.js"]')
+    expect(read('b/shared/logo.svg')).toBe('<svg></svg>')
+    expect(existsSync(join(out, 'b', 'shared', 'ui', 'format.js'))).toBe(true)
+  })
+
   it('adds a board that canvas.json does not list to an Unsorted page', () => {
     add('Root', 'Root screen')
     add('Loose', 'Loose screen', { size: { width: 640, height: 480 } })

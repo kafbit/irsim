@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -71,6 +71,29 @@ describe('closureOf on a copy', () => {
     const later = new Date(Date.now() + 5000)
     utimesSync(join(dir, 'Leaf.dc.html'), later, later)
     expect((await closureOf('Root')).render).not.toBe(root.render)
+  })
+
+  it('lists the shared css and modules, and a css change moves hash, content and render', async () => {
+    mkdirSync(join(dir, 'shared'))
+    writeFileSync(join(dir, 'shared', 'base.css'), '.a{color:red}')
+    writeFileSync(join(dir, 'shared', 'format.js'), 'export const money = (n) => n')
+    writeFileSync(join(dir, 'shared', '.hidden.css'), '.h{}')
+    const before = await closureOf('Root')
+    expect(before.shared.css).toBe('/* base.css */\n.a{color:red}\n')
+    expect(before.shared.modules).toEqual(['format.js'])
+    writeFileSync(join(dir, 'shared', 'base.css'), '.a{color:blue}')
+    const later = new Date(Date.now() + 5000)
+    utimesSync(join(dir, 'shared', 'base.css'), later, later)
+    const after = await closureOf('Root')
+    expect(after.shared.css).toContain('blue')
+    expect(after.hash).not.toBe(before.hash)
+    expect(after.content).not.toBe(before.content)
+    expect(after.render).not.toBe(before.render)
+  })
+
+  it('has an empty shared part when the folder is missing', async () => {
+    const { shared } = await closureOf('Root')
+    expect(shared).toEqual({ css: '', modules: [] })
   })
 
   it('a missing import that appears joins the closure', async () => {

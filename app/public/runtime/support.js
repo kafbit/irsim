@@ -49,7 +49,38 @@ const post = (type, details) => {
   parent.postMessage({ type, board: env.board, details }, '*')
 }
 
-/** @typedef {{ root: string, boards: Record<string, string>, missing: string[] }} Bundle */
+/** @typedef {{ root: string, boards: Record<string, string>, missing: string[], shared?: string[] }} Bundle */
+
+/**
+ * `table-sort.js` becomes `tableSort` and `ui/format.js` becomes `uiFormat`.
+ *
+ * @param {string} path
+ * @returns {string}
+ */
+const sharedKey = (path) =>
+  path
+    .replace(/\.[^./]+$/, '')
+    .split(/[/\-_.]+/)
+    .filter(Boolean)
+    .map((part, index) => (index === 0 ? part : part[0].toUpperCase() + part.slice(1)))
+    .join('')
+
+/**
+ * @param {string[]} paths
+ * @returns {Promise<Record<string, unknown>>}
+ */
+const loadShared = async (paths) => {
+  /** @type {Record<string, unknown>} */
+  const shared = {}
+  for (const path of paths) {
+    try {
+      shared[sharedKey(path)] = await import(new URL(`./shared/${path}`, location.href).href)
+    } catch (error) {
+      onError(error, 'shared')
+    }
+  }
+  return shared
+}
 
 /**
  * @returns {string}
@@ -87,7 +118,7 @@ const start = async () => {
     for (const [name, source] of Object.entries(bundle.boards))
       boards[name] = parseSource(source, name)
     for (const name of bundle.missing) onError(new Error(`import ${name} was not found`), 'import')
-    const ctx = createContext(document, boards, { onError })
+    const ctx = createContext(document, boards, { onError, shared: await loadShared(bundle.shared ?? []) })
     const target = document.querySelector('x-dc')
     if (!target) throw new Error('board has no <x-dc> template')
     target.replaceChildren()

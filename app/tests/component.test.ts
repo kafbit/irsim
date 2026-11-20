@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { DCLogic } from '../public/runtime/component.js'
+import { DCLogic, instantiate } from '../public/runtime/component.js'
 
 const make = (state: Record<string, unknown>) => {
   const board = new DCLogic({}) as DCLogic & { __update?: () => void }
@@ -29,5 +29,20 @@ describe('DCLogic.setState', () => {
     board.setState({ items: board.state.items })
     expect(update).toHaveBeenCalledTimes(1)
     expect(board.state.items).toEqual([1, 2])
+  })
+})
+
+describe('instantiate', () => {
+  it('gives the script the shared modules', () => {
+    const Component = instantiate(
+      'class Component extends DCLogic { renderVals() { return { total: shared.format.money(2) } } }',
+      { format: { money: (n: number) => 'USD ' + n } },
+    )
+    expect(new Component({}).renderVals()).toEqual({ total: 'USD 2' })
+  })
+
+  it('runs without shared modules', () => {
+    const Component = instantiate('class Component extends DCLogic { renderVals() { return {} } }')
+    expect(new Component({}).renderVals()).toEqual({})
   })
 })

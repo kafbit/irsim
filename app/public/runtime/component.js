@@ -40,13 +40,14 @@ export class DCLogic {
  * Evaluate a board's `text/x-dc` script and hand back its Component class.
  *
  * @param {string} source
+ * @param {Record<string, unknown>} [shared] the modules of `design/shared/`, by camelCased path
  * @returns {ComponentClass}
  */
-export const instantiate = (source) => {
+export const instantiate = (source, shared = {}) => {
   if (source.trim() === '') return class extends DCLogic {}
   // eslint-disable-next-line no-new-func -- the board's own code, and only in this local tool
-  const factory = new Function('DCLogic', `${source}\nreturn Component;`)
-  const Component = factory(DCLogic)
+  const factory = new Function('DCLogic', 'shared', `${source}\nreturn Component;`)
+  const Component = factory(DCLogic, shared)
   if (typeof Component !== 'function') throw new Error('board script does not declare Component')
   return Component
 }

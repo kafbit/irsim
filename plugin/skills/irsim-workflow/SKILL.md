@@ -40,3 +40,4 @@ It does not apply to a change that alters nothing a person sees (a refactor, a s
 - Read only the boards you change, with `rg` or `sed -n`, never a whole large board.
 - A pull request that changes UI source without a board change is incomplete, unless the change alters nothing visible and says so.
 - Replies to canvas comments: Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.
+- Styles that many boards share go in `design/shared/*.css`, helpers in `design/shared/*.js` (the exports reach a board script as `shared.<name>`, for example `design/shared/table-sort.js` as `shared.tableSort`), and images and fonts in `design/shared/`, referenced as `./shared/<path>`. Keep components as `dc-import` boards.
