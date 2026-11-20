@@ -1,0 +1,8 @@
+- [ ] Decide whether Cloud Free (BYOK, at most 3 editors, 500 MB, one workspace per owner) ships at launch or after the first paying teams
+- [ ] Phase 0: Polar onboarding for the Egyptian company, pricing interviews, AI cost per credit, trademark check
+- [ ] Phase 1: Bun workspaces monorepo, `BoardStore` with `FsBoardStore`, local app unchanged
+- [ ] Phase 2: Cloud MVP (auth, workspaces, Neon and R2, push and pull, link and public sharing, Free with BYOK AI, storage limits, sandboxed board origin)
+- [ ] Phase 3: Billing (Polar seats, credits, packs, metering, enforcement, portal)
+- [ ] Phase 4: Collaboration (Hocuspocus, presence, roles and visibility, live comments, version history)
+- [ ] Phase 5: Merge engine (agent edits rebased, conflicts as variants, three-way local and cloud sync)
+- [ ] Phase 6: Launch (pricing and irsim pages, docs, cloud terms and privacy, status page, support)

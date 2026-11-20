@@ -1,0 +1,12 @@
+- [x] `LICENSE` (AGPL-3.0), `ee/LICENSE` (commercial), `ee/README.md`
+- [x] License fields in the Claude Code and Codex plugin manifests
+- [x] `plugin/package.json` for `@kafbit/irsim-connectors` (pi, commandcode, exports, files, peerDependencies)
+- [x] Codex `plugin.json` version to 0.4.0
+- [x] `scripts/check-versions.sh`, run in `ci.yml` and `release.yml`
+- [x] `release.yml` npm publish job (trusted publishing, provenance)
+- [x] README: install table, update commands, license section; `install.sh` works with curl when gh is missing
+- [x] Local checks: `npm pack --dry-run` (5 files), Pi RPC `get_commands` lists the irsim commands and skill, `commandcode mods inspect` passes
+- [ ] OpenCode loads the package `./server` export: verify with `opencode plugin add @kafbit/irsim-connectors` after the first publish
+- [ ] Pull request, merged by the user
+- [ ] Make `kafbit/irsim` public
+- [ ] User: create npm org `kafbit`, add the trusted publisher, tag the next release

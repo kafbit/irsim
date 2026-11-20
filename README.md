@@ -6,16 +6,16 @@ The board file format is in [docs/01-runtime.md](docs/01-runtime.md).
 
 ## Install
 
-The repository is private, so the install uses the GitHub CLI. Run `gh auth login` first.
-
 ```bash
-gh api repos/kafbit/irsim/contents/install.sh --jq .content | base64 -d | bash
+curl -fsSL https://raw.githubusercontent.com/kafbit/irsim/main/install.sh | bash
 ```
+
+The script downloads the release with `curl`, or with `gh` when it is installed and authenticated.
 
 Pass flags through `bash -s --`:
 
 ```bash
-gh api repos/kafbit/irsim/contents/install.sh --jq .content | base64 -d | bash -s -- --version 0.2.1
+curl -fsSL https://raw.githubusercontent.com/kafbit/irsim/main/install.sh | bash -s -- --version 0.2.1
 ```
 
 Flags:
@@ -51,12 +51,15 @@ scripts/install-agents.sh --uninstall
 
 By hand:
 
-| Agent | Install | Connector |
-|---|---|---|
-| Codex | `codex plugin marketplace add kafbit/irsim && codex plugin add irsim-codex@kafbit` | `plugin/harnesses/codex` (hooks, MCP server, `/irsim` prompt, skill) |
-| OpenCode | link `plugin/harnesses/opencode/irsim.js` into `~/.config/opencode/plugins/` | one v2 plugin |
-| Pi | link `plugin/harnesses/pi/irsim.ts` into `~/.pi/agent/extensions/`, or `pi --extension <path>` | one extension |
-| Command Code | link `plugin/harnesses/command-code/irsim.ts` into `~/.commandcode/mods/`, or `<project>/.commandcode/mods/` | one mod |
+| Agent | Install | Update | Connector |
+|---|---|---|---|
+| Claude Code | `claude plugin marketplace add kafbit/irsim && claude plugin install irsim@kafbit` | `claude plugin update irsim@kafbit` | `plugin/` |
+| Codex | `codex plugin marketplace add kafbit/irsim && codex plugin add irsim-codex@kafbit` | `codex plugin marketplace upgrade kafbit` | `plugin/harnesses/codex` (hooks, MCP server, `/irsim` prompt, skill) |
+| Pi | `pi install npm:@kafbit/irsim-connectors` | Pi shows an update notice at startup, then `pi update --extensions` | `plugin/harnesses/pi/irsim.ts`, one extension, plus the skill |
+| OpenCode | `opencode plugin add @kafbit/irsim-connectors`, then link `plugin/skills/irsim-workflow` into `~/.config/opencode/skills/` | OpenCode checks at startup, then `opencode plugin update` | `plugin/harnesses/opencode/irsim.js`, one v2 plugin |
+| Command Code | `commandcode mods add @kafbit/irsim-connectors` | no update notice, run `commandcode mods update` | `plugin/harnesses/command-code/irsim.ts`, one mod, plus the skill |
+
+The Pi, OpenCode and Command Code connectors are one npm package, `@kafbit/irsim-connectors`, versioned with each irsim release. To work on a checkout instead, use `scripts/install-agents.sh` above.
 
 Codex registers on `SessionStart`, receives comments as context before a model request and on a user prompt, and the `Stop` hook keeps it going while comments are queued. Its `/irsim` comes from `~/.codex/prompts/irsim.md`, which the installer links; the plugin also ships the same prompt. The other connectors poll while listening. In OpenCode, Pi and Command Code, `/irsim [page or board]` opens the canvas and starts listening, `/irsim-stop` stops, and `/irsim-comments [page]` counts the open comments. The canvas labels each session with its agent.
 
@@ -232,3 +235,7 @@ bun test --isolate
 `make serve` runs this checkout's canvas without installing it or updating the plugin. It installs `app/node_modules` on first use, then runs `bin/irsim serve` from `PROJECT` (default: this repo), for example `make serve PROJECT=~/Projects/CRM`. `PORT` and `DESIGN_DIR` are optional. `make reload` first stops the canvas that serves `PROJECT` (an installed release, for example) and this checkout's own `next dev`, because Next allows one per checkout, then runs `make serve`. It refuses to touch a port held by another project's canvas. `make port`, `make build`, `make preview` and `make thumbs` run the matching `irsim` commands the same way (`preview` takes `OUT`), and `make help` lists them.
 
 `bin/irsim serve` in a source checkout runs `next dev` in `app/`. `scripts/build-release.sh` builds `dist/irsim-<version>-<os>-<arch>.tar.gz` for the host platform. Pushing a tag `v<version>` builds all four platforms and attaches them to the release.
+
+## License
+
+irsim is licensed under AGPL-3.0-only, see [LICENSE](LICENSE). The code in `ee/` is under the Kafbit Commercial License in [ee/LICENSE](ee/LICENSE).

@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "irsim-codex",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Opens the irsim design canvas, gives Codex its design_canvas tool, and delivers the canvas comments to the session.",
   "author": {
     "name": "Kafbit",
@@ -9,7 +9,7 @@
   },
   "homepage": "https://github.com/kafbit/irsim",
   "repository": "https://github.com/kafbit/irsim",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "keywords": ["irsim", "design", "canvas", "boards", "hooks", "mcp", "codex"],
   "skills": "./skills/",
   "prompts": "./prompts/",
