@@ -24,6 +24,7 @@ function Placeholder({
   const [seen, setSeen] = useState<{ rev: number; state: 'loaded' | 'pending' | 'failed' } | null>(
     null,
   )
+  const [stale, setStale] = useState<{ rev: number; src: string } | null>(null)
   const current = seen?.rev === rev ? seen : null
   const failed = thumb?.ok === false || current?.state === 'failed'
   const pending = !failed && current?.state === 'pending'
@@ -32,8 +33,15 @@ function Placeholder({
   const onLoad = () => {
     setSeen({ rev, state: 'loaded' })
     void fetch(imageSrc)
-      .then((response) => onStale(rev, response.headers.get('X-Thumb-Stale') === '1'))
-      .catch(() => onStale(rev, false))
+      .then((response) => {
+        const old = response.headers.get('X-Thumb-Stale') === '1'
+        setStale(old ? { rev, src: imageSrc } : null)
+        onStale(rev, old)
+      })
+      .catch(() => {
+        setStale(null)
+        onStale(rev, false)
+      })
   }
   const onError = () => {
     setSeen({ rev, state: 'pending' })
@@ -58,7 +66,7 @@ function Placeholder({
           decoding="async"
           onLoad={onLoad}
           onError={onError}
-          className="absolute inset-0 size-full bg-white object-cover object-top"
+          className={`absolute inset-0 size-full object-top ${stale?.src === imageSrc ? 'bg-transparent object-contain' : 'bg-white object-cover'}`}
         />
       ) : null}
     </div>
