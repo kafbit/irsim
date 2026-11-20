@@ -123,7 +123,7 @@ add('Invoices', 'Invoices', 1100, 700, 'core-screens', 'app', `${side('Invoices'
 ${table(6)}
 </div></div>`)
 
-add('InvoiceDetail', 'Invoice detail', 1100, 700, 'core-screens', 'app', `${side('Invoices')}
+add('InvoiceDetail', 'Invoice detail', 1100, 700, undefined, 'app', `${side('Invoices')}
 <div class="main">
 <div class="top"><div><h1>INV-1040</h1><div style="color:var(--muted);margin-top:4px">Halden Legal</div></div><span class="pill late">Overdue</span></div>
 <div class="content">
@@ -136,7 +136,7 @@ add('InvoiceDetail', 'Invoice detail', 1100, 700, 'core-screens', 'app', `${side
 <div style="display:flex;gap:12px"><span class="btn prim">Send reminder</span><span class="btn ghost">Download PDF</span></div>
 </div></div>`)
 
-add('Settings', 'Settings', 1100, 700, 'core-screens', 'app', `${side('Settings')}
+add('Settings', 'Settings', 1100, 700, undefined, 'app', `${side('Settings')}
 <div class="main">
 <div class="top"><h1>Settings</h1></div>
 <div class="content" style="max-width:720px">

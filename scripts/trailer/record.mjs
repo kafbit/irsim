@@ -50,6 +50,13 @@ await mkdir(FRAMES, { recursive: true })
 await mkdir(OUT, { recursive: true })
 await writeDemo(DESIGN)
 
+await run(
+  'uv',
+  ['run', '--python', '3.12', '--with', 'kokoro-onnx', '--with', 'soundfile', 'python', join(HERE, 'voice.py'), WORK],
+  { maxBuffer: 1 << 26 },
+)
+const voice = JSON.parse(await readFile(join(WORK, 'voice.json'), 'utf8'))
+
 const PORT = await freePort()
 const URL_BASE = `http://localhost:${PORT}`
 const env = { ...process.env, IRSIM_PORT: String(PORT), IRSIM_ROOT: PROJECT }
@@ -156,8 +163,8 @@ const until = async (seconds) => {
   if (left > 0) await sleep(left * 1000)
 }
 
-const marks = []
-const mark = (label) => marks.push(`${now().toFixed(1)} ${label}`)
+const events = []
+const record = (type, extra = {}) => events.push({ t: Number(now().toFixed(3)), type, ...extra })
 
 let shotIndex = 0
 const shot = async (label) => {
@@ -203,6 +210,7 @@ const hover = async (locator, ms = 700, offset) => {
 
 const click = async () => {
   await page.evaluate(({ x, y }) => window.__trailer?.ripple(x, y), pointer).catch(() => {})
+  record('click')
   await page.mouse.down()
   await sleep(70)
   await page.mouse.up()
@@ -220,18 +228,52 @@ const press = async (key, label = key, holdMs = 800) => {
     holdMs,
   })
   await sleep(180)
+  record('key')
   await page.keyboard.press(key)
   await sleep(Math.max(0, holdMs - 180))
 }
 
 const type = async (text) => {
-  await page.keyboard.type(text, { delay: 30 })
+  for (const char of text) {
+    record('char')
+    await page.keyboard.type(char)
+    await sleep(30)
+  }
 }
 
 const caption = async (text) => {
   await page.evaluate(() => window.__trailer?.caption(null)).catch(() => {})
   await sleep(380)
   if (text) await page.evaluate((t) => window.__trailer?.caption(t), text)
+}
+
+let sceneStart = 0
+const scene = async (key, n, name, text) => {
+  record('scene', { key })
+  await page.evaluate(([number, label]) => window.__trailer?.chapter(number, label), [n, name]).catch(() => {})
+  await caption(text)
+  sceneStart = now()
+}
+const holdVoice = (key) => until(sceneStart + voice[key].seconds + 0.5)
+
+const highlight = async (target, label, pauseMs = 1200) => {
+  let box = target
+  if (typeof target.boundingBox === 'function') {
+    await target.waitFor({ state: 'visible', timeout: 15_000 }).catch(async (error) => {
+      await shot('fail-highlight')
+      throw error
+    })
+    box = await target.boundingBox()
+  }
+  if (!box) throw new Error(`no box to highlight for ${label}`)
+  const rect = { x: box.x, y: box.y, width: box.width, height: box.height }
+  await page.evaluate(([r, l]) => window.__trailer?.spotlight(r, l), [rect, label])
+  record('spotlight')
+  await sleep(250)
+  await shot(`spotlight-${label.replace(/\W+/g, '-').toLowerCase()}`)
+  await sleep(Math.max(0, pauseMs - 250))
+  await page.evaluate(() => window.__trailer?.spotlight(null))
+  await sleep(300)
 }
 
 const zoom = async (deltaY, steps, gap = 45) => {
@@ -274,7 +316,7 @@ const TITLE_CARD = card(
   '<h1><span class="mark" style="width:34px;height:34px;border-radius:10px;margin-right:28px"></span>irsim</h1><p>Design boards for your repository. Built with your coding agent.</p>',
 )
 const END_CARD = card(
-  '<p style="font-size:52px;color:#fff;font-weight:600">Open source. Works with Claude Code, Codex, Pi, OpenCode and Command Code.</p><code>curl -fsSL https://raw.githubusercontent.com/kafbit/irsim/main/install.sh | bash</code><div class="site">kafbit.org</div>',
+  '<p style="font-size:52px;color:#fff;font-weight:600">Open source. Works with Claude Code, Codex, Pi, OpenCode and Command Code.</p><code>curl -fsSL https://raw.githubusercontent.com/kafbit/irsim/main/install.sh | bash</code><div class="site">kafbit.com</div>',
 )
 
 await open(`/p/${PAGE_ID}?session=${SESSION}`)
@@ -283,6 +325,7 @@ await sleep(2500)
 await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 92, maxWidth: 1920, maxHeight: 1080, everyNthFrame: 1 })
 startedAt = Date.now()
 
+record('scene', { key: 'title' })
 await page.evaluate((html) => {
   const frame = document.createElement('iframe')
   frame.id = '__title'
@@ -292,12 +335,11 @@ await page.evaluate((html) => {
 }, TITLE_CARD)
 await sleep(300)
 await shot('title')
-await until(3.5)
+await until(Math.max(3.5, voice.title.seconds + 0.5))
 await page.evaluate(() => document.getElementById('__title')?.remove())
 await shot('overview')
 
-mark('scene2 overview')
-await caption('Every screen of your app on one canvas')
+await scene('canvas', 1, 'Canvas', 'Every screen of your app on one canvas')
 await moveTo(1180, 760, 900)
 await zoom(-18, 8)
 await sleep(200)
@@ -306,10 +348,9 @@ await pan(-200, -100, 10)
 await moveTo(1000, 520, 500)
 await zoom(18, 8)
 await shot('zoomed-out')
-await until(9.5)
+await holdVoice('canvas')
 
-mark('scene3 comment')
-await caption("Comment on a board. It goes to your agent's session")
+await scene('comments', 2, 'Comments', "Comment on a board. It goes to your agent's session")
 await press('c', 'C', 600)
 const search = page.getByLabel('Search boards', { exact: true })
 await clickOn(search, 500)
@@ -330,14 +371,18 @@ await type('Make the New invoice button stand out')
 await sleep(250)
 await press('Control+Enter', 'Ctrl+Enter', 650)
 await shot('comment-saved')
+const thread = page.getByRole('complementary', { name: 'Comments' })
+const commentCard = thread.locator('li[id^="comment-"]').first()
+await highlight(commentCard, 'Comment added')
 await clickOn(page.getByRole('button', { name: /^Send 1 comment/ }), 600)
 await sleep(700)
 await deliverDrafts()
 await sleep(300)
 await shot('comment-sent')
+await highlight(commentCard, 'Sent to your agent')
+await holdVoice('comments')
 
-mark('scene4 agent')
-await caption("Your agent edits the board and replies in the thread")
+await scene('agent', 3, 'Agent edits', 'Your agent edits the board and replies in the thread')
 const claimed = await claimNext('comments')
 const comment = claimed.comments[0]
 await sleep(900)
@@ -359,13 +404,37 @@ await bridge(
   '--body',
   'Done. The New invoice button is now solid indigo, larger and has a shadow.',
 )
+record('chime')
 await sleep(1800)
 await shot('reply')
+await highlight(thread.locator('ul[data-reply]').first(), 'Reply in the thread')
+await highlight(frame.getByText('New invoice', { exact: true }), 'Board updated')
+await holdVoice('agent')
 
+await scene('approve', 4, 'Approve and build', 'Approve the board, and your agent builds it')
 await press('Escape', 'Esc', 500)
-await clickOn(page.getByRole('complementary', { name: 'Comments' }).getByRole('button', { name: 'Close' }), 500)
+await clickOn(thread.getByRole('button', { name: 'Close' }), 500)
 await sleep(300)
-await caption('Ask for variants, compare, choose one')
+const approveButton = page.getByRole('region', { name: 'Top bar' }).or(page.locator('[aria-label="Top bar"]')).getByRole('button', { name: /^Approve and build/ })
+await hover(approveButton.first(), 800)
+await shot('approve-ready')
+await highlight(approveButton.first(), 'Approve and build')
+await click()
+await sleep(500)
+const confirmApprove = page.getByRole('alertdialog').getByRole('button').last()
+if (await confirmApprove.isVisible().catch(() => false)) await clickOn(confirmApprove, 450)
+await shot('approve-clicked')
+await highlight(page.getByText(/^Sent \d+ boards? to the agent/).first(), 'Sent to your agent', 1000)
+const approvals = await claimNext('approvals').catch(() => null)
+await shot('approve-sent')
+if (approvals) {
+  record('chime')
+  await sleep(600)
+  await shot('approve-received')
+}
+await holdVoice('approve')
+
+await scene('variants', 5, 'Variants', 'Ask for variants, compare, choose one')
 await shot('variants-inspector')
 const inspector = page.getByRole('region', { name: 'Variants' })
 await clickOn(inspector.getByRole('button', { name: 'Simpler', exact: true }), 450)
@@ -405,9 +474,41 @@ const dialog = page.getByRole('alertdialog')
 await clickOn(dialog.getByRole('button').last(), 450)
 await sleep(1200)
 await shot('chosen')
+await holdVoice('variants')
 
-mark('scene5 play')
-await caption('Play any board at any viewport')
+await open(`/p/${PAGE_ID}?session=${SESSION}`)
+await page.getByLabel('Search boards', { exact: true }).waitFor({ state: 'visible' })
+await sleep(2500)
+await scene('sections', 6, 'Sections', 'Group boards into sections and tidy them')
+await press('Shift+1', 'Shift+1', 700)
+await sleep(700)
+await shot('sections-start')
+await hover(page.locator('[data-board="InvoiceDetail"] [data-frame-title]'), 800)
+await click()
+await hover(page.locator('[data-board="Settings"] [data-frame-title]'), 700)
+await page.evaluate(() => window.__trailer?.key(['Shift'], 900))
+await sleep(180)
+await page.keyboard.down('Shift')
+await click()
+await page.keyboard.up('Shift')
+await shot('sections-selected')
+await press('Shift+S', 'Shift+S', 800)
+await page.getByLabel('Section name', { exact: true }).waitFor({ state: 'visible', timeout: 10_000 })
+await type('Billing')
+await sleep(250)
+await press('Enter', 'Enter', 600)
+await shot('sections-created')
+const sectionBox = page.locator('[data-section]').filter({ hasText: 'Billing' }).first()
+await highlight(sectionBox, 'Section')
+await clickOn(page.getByRole('radiogroup', { name: 'Layout' }).getByRole('radio', { name: /Grid/ }), 500)
+await shot('sections-layout')
+await clickOn(page.getByRole('group', { name: 'Tidy' }).getByRole('button', { name: 'Tidy', exact: true }), 500)
+await sleep(900)
+await shot('sections-tidied')
+await highlight(page.locator('[data-section]').filter({ hasText: 'Billing' }).first(), 'Section')
+await holdVoice('sections')
+
+await scene('play', 7, 'Play', 'Play any board at any viewport')
 await clickOn(page.getByRole('button', { name: 'Play an artboard' }), 500)
 await sleep(300)
 await shot('play-menu')
@@ -427,9 +528,9 @@ for (const preset of [/^Desktop/, /^Tablet/, /^Phone/]) {
 await press('Escape', 'Esc', 600)
 await sleep(400)
 await shot('after-play')
+await holdVoice('play')
 
-mark('scene6 search')
-await caption('Find any board in a keystroke')
+await scene('search', 8, 'Search', 'Find any board in a keystroke')
 await press('Control+k', 'Ctrl+K', 700)
 await page.getByRole('combobox', { name: 'Search' }).waitFor({ state: 'visible', timeout: 10_000 })
 await sleep(300)
@@ -439,16 +540,22 @@ await shot('search')
 await press('Enter', 'Enter', 600)
 await sleep(1800)
 await shot('search-jumped')
+await holdVoice('search')
 
-mark('scene7 end')
+record('scene', { key: 'end' })
+await page.evaluate(() => window.__trailer?.chapter(null)).catch(() => {})
 await caption(null)
+const endStart = now()
 await page.setContent(END_CARD)
-await sleep(5000)
+await until(endStart + Math.max(5, voice.end.seconds + 1))
 
 await cdp.send('Page.stopScreencast')
 const stoppedAt = Date.now() / 1000
 clearInterval(keepAlive)
 await sleep(300)
+
+const duration = stoppedAt - frames[0].ts
+await writeFile(join(WORK, 'timeline.json'), JSON.stringify({ duration, events }, null, 2))
 
 const lines = []
 frames.forEach((entry, index) => {
@@ -463,8 +570,14 @@ await writeFile(list, `${lines.join('\n')}\n`)
 await browser.close()
 stopServer()
 
-await run('bash', [join(HERE, 'render.sh'), list, OUT, arg('mp4-crf', '20'), arg('webm-crf', '34')], {
-  maxBuffer: 1 << 26,
-}).then((r) => console.log(r.stdout))
-console.log(marks.join('\n'))
-console.log(`frames: ${frames.length}, recorded ${(stoppedAt - frames[0].ts).toFixed(1)} s`)
+await run('node', [join(HERE, 'mix.mjs'), WORK], { maxBuffer: 1 << 26 }).then((r) => console.log(r.stdout.trim()))
+
+const canvasStart = events.find((event) => event.type === 'scene' && event.key === 'canvas')?.t ?? 4
+const posterAt = arg('poster-at', (canvasStart + 1.2).toFixed(2))
+await run(
+  'bash',
+  [join(HERE, 'render.sh'), list, OUT, arg('mp4-crf', '20'), arg('webm-crf', '34'), join(WORK, 'audio.wav'), posterAt, duration.toFixed(3)],
+  { maxBuffer: 1 << 26 },
+).then((r) => console.log(r.stdout))
+for (const event of events.filter((entry) => entry.type === 'scene')) console.log(`${event.t.toFixed(1)} ${event.key}`)
+console.log(`frames: ${frames.length}, recorded ${duration.toFixed(1)} s`)
