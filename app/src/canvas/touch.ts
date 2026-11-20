@@ -68,6 +68,7 @@ export function attachTouch(doc: Document, options: { drag: boolean }): () => vo
 
   const onDown = (event: PointerEvent) => {
     place(event)
+    dragged = false
     if (!options.drag) return
     if (event.pointerType !== 'mouse' || event.button !== 0) return
     const target = event.target instanceof win.Element ? event.target : null
@@ -75,7 +76,6 @@ export function attachTouch(doc: Document, options: { drag: boolean }): () => vo
     start = { x: event.clientX, y: event.clientY, target }
     last = { x: event.clientX, y: event.clientY }
     moved = false
-    dragged = false
   }
 
   const onMove = (event: PointerEvent) => {
