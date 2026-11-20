@@ -7,6 +7,7 @@ import type { Selection } from './selection'
 import type { PlacedSection } from './sections'
 import type { useBoardLayout } from './use-board-layout'
 import { FOCUS_PADDING } from './use-camera'
+import type { Guide } from './snap'
 import { useFrameEdit } from './use-frame-edit'
 
 const NUDGE = 10
@@ -37,6 +38,7 @@ export function useBoardEditing({
   onSelect,
   dropAreas,
   onTarget,
+  onGuides,
 }: {
   camera: Camera
   cameraActions: CameraActions
@@ -46,6 +48,7 @@ export function useBoardEditing({
   onSelect: (name: string) => void
   dropAreas?: (() => PlacedSection[]) | undefined
   onTarget?: ((id: string | null) => void) | undefined
+  onGuides?: ((guides: Guide[]) => void) | undefined
 }) {
   const { boards } = edit
   const placedLayout = useMemo(() => layoutOf(boards), [boards])
@@ -64,6 +67,7 @@ export function useBoardEditing({
     onCommit: edit.commit,
     ...(dropAreas ? { dropAreas } : {}),
     ...(onTarget ? { onTarget } : {}),
+    ...(onGuides ? { onGuides } : {}),
   })
 
   const actions = useMemo(

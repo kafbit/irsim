@@ -28,6 +28,8 @@ import { noticeFor } from './history'
 import { isVisible } from './mount-policy'
 import { adjacentBoard, readingOrder } from './navigation'
 import { Overlay } from './overlay'
+import { SnapGuides, type SnapGuidesHandle } from './snap-guides'
+import type { Guide } from './snap'
 import { patchPage } from './page-menu'
 import { PagePopovers, type PagePopover } from './page-popover'
 import { sendPageRequest } from './page-requests'
@@ -275,6 +277,8 @@ export function PageCanvas({
   )
   const moving = tool === 'move'
   const [dropTarget, setDropTarget] = useState<string | null>(null)
+  const guidesRef = useRef<SnapGuidesHandle>(null)
+  const showGuides = useCallback((guides: Guide[]) => guidesRef.current?.set(guides), [])
   // The sections as they were when a drag started: read through a ref so the callback is stable.
   const dragState = useRef({ boards: edit.boards, sections: edit.sections })
   useEffect(() => {
@@ -293,6 +297,7 @@ export function PageCanvas({
     onSelect: select,
     dropAreas,
     onTarget: setDropTarget,
+    onGuides: showGuides,
   })
   const focusBoard = useCallback(
     (name: string) => {
@@ -990,6 +995,7 @@ export function PageCanvas({
           editable={moving && !selection.interacting}
           onResizeStart={frameEdit.onResizeDown}
         />
+        <SnapGuides ref={guidesRef} camera={camera} />
         <Marquee ref={marqueeRef} />
         {commenting && pick ? (
           <Composer

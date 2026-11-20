@@ -4,7 +4,9 @@ import { type PointerEvent as ReactPointerEvent, useCallback } from 'react'
 import type { Camera } from './camera'
 import { type Handle, type Move, moveRect, resizeRect } from './frame-edit'
 import type { PlacedBoard, Rect } from './geometry'
+import { readMovePrefs } from './move-prefs'
 import { type PlacedSection, sectionAt } from './sections'
+import { type Guide, SNAP_DISTANCE, tuneMove, tuneResize } from './snap'
 
 const DRAG_THRESHOLD = 3
 const CLICK_GUARD_MS = 50
@@ -21,12 +23,15 @@ type Options = {
   dropAreas?: () => PlacedSection[]
   /** The section a dragged frame is over, `null` for none; `null` again when the drag ends. */
   onTarget?: (id: string | null) => void
+  /** The snap lines of the frame being dragged, `[]` for none; `[]` again when the drag ends. */
+  onGuides?: (guides: Guide[]) => void
 }
 
 type Gesture = {
   element: HTMLElement
   event: { pointerId: number; clientX: number; clientY: number }
   kind: 'move' | 'resize'
+  handle?: Handle
   items: { name: string; start: Rect }[]
   selects: string | null
   /** The frame whose center decides the section it is dropped into; only a title drag has one. */
@@ -68,10 +73,16 @@ export function useFrameEdit({
   onCommit,
   dropAreas,
   onTarget,
+  onGuides,
 }: Options) {
   const run = useCallback(
-    ({ element, event, kind, items, selects, drops, threshold, apply }: Gesture) => {
+    ({ element, event, kind, handle, items, selects, drops, threshold, apply }: Gesture) => {
       const k = camera.view.k || 1
+      const prefs = readMovePrefs()
+      const moving = new Set(items.map(({ name }) => name))
+      const others = boards.filter(({ name }) => !moving.has(name)).map(rectOf)
+      const tuning = { step: prefs.step, snap: prefs.snap, threshold: SNAP_DISTANCE / k }
+      let guides: Guide[] = []
       const areas = drops !== null ? (dropAreas?.() ?? []) : []
       let target: string | null = null
       let dragging = threshold === 0
@@ -90,6 +101,7 @@ export function useFrameEdit({
         if (!dragging) return
         if (threshold > 0) swallowClick()
         onTarget?.(null)
+        onGuides?.([])
         const moved = current.filter(({ rect, before }) => !same(rect, before))
         if (keep && moved.length > 0) {
           if (drops !== null && dropAreas) onCommit(moved, kind, { section: target })
@@ -106,11 +118,34 @@ export function useFrameEdit({
           if (selects) onSelect(selects)
           camera.focusViewport()
         }
-        current = items.map(({ name, start }) => ({
+        const raw = items.map(({ name, start }) => ({
           name,
           rect: apply(start, dx / k, dy / k),
           before: start,
         }))
+        const free = next.ctrlKey || next.metaKey
+        if (free || (!prefs.snap && prefs.step === 0)) {
+          current = raw
+          guides = []
+        } else if (kind === 'move') {
+          const tuned = tuneMove(
+            raw.map(({ rect }) => rect),
+            others,
+            tuning,
+          )
+          guides = tuned.guides
+          current = raw.map((item) => ({
+            ...item,
+            rect: { ...item.rect, x: item.rect.x + tuned.dx, y: item.rect.y + tuned.dy },
+          }))
+        } else {
+          const only = raw[0]
+          if (only) {
+            const tuned = tuneResize(only.rect, handle ?? 'se', others, tuning)
+            guides = tuned.guides
+            current = [{ ...only, rect: tuned.rect }]
+          } else current = raw
+        }
         const lead = current.find((item) => item.name === drops)
         if (lead && dropAreas) {
           const next = sectionAt(lead.rect, areas)
@@ -123,6 +158,7 @@ export function useFrameEdit({
           frame = requestAnimationFrame(() => {
             frame = 0
             onPreview(previewOf(current))
+            onGuides?.(guides)
           })
         }
       }
@@ -141,7 +177,7 @@ export function useFrameEdit({
       element.addEventListener('lostpointercapture', cancel)
       window.addEventListener('keydown', key, true)
     },
-    [camera, dropAreas, onCommit, onPreview, onSelect, onTarget],
+    [boards, camera, dropAreas, onCommit, onGuides, onPreview, onSelect, onTarget],
   )
 
   /** `pointerdown` on the world layer: starts a move when it lands on a frame title in the Move tool. */
@@ -182,6 +218,7 @@ export function useFrameEdit({
         element: event.currentTarget,
         event,
         kind: 'resize',
+        handle,
         items: [{ name, start: rectOf(board) }],
         selects: null,
         drops: null,

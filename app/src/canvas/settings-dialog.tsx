@@ -1,6 +1,8 @@
 'use client'
 
+import { Check } from 'lucide-react'
 import { Button, cn } from '../ui'
+import { STEPS, useMovePrefs } from './move-prefs'
 import {
   CHECK_GROUPS,
   GROUP_TITLES,
@@ -147,6 +149,72 @@ function Appearance() {
           Applies to the canvas. Boards keep their own colours.
         </span>
       </div>
+    </section>
+  )
+}
+
+const STEP_HINTS = {
+  0: 'Frames move one pixel at a time.',
+  8: 'Frames move 8 px at a time.',
+  24: 'Frames move 24 px at a time, like the grid.',
+} as const
+
+function MovingFrames() {
+  const [{ snap, step }, set] = useMovePrefs()
+  return (
+    <section className="flex flex-col gap-2">
+      <h3 className="m-0 text-xs font-semibold text-muted-foreground">Moving frames</h3>
+      <label className="flex cursor-pointer items-start gap-2">
+        <span className="relative mt-0.5 inline-grid size-4 shrink-0 place-items-center">
+          <input
+            type="checkbox"
+            checked={snap}
+            onChange={(event) => set({ snap: event.target.checked })}
+            className="peer absolute inset-0 m-0 size-4 appearance-none rounded border border-input bg-transparent checked:border-primary checked:bg-primary"
+          />
+          <Check
+            size={12}
+            strokeWidth={3}
+            aria-hidden="true"
+            className="pointer-events-none relative hidden text-primary-foreground peer-checked:block"
+          />
+        </span>
+        <span className="flex min-w-0 flex-col gap-0.5">
+          <span className="text-[13px] leading-5 text-foreground">Snap to other frames</span>
+          <span className="text-xs leading-4 text-muted-foreground">
+            A frame you move or resize sticks to the edges and centers of the frames near it, and a
+            line shows the match.
+          </span>
+        </span>
+      </label>
+      <div className="flex items-center gap-2">
+        <span className="text-[13px] text-foreground">Move in steps</span>
+        <div
+          role="group"
+          aria-label="Move in steps"
+          className="flex gap-0.5 rounded-[10px] border border-border bg-card p-0.5"
+        >
+          {STEPS.map((value) => (
+            <Button
+              key={value}
+              variant="ghost"
+              size="sm"
+              aria-pressed={step === value}
+              onClick={() => set({ step: value })}
+              className={cn(
+                'h-7 px-3 text-xs',
+                step === value ? 'bg-secondary text-foreground' : 'text-muted-foreground',
+              )}
+            >
+              {value === 0 ? 'Off' : `${value} px`}
+            </Button>
+          ))}
+        </div>
+        <span className="text-xs text-muted-foreground">{STEP_HINTS[step]}</span>
+      </div>
+      <span className="text-xs text-muted-foreground">
+        Hold Ctrl (Cmd on Mac) while you drag to skip both for one move.
+      </span>
     </section>
   )
 }
@@ -311,7 +379,7 @@ function SettingsPanel({ onOpenChange }: { onOpenChange: (open: boolean) => void
             onOpenChange(false)
           }
         }}
-        className="flex max-h-[680px] w-[600px] max-w-full flex-col overflow-hidden rounded-xl border border-border bg-card text-sm text-foreground shadow-[0_14px_36px_rgba(20,22,26,0.14)]"
+        className="flex max-h-[780px] w-[600px] max-w-full flex-col overflow-hidden rounded-xl border border-border bg-card text-sm text-foreground shadow-[0_14px_36px_rgba(20,22,26,0.14)]"
       >
         <header className="flex h-[52px] shrink-0 items-center gap-2.5 border-b border-border px-4">
           <h2 className="m-0 min-w-0 flex-1 text-[15px] font-semibold">Settings</h2>
@@ -328,6 +396,7 @@ function SettingsPanel({ onOpenChange }: { onOpenChange: (open: boolean) => void
         <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-4">
           <Version update={update} />
           <Appearance />
+          <MovingFrames />
           <Project report={report} />
           <section className="flex min-h-0 flex-col gap-2">
             <div className="flex items-center gap-2.5">
