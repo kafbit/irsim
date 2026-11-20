@@ -76,6 +76,9 @@ body{margin:0}
 <sc-if value="{{canvasMenu}}" hint-placeholder-val="{{false}}">
 <div style="position: absolute; left: 860px; top: 120px; z-index: 40;"><dc-import name="CanvasContextMenu" target="canvas" session="one" theme="{{theme}}" hint-size="268px,440px"></dc-import></div>
 </sc-if>
+<sc-if value="{{snapping}}" hint-placeholder-val="{{false}}">
+<div aria-hidden="true" style="position: absolute; left: 16px; top: 490px; width: 952px; height: 1px; background: var(--ring); pointer-events: none;"></div>
+</sc-if>
 <sc-if value="{{marquee}}" hint-placeholder-val="{{false}}">
 <div aria-hidden="true" style="position: absolute; left: 250px; top: 140px; width: 270px; height: 160px; box-sizing: border-box; border: 1px solid var(--ring); background: color-mix(in srgb, var(--ring) 8%, transparent); pointer-events: none;"></div>
 </sc-if>
@@ -114,14 +117,14 @@ body{margin:0}
 </sc-if>
 <sc-if value="{{showSettings}}" hint-placeholder-val="{{false}}">
 <div aria-hidden="true" style="position: absolute; inset: 0; background: color-mix(in srgb, var(--foreground) 32%, transparent);"></div>
-<div style="position: absolute; left: 50%; top: 80px; width: 600px; margin-left: -300px; --cv-h: 740px; --cv-bg: transparent;">
-<dc-import name="CanvasSettings" theme="{{theme}}" state="health" update="none" hint-size="600px,740px"></dc-import>
+<div style="position: absolute; left: 50%; top: 80px; width: 600px; margin-left: -300px; --cv-h: 840px; --cv-bg: transparent;">
+<dc-import name="CanvasSettings" theme="{{theme}}" state="health" update="none" hint-size="600px,840px"></dc-import>
 </div>
 </sc-if>
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"overview","options":["overview","selected","zoomedOut","thumbnailsLoading","playing","commenting","toast","emptyPage","marquee","multi","undoToast","search","sections","settings","canvasMenu"]},"update":{"editor":"enum","default":"none","options":["none","available"]},"sidebar":{"editor":"enum","default":"shown","options":["shown","hidden"]},"$preview":{"width":1440,"height":948}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"overview","options":["overview","selected","zoomedOut","thumbnailsLoading","playing","commenting","toast","emptyPage","marquee","snapping","multi","undoToast","search","sections","settings","canvasMenu"]},"update":{"editor":"enum","default":"none","options":["none","available"]},"sidebar":{"editor":"enum","default":"shown","options":["shown","hidden"]},"$preview":{"width":1440,"height":948}}'>
 class Component extends DCLogic {
   renderVals() {
     const { theme, state, update, sidebar } = this.props
@@ -146,7 +149,7 @@ class Component extends DCLogic {
     })
     let frames = []
     let sections = []
-    const ox = ['selected', 'commenting', 'marquee', 'multi'].includes(state) ? 40 : 96
+    const ox = ['selected', 'commenting', 'marquee', 'snapping', 'multi'].includes(state) ? 40 : 96
     let grid = { size: 24, pos: '-12px -12px' }
     if (zoomedOut) {
       const names = [
@@ -186,12 +189,12 @@ class Component extends DCLogic {
         frame(656, 562, 192, 140, 'Tab bar', 'Tabs', 'live', false, false),
       ]
     } else if (state !== 'emptyPage') {
-      const dialogMode = { selected: 'selected', playing: 'playing', commenting: 'commenting', marquee: 'selectedMany', multi: 'selectedMany' }[state] || 'live'
+      const dialogMode = { selected: 'selected', snapping: 'selected', playing: 'playing', commenting: 'commenting', marquee: 'selectedMany', multi: 'selectedMany' }[state] || 'live'
       const buttonMode = state === 'marquee' || state === 'multi' ? 'selectedMany' : 'live'
       const tableMode = state === 'multi' ? 'selectedMany' : 'live'
       frames = [
         frame(ox, 170, 280, 160, 'Button', 'Button', buttonMode, false, false),
-        frame(ox + 344, 170, 360, 240, 'Confirmation dialog', 'Dialog', dialogMode, true, false),
+        state === 'snapping' ? frame(584, 490, 360, 240, 'Confirmation dialog', 'Dialog', dialogMode, true, false) : frame(ox + 344, 170, 360, 240, 'Confirmation dialog', 'Dialog', dialogMode, true, false),
         frame(ox, 490, 480, 300, 'Data table', 'Table', tableMode, false, true),
       ]
     }
@@ -217,6 +220,7 @@ class Component extends DCLogic {
       sections,
       canvasMenu: state === 'canvasMenu',
       marquee: state === 'marquee',
+      snapping: state === 'snapping',
       multi: state === 'multi',
       sidebarSections: state === 'sections' ? 'yes' : 'no',
       inspectorMode: state === 'multi' ? 'multi' : 'single',

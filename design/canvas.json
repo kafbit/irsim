@@ -1215,6 +1215,15 @@
           "section": "app-screens-interaction"
         },
         {
+          "name": "CanvasAppSnapping",
+          "title": "Canvas app: snapping to another frame",
+          "x": 4465,
+          "y": 2494,
+          "width": 1440,
+          "height": 948,
+          "section": "app-screens-interaction"
+        },
+        {
           "name": "CanvasSectionMenuTidy",
           "title": "Section: tidy submenu",
           "x": 9471,
@@ -1342,7 +1351,7 @@
           "x": 0,
           "y": 1520,
           "width": 600,
-          "height": 740,
+          "height": 840,
           "section": "update-and-settings-settings-dialog"
         },
         {
@@ -1351,7 +1360,7 @@
           "x": 680,
           "y": 1520,
           "width": 600,
-          "height": 740,
+          "height": 840,
           "section": "update-and-settings-settings-dialog"
         },
         {
@@ -1360,7 +1369,7 @@
           "x": 1360,
           "y": 1520,
           "width": 600,
-          "height": 740,
+          "height": 840,
           "section": "update-and-settings-settings-dialog"
         },
         {
@@ -1369,7 +1378,7 @@
           "x": 2040,
           "y": 1520,
           "width": 600,
-          "height": 740,
+          "height": 840,
           "section": "update-and-settings-settings-dialog"
         },
         {
@@ -1378,7 +1387,16 @@
           "x": 2720,
           "y": 1520,
           "width": 600,
-          "height": 740,
+          "height": 840,
+          "section": "update-and-settings-settings-dialog"
+        },
+        {
+          "name": "CanvasSettingsMoving",
+          "title": "Canvas settings: moving frames",
+          "x": 3400,
+          "y": 1520,
+          "width": 600,
+          "height": 840,
           "section": "update-and-settings-settings-dialog"
         }
       ]

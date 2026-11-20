@@ -17,7 +17,7 @@ body{margin:0}
 </style>
 </helmet>
 <div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="display: flex; align-items: flex-start; justify-content: center; box-sizing: border-box; width: 100%; min-height: var(--cv-h, 100vh); padding: 20px; background: var(--cv-bg, var(--shell)); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
-<div role="dialog" aria-modal="true" aria-label="Settings" style="display: flex; flex-direction: column; width: 600px; max-height: 680px; box-sizing: border-box; overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: var(--card); box-shadow: 0 14px 36px rgba(20,22,26,0.14);">
+<div role="dialog" aria-modal="true" aria-label="Settings" style="display: flex; flex-direction: column; width: 600px; max-height: 780px; box-sizing: border-box; overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: var(--card); box-shadow: 0 14px 36px rgba(20,22,26,0.14);">
 <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0; height: 52px; box-sizing: border-box; padding: 0 16px; border-bottom: 1px solid var(--border);">
 <span style="flex: 1; font-size: 15px; font-weight: 600;">Settings</span>
 <button type="button" aria-label="Close" style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: 0; border-radius: 8px; background: transparent; color: var(--muted-foreground); font: inherit; font-size: 18px; line-height: 1; cursor: pointer;">×</button>
@@ -53,6 +53,27 @@ body{margin:0}
 </div>
 <span style="font-size: 12px; color: var(--muted-foreground);">Applies to the canvas. Boards keep their own colours.</span>
 </div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px;">
+<div style="font-size: 12px; font-weight: 600; color: var(--muted-foreground);">Moving frames</div>
+<label style="display: flex; align-items: flex-start; gap: 8px;">
+<span style="position: relative; display: inline-grid; flex-shrink: 0; place-items: center; width: 16px; height: 16px; margin-top: 2px; box-sizing: border-box; border: 1px solid {{snapBorder}}; border-radius: 4px; background: {{snapBg}};"><svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--primary-foreground)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display: {{snapCheck}};"><path d="M20 6 9 17l-5-5"/></svg></span>
+<span style="display: flex; flex-direction: column; gap: 2px; min-width: 0;">
+<span style="font-size: 13px; line-height: 20px; color: var(--foreground);">Snap to other frames</span>
+<span style="font-size: 12px; line-height: 16px; color: var(--muted-foreground);">A frame you move or resize sticks to the edges and centers of the frames near it, and a line shows the match.</span>
+</span>
+</label>
+<div style="display: flex; align-items: center; gap: 8px;">
+<span style="font-size: 13px; color: var(--foreground);">Move in steps</span>
+<div role="group" aria-label="Move in steps" style="display: flex; gap: 2px; box-sizing: border-box; padding: 2px; border: 1px solid var(--border); border-radius: 10px; background: var(--card);">
+<sc-for list="{{stepItems}}" as="item">
+<button type="button" aria-pressed="{{item.on}}" style="height: 28px; padding: 0 12px; border: 1px solid transparent; border-radius: 8px; background: {{item.bg}}; color: {{item.color}}; font: inherit; font-size: 12px; cursor: pointer;">{{item.label}}</button>
+</sc-for>
+</div>
+<span style="font-size: 12px; color: var(--muted-foreground);">{{stepsHint}}</span>
+</div>
+<span style="font-size: 12px; color: var(--muted-foreground);">Hold Ctrl (Cmd on Mac) while you drag to skip both for one move.</span>
 </div>
 
 <div style="display: flex; flex-direction: column; gap: 8px;">
@@ -116,10 +137,10 @@ body{margin:0}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"health","options":["idle","checking","health","unavailable"]},"update":{"editor":"enum","default":"none","options":["none","source","available","restart","updating","failed"]},"$preview":{"width":600,"height":740}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"health","options":["idle","checking","health","unavailable"]},"update":{"editor":"enum","default":"none","options":["none","source","available","restart","updating","failed"]},"snap":{"editor":"enum","default":"on","options":["on","off"]},"steps":{"editor":"enum","default":"off","options":["off","8","24"]},"$preview":{"width":600,"height":840}}'>
 class Component extends DCLogic {
   renderVals() {
-    const { theme, state, update } = this.props
+    const { theme, state, update, snap, steps } = this.props
     const running = '0.2.3'
     const version = {
       none: { title: `irsim ${running}`, detail: 'Up to date.', color: 'var(--muted-foreground)' },
@@ -167,6 +188,11 @@ class Component extends DCLogic {
       action: version.action || 'irsim update',
       showCheck: update === 'none' || update === 'source',
       busy: update === 'updating',
+      snapBorder: snap === 'off' ? 'var(--input)' : 'var(--primary)',
+      snapBg: snap === 'off' ? 'transparent' : 'var(--primary)',
+      snapCheck: snap === 'off' ? 'none' : 'block',
+      stepItems: [['off', 'Off'], ['8', '8 px'], ['24', '24 px']].map(([value, label]) => ({ label, on: steps === value, bg: steps === value ? 'var(--secondary)' : 'transparent', color: steps === value ? 'var(--foreground)' : 'var(--muted-foreground)' })),
+      stepsHint: steps === 'off' ? 'Frames move one pixel at a time.' : steps === '8' ? 'Frames move 8 px at a time.' : 'Frames move 24 px at a time, like the grid.',
       themes: [
         { label: 'Light', on: theme !== 'dark', bg: theme !== 'dark' ? 'var(--secondary)' : 'transparent', color: theme !== 'dark' ? 'var(--foreground)' : 'var(--muted-foreground)' },
         { label: 'Dark', on: theme === 'dark', bg: theme === 'dark' ? 'var(--secondary)' : 'transparent', color: theme === 'dark' ? 'var(--foreground)' : 'var(--muted-foreground)' },
