@@ -30,7 +30,7 @@ function Placeholder({
   const pending = !failed && current?.state === 'pending'
   const src = `/api/thumbs/${encodeURIComponent(board.name)}?h=${board.hash}-${board.width}x${board.height}`
   const imageSrc = thumb ? `${src}&r=${thumb.rev}` : src
-  const old = staleSrc === imageSrc
+  const old = staleSrc === imageSrc && !failed && !pending
   const onLoad = () => {
     setSeen({ rev, state: 'loaded' })
     void fetch(imageSrc)
