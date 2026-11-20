@@ -75,7 +75,8 @@ export function useComments(pageId: string) {
     async (method: string, url: string, body?: unknown, onResult?: (result: unknown) => void) => {
       setError(null)
       try {
-        onResult?.(await request(method, url, body))
+        const result = await request(method, url, body)
+        onResult?.(result)
       } catch (failure) {
         setError(String((failure as Error)?.message ?? failure))
         throw failure

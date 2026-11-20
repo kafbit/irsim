@@ -468,6 +468,11 @@ export function PageCanvas({
     (name: string, mode: PlayMode) => (mode === 'full' ? openFullPlay(name) : playOnCanvas(name)),
     [openFullPlay, playOnCanvas],
   )
+  const [playParam, setPlayParam] = useState(play)
+  if (play !== playParam) {
+    setPlayParam(play)
+    if (play && focus) playBoard(focus, play)
+  }
   const playFull = useCallback((name: string) => openFullPlay(name), [openFullPlay])
   const stopPlay = select
   /** Back to the canvas on the board that was playing last, so a walk through a flow ends there. */
