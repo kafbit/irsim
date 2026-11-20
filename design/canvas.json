@@ -148,11 +148,7 @@
         {
           "id": "full-screen-views-compare-view",
           "title": "Compare view",
-          "parent": "full-screen-views",
-          "layout": {
-            "mode": "wrap",
-            "gap": 40
-          }
+          "parent": "full-screen-views"
         }
       ],
       "boards": [
@@ -681,7 +677,7 @@
         {
           "name": "CanvasInspector",
           "title": "Canvas inspector",
-          "x": -1291,
+          "x": -1437,
           "y": 9886,
           "width": 288,
           "height": 820,
@@ -690,7 +686,7 @@
         {
           "name": "CanvasInspectorMulti",
           "title": "Canvas inspector: several boards",
-          "x": -923,
+          "x": -1069,
           "y": 9886,
           "width": 288,
           "height": 820,
@@ -699,7 +695,7 @@
         {
           "name": "CanvasInspectorMultiShared",
           "title": "Canvas inspector: several boards in one section",
-          "x": -555,
+          "x": -701,
           "y": 9886,
           "width": 288,
           "height": 820,
@@ -708,7 +704,7 @@
         {
           "name": "CanvasInspectorImports",
           "title": "Inspector: ten imports, first three shown",
-          "x": -187,
+          "x": -333,
           "y": 9886,
           "width": 288,
           "height": 820,
@@ -717,7 +713,7 @@
         {
           "name": "CanvasInspectorImportsExpanded",
           "title": "Inspector: ten imports, all shown",
-          "x": 181,
+          "x": 35,
           "y": 9886,
           "width": 288,
           "height": 820,
@@ -726,7 +722,7 @@
         {
           "name": "CanvasInspectorVariants",
           "title": "Canvas inspector: variants",
-          "x": -1291,
+          "x": -1437,
           "y": 10946,
           "width": 288,
           "height": 960,
@@ -735,7 +731,7 @@
         {
           "name": "CanvasInspectorVariantSent",
           "title": "Canvas inspector: variants sent",
-          "x": -923,
+          "x": -1069,
           "y": 10946,
           "width": 288,
           "height": 960,
@@ -744,7 +740,7 @@
         {
           "name": "CanvasInspectorVariant",
           "title": "Canvas inspector: variant board",
-          "x": -555,
+          "x": -701,
           "y": 10946,
           "width": 288,
           "height": 960,
@@ -1122,8 +1118,8 @@
         {
           "name": "CanvasCompare",
           "title": "Canvas compare",
-          "x": -7239,
-          "y": 13762,
+          "x": -7251,
+          "y": 12718,
           "width": 1440,
           "height": 900,
           "section": "full-screen-views-compare-view"
@@ -1131,8 +1127,8 @@
         {
           "name": "CanvasCompareNarrow",
           "title": "Canvas compare: 390 width",
-          "x": -5759,
-          "y": 13762,
+          "x": -5731,
+          "y": 12718,
           "width": 1440,
           "height": 900,
           "section": "full-screen-views-compare-view"
@@ -1140,8 +1136,8 @@
         {
           "name": "CanvasCompareError",
           "title": "Canvas compare: error",
-          "x": -4279,
-          "y": 13762,
+          "x": -4211,
+          "y": 12718,
           "width": 1440,
           "height": 900,
           "section": "full-screen-views-compare-view"
@@ -1149,8 +1145,8 @@
         {
           "name": "CanvasCompareConfirm",
           "title": "Canvas compare: confirm Choose",
-          "x": -7239,
-          "y": 14750,
+          "x": -7251,
+          "y": 13698,
           "width": 1440,
           "height": 900,
           "section": "full-screen-views-compare-view"
@@ -1266,7 +1262,7 @@
         {
           "name": "CanvasInspectorTidy",
           "title": "Canvas inspector: tidy a section as a grid",
-          "x": 529,
+          "x": 383,
           "y": 9886,
           "width": 288,
           "height": 820,
@@ -1275,7 +1271,7 @@
         {
           "name": "CanvasInspectorTidyWrap",
           "title": "Canvas inspector: tidy a section with wrap",
-          "x": 877,
+          "x": 731,
           "y": 9886,
           "width": 288,
           "height": 820,
