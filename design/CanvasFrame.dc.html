@@ -19,12 +19,14 @@ body{margin:0}
 <div dir="ltr" lang="en" class="cf-root {{themeClass}}" style="position: relative; box-sizing: border-box; width: 100%; min-height: var(--cv-h, 100vh); padding: 48px 20px 20px 20px; background: var(--cv-bg, var(--shell)); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
 <div data-board="Dialog" style="position: relative; width: {{boxWidth}}; height: {{boxHeight}};">
 <button type="button" style="position: absolute; left: 0; bottom: 100%; display: flex; align-items: baseline; gap: 8px; max-width: {{titleMax}}; box-sizing: border-box; margin: 0; padding: 0 0 6px 0; border: 0; background: transparent; overflow: hidden; font: inherit; font-size: 12px; line-height: 16px; white-space: nowrap; text-align: start; color: var(--foreground); cursor: {{titleCursor}};">
-<sc-if value="{{isPrototype}}" hint-placeholder-val="{{false}}">
+<sc-if value="{{protoDot}}" hint-placeholder-val="{{false}}">
 <span role="img" aria-label="Prototype" style="flex-shrink: 0; align-self: center; width: 8px; height: 8px; border-radius: 50%; background: #2563eb;"></span>
 </sc-if>
-<sc-for list="{{statuses}}" as="status">
-<sc-if value="{{compact}}" hint-placeholder-val="{{false}}"><span role="img" aria-label="{{status.label}}" title="{{status.label}}" style="flex-shrink: 0; align-self: center; width: 8px; height: 8px; border-radius: 50%; background: {{status.color}};"></span></sc-if>
-<sc-if value="{{wordy}}" hint-placeholder-val="{{true}}"><span style="flex-shrink: 0; font-weight: 500; color: {{status.color}};">{{status.label}}</span></sc-if>
+<sc-for list="{{dots}}" as="dot">
+<span role="img" aria-label="{{dot.label}}" title="{{dot.label}}" style="flex-shrink: 0; align-self: center; width: 8px; height: 8px; border-radius: 50%; background: {{dot.color}};"></span>
+</sc-for>
+<sc-for list="{{words}}" as="status">
+<span style="flex-shrink: 0; font-weight: 500; color: {{status.color}};">{{status.label}}</span>
 </sc-for>
 <span dir="auto" style="min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 500;">Confirmation dialog</span>
 <span style="min-width: 0; flex-shrink: 10000; overflow: hidden; text-overflow: ellipsis; color: var(--muted-foreground);">Dialog</span>
@@ -114,8 +116,14 @@ class Component extends DCLogic {
       approval === 'new' ? { label: 'New', color: 'var(--info-foreground)' } : null,
     ].filter(Boolean)
     const compact = width < 200
+    const rank = ['Changed', 'New', 'Outdated', 'Not changed yet', 'Approved']
+    const top = [...statuses].sort((a, b) => rank.indexOf(a.label) - rank.indexOf(b.label))[0]
+    const dots = compact ? (top ? [top] : []) : []
+    const playShown = prototype === 'yes' && !playing && width >= 120
     return {
-      statuses,
+      dots,
+      words: compact ? [] : statuses,
+      protoDot: prototype === 'yes' && (!compact || !top),
       menuOpen: menu === 'open',
       session: session === 'none' ? 'none' : 'one',
       playable: prototype === "yes" ? "yes" : "no",
@@ -125,7 +133,7 @@ class Component extends DCLogic {
       compact,
       wordy: !compact,
       playPadding: compact ? '0 6px' : '0 8px 0 6px',
-      titleMax: compact && prototype === 'yes' && !playing ? 'calc(100% - 32px)' : '100%',
+      titleMax: compact && playShown ? 'calc(100% - 32px)' : '100%',
       themeClass: theme === 'dark' ? 'dark' : '',
       boxWidth: `${width}px`,
       boxHeight: `${height}px`,
@@ -133,7 +141,7 @@ class Component extends DCLogic {
       approved: approval === 'approved',
       changed: approval === 'changed',
       isNew: approval === 'new',
-      showPlay: prototype === 'yes' && !playing,
+      showPlay: playShown,
       showStop: playing,
       outline: playing ? '2px solid #2563eb' : '1px solid var(--border)',
       showMock: !placeholder,

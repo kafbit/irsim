@@ -387,6 +387,15 @@
           "section": "frames-frame-status"
         },
         {
+          "name": "CanvasFrameTiny",
+          "title": "Frame: zoomed out further, one dot and no Play",
+          "x": 1029,
+          "y": 6339,
+          "width": 200,
+          "height": 178,
+          "section": "frames-frame-status"
+        },
+        {
           "name": "CanvasFramePlaying",
           "title": "Frame: playing on the canvas",
           "x": 321,
@@ -740,8 +749,8 @@
         {
           "name": "CanvasThread",
           "title": "Canvas comments panel",
-          "x": 1548,
-          "y": 9756,
+          "x": 2032,
+          "y": 9777,
           "width": 320,
           "height": 820,
           "section": "comments-comments-panel"
@@ -749,8 +758,8 @@
         {
           "name": "CanvasThreadResolved",
           "title": "Comments panel: resolved",
-          "x": 1948,
-          "y": 9756,
+          "x": 2432,
+          "y": 9777,
           "width": 320,
           "height": 820,
           "section": "comments-comments-panel"
@@ -758,8 +767,8 @@
         {
           "name": "CanvasThreadEmpty",
           "title": "Comments panel: empty",
-          "x": 2348,
-          "y": 9756,
+          "x": 2832,
+          "y": 9777,
           "width": 320,
           "height": 820,
           "section": "comments-comments-panel"
@@ -767,8 +776,8 @@
         {
           "name": "CanvasThreadViewing",
           "title": "Thread: viewing a comment at its viewport",
-          "x": 2748,
-          "y": 9756,
+          "x": 3232,
+          "y": 9777,
           "width": 320,
           "height": 820,
           "section": "comments-comments-panel"
@@ -776,8 +785,8 @@
         {
           "name": "CanvasThreadResolveMenu",
           "title": "Thread: Approve and build menu with Resolve",
-          "x": 3148,
-          "y": 9756,
+          "x": 3632,
+          "y": 9777,
           "width": 320,
           "height": 820,
           "section": "comments-comments-panel"
@@ -785,8 +794,8 @@
         {
           "name": "CanvasThreadReplyImages",
           "title": "Thread: reply with pasted images, and a sent reply with an image",
-          "x": 3548,
-          "y": 9756,
+          "x": 4032,
+          "y": 9777,
           "width": 320,
           "height": 820,
           "section": "comments-comments-panel"
@@ -794,8 +803,8 @@
         {
           "name": "CanvasSession",
           "title": "Canvas session",
-          "x": 1548,
-          "y": 10816,
+          "x": 2032,
+          "y": 10837,
           "width": 288,
           "height": 200,
           "section": "comments-agent-session"
@@ -803,8 +812,8 @@
         {
           "name": "CanvasSessionSeveral",
           "title": "Session: two sessions, menu open",
-          "x": 1916,
-          "y": 10816,
+          "x": 2400,
+          "y": 10837,
           "width": 288,
           "height": 260,
           "section": "comments-agent-session"
@@ -812,8 +821,8 @@
         {
           "name": "CanvasSessionOneOpen",
           "title": "Session: one session, menu open",
-          "x": 2284,
-          "y": 10946,
+          "x": 2768,
+          "y": 10967,
           "width": 288,
           "height": 160,
           "section": "comments-agent-session"
@@ -821,8 +830,8 @@
         {
           "name": "CanvasSessionPick",
           "title": "Session: pick one of several",
-          "x": 2284,
-          "y": 10816,
+          "x": 2768,
+          "y": 10837,
           "width": 288,
           "height": 90,
           "section": "comments-agent-session"
@@ -830,8 +839,8 @@
         {
           "name": "CanvasSessionNone",
           "title": "Session: none listening",
-          "x": 2652,
-          "y": 10816,
+          "x": 3136,
+          "y": 10837,
           "width": 288,
           "height": 90,
           "section": "comments-agent-session"
@@ -839,8 +848,8 @@
         {
           "name": "CanvasThreadSessions",
           "title": "Thread: two sessions, replies name their session",
-          "x": 3020,
-          "y": 10816,
+          "x": 3504,
+          "y": 10837,
           "width": 320,
           "height": 900,
           "section": "comments-agent-session"
@@ -848,8 +857,8 @@
         {
           "name": "CanvasThreadNoSession",
           "title": "Thread: no session, Send disabled",
-          "x": 3420,
-          "y": 10816,
+          "x": 3904,
+          "y": 10837,
           "width": 320,
           "height": 820,
           "section": "comments-agent-session"
@@ -857,8 +866,8 @@
         {
           "name": "CanvasThreadNoTarget",
           "title": "Thread: sent comment without a session, Approve and build disabled",
-          "x": 3820,
-          "y": 10816,
+          "x": 4304,
+          "y": 10837,
           "width": 320,
           "height": 820,
           "section": "comments-agent-session"
@@ -866,8 +875,8 @@
         {
           "name": "CanvasCommentForm",
           "title": "Canvas comment form",
-          "x": 1548,
-          "y": 11956,
+          "x": 2032,
+          "y": 11977,
           "width": 368,
           "height": 360,
           "section": "comments-comment-form"
@@ -875,8 +884,8 @@
         {
           "name": "CanvasCommentFormVariants",
           "title": "Comment form: generating variants",
-          "x": 1996,
-          "y": 11956,
+          "x": 2480,
+          "y": 11977,
           "width": 368,
           "height": 460,
           "section": "comments-comment-form"
@@ -884,8 +893,8 @@
         {
           "name": "CanvasCommentFormAutoSend",
           "title": "Comment form: send to the agent",
-          "x": 2404,
-          "y": 11956,
+          "x": 2888,
+          "y": 11977,
           "width": 368,
           "height": 400,
           "section": "comments-comment-form"
@@ -893,8 +902,8 @@
         {
           "name": "CanvasCommentFormAutoSendNone",
           "title": "Comment form: send to the agent, no session",
-          "x": 2812,
-          "y": 11956,
+          "x": 3296,
+          "y": 11977,
           "width": 368,
           "height": 400,
           "section": "comments-comment-form"
@@ -902,8 +911,8 @@
         {
           "name": "CanvasTopBar",
           "title": "Top bar",
-          "x": 5426,
-          "y": 10851,
+          "x": 5944,
+          "y": 9663,
           "width": 1440,
           "height": 48,
           "section": "bars-search-and-controls-top-bar"
@@ -911,8 +920,8 @@
         {
           "name": "CanvasTopBarMenu",
           "title": "Top bar: approve menu open",
-          "x": 6946,
-          "y": 10851,
+          "x": 7464,
+          "y": 9663,
           "width": 1440,
           "height": 220,
           "section": "bars-search-and-controls-top-bar"
@@ -920,8 +929,8 @@
         {
           "name": "CanvasTopBarIdle",
           "title": "Top bar: no session, nothing to approve",
-          "x": 8466,
-          "y": 10851,
+          "x": 8984,
+          "y": 9663,
           "width": 1440,
           "height": 48,
           "section": "bars-search-and-controls-top-bar"
@@ -929,8 +938,8 @@
         {
           "name": "CanvasToolbar",
           "title": "Canvas toolbar",
-          "x": 5426,
-          "y": 11311,
+          "x": 5944,
+          "y": 10123,
           "width": 220,
           "height": 48,
           "section": "bars-search-and-controls-toolbar-and-focus-bar"
@@ -938,8 +947,8 @@
         {
           "name": "CanvasToolbarComment",
           "title": "Toolbar: comment tool",
-          "x": 5726,
-          "y": 11311,
+          "x": 6244,
+          "y": 10123,
           "width": 220,
           "height": 48,
           "section": "bars-search-and-controls-toolbar-and-focus-bar"
@@ -947,8 +956,8 @@
         {
           "name": "CanvasFocusBar",
           "title": "Canvas focus bar",
-          "x": 6026,
-          "y": 11311,
+          "x": 6544,
+          "y": 10123,
           "width": 380,
           "height": 40,
           "section": "bars-search-and-controls-toolbar-and-focus-bar"
@@ -956,8 +965,8 @@
         {
           "name": "CanvasZoomBar",
           "title": "Canvas zoom bar",
-          "x": 5426,
-          "y": 11599,
+          "x": 5944,
+          "y": 10411,
           "width": 260,
           "height": 200,
           "section": "bars-search-and-controls-zoom-bar"
@@ -965,8 +974,8 @@
         {
           "name": "CanvasZoomBarMenu",
           "title": "Zoom bar: menu open",
-          "x": 5766,
-          "y": 11599,
+          "x": 6284,
+          "y": 10411,
           "width": 260,
           "height": 540,
           "section": "bars-search-and-controls-zoom-bar"
@@ -974,8 +983,8 @@
         {
           "name": "CanvasSearch",
           "title": "Canvas search",
-          "x": 5426,
-          "y": 12379,
+          "x": 5944,
+          "y": 11191,
           "width": 640,
           "height": 520,
           "section": "bars-search-and-controls-search"
@@ -983,8 +992,8 @@
         {
           "name": "CanvasSearchRecent",
           "title": "Canvas search: recent",
-          "x": 6146,
-          "y": 12379,
+          "x": 6664,
+          "y": 11191,
           "width": 640,
           "height": 520,
           "section": "bars-search-and-controls-search"
@@ -992,8 +1001,8 @@
         {
           "name": "CanvasSearchEmpty",
           "title": "Canvas search: no results",
-          "x": 6866,
-          "y": 12379,
+          "x": 7384,
+          "y": 11191,
           "width": 640,
           "height": 520,
           "section": "bars-search-and-controls-search"
@@ -1001,8 +1010,8 @@
         {
           "name": "CanvasToast",
           "title": "Canvas toast",
-          "x": 5426,
-          "y": 13139,
+          "x": 5944,
+          "y": 11951,
           "width": 420,
           "height": 44,
           "section": "bars-search-and-controls-toast"
@@ -1010,8 +1019,8 @@
         {
           "name": "CanvasPlayView",
           "title": "Play view",
-          "x": -7085,
-          "y": 10080,
+          "x": -7251,
+          "y": 9618,
           "width": 1440,
           "height": 900,
           "section": "full-screen-views-play-view"
@@ -1019,8 +1028,8 @@
         {
           "name": "CanvasPlayViewFit",
           "title": "Play view: fit window",
-          "x": -5565,
-          "y": 10080,
+          "x": -5731,
+          "y": 9618,
           "width": 1440,
           "height": 900,
           "section": "full-screen-views-play-view"
@@ -1028,8 +1037,8 @@
         {
           "name": "CanvasPlayViewMenu",
           "title": "Play view: preset menu",
-          "x": -4045,
-          "y": 10080,
+          "x": -4211,
+          "y": 9618,
           "width": 1440,
           "height": 900,
           "section": "full-screen-views-play-view"
@@ -1037,8 +1046,8 @@
         {
           "name": "CanvasPlayViewResponsive",
           "title": "Play view: responsive",
-          "x": -7085,
-          "y": 11060,
+          "x": -7251,
+          "y": 10598,
           "width": 1440,
           "height": 900,
           "section": "full-screen-views-play-view"
@@ -1046,8 +1055,8 @@
         {
           "name": "CanvasPlayViewCommenting",
           "title": "Play view: commenting at a phone viewport",
-          "x": -5565,
-          "y": 11060,
+          "x": -5731,
+          "y": 10598,
           "width": 1440,
           "height": 900,
           "section": "full-screen-views-play-view"
@@ -1055,8 +1064,8 @@
         {
           "name": "CanvasPlayViewZoomMenu",
           "title": "Play view: zoom menu",
-          "x": -4045,
-          "y": 11060,
+          "x": -4211,
+          "y": 10598,
           "width": 1440,
           "height": 900,
           "section": "full-screen-views-play-view"
@@ -1064,8 +1073,8 @@
         {
           "name": "CanvasPlayViewTall",
           "title": "Play view: tall board at normal zoom",
-          "x": -7085,
-          "y": 12040,
+          "x": -7251,
+          "y": 11578,
           "width": 1440,
           "height": 900,
           "section": "full-screen-views-play-view"
@@ -1073,8 +1082,8 @@
         {
           "name": "CanvasPlayViewContain",
           "title": "Play view: tall board contained",
-          "x": -5565,
-          "y": 12040,
+          "x": -5731,
+          "y": 11578,
           "width": 1440,
           "height": 900,
           "section": "full-screen-views-play-view"
@@ -1082,8 +1091,8 @@
         {
           "name": "CanvasCompare",
           "title": "Canvas compare",
-          "x": -7085,
-          "y": 13180,
+          "x": -7251,
+          "y": 12718,
           "width": 1440,
           "height": 900,
           "section": "full-screen-views-compare-view"
@@ -1091,8 +1100,8 @@
         {
           "name": "CanvasCompareNarrow",
           "title": "Canvas compare: 390 width",
-          "x": -5565,
-          "y": 13180,
+          "x": -5731,
+          "y": 12718,
           "width": 1440,
           "height": 900,
           "section": "full-screen-views-compare-view"
@@ -1100,8 +1109,8 @@
         {
           "name": "CanvasCompareError",
           "title": "Canvas compare: error",
-          "x": -4045,
-          "y": 13180,
+          "x": -4211,
+          "y": 12718,
           "width": 1440,
           "height": 900,
           "section": "full-screen-views-compare-view"
@@ -1109,8 +1118,8 @@
         {
           "name": "CanvasCompareConfirm",
           "title": "Canvas compare: confirm Choose",
-          "x": -7085,
-          "y": 14160,
+          "x": -7251,
+          "y": 13698,
           "width": 1440,
           "height": 900,
           "section": "full-screen-views-compare-view"

@@ -70,23 +70,27 @@ function Status({
   hint,
   text,
   dot,
+  dotShown,
 }: {
   label: string
   hint?: string
   text: string
   dot: string
+  dotShown: boolean
 }) {
   return (
     <>
       <span title={hint} className={`shrink-0 font-medium @max-[200px]:hidden ${text}`}>
         {label}
       </span>
-      <span
-        role="img"
-        aria-label={label}
-        title={label}
-        className={`hidden size-2 shrink-0 self-center rounded-full @max-[200px]:block ${dot}`}
-      />
+      {dotShown ? (
+        <span
+          role="img"
+          aria-label={label}
+          title={label}
+          className={`hidden size-2 shrink-0 self-center rounded-full @max-[200px]:block ${dot}`}
+        />
+      ) : null}
     </>
   )
 }
@@ -134,6 +138,18 @@ export const Frame = memo(function Frame({
   )
   const outdated = staleRev !== null && staleRev === (thumb?.rev ?? 0) && !ready
   const notChanged = board.unchanged === true
+  const topStatus =
+    approval === 'changed'
+      ? 'Changed'
+      : approval === 'new'
+        ? 'New'
+        : outdated
+          ? 'Outdated'
+          : notChanged
+            ? 'Not changed yet'
+            : approval === 'approved'
+              ? 'Approved'
+              : null
   // Gives the keyboard to the board once it plays and has loaded, so its inputs and Esc work even
   // when Play reached it through a link and the frame was not mounted yet. The frame is the
   // external system.
@@ -161,38 +177,55 @@ export const Frame = memo(function Frame({
             commenting
               ? 'cursor-crosshair in-data-labels-off:invisible'
               : 'cursor-pointer in-data-labels-off:invisible'
-          } ${board.interactive && !playing ? '@max-[200px]:max-w-[calc(100%-32px)]!' : ''}`}
+          } ${board.interactive && !playing ? '@max-[200px]:max-w-[calc(100%-32px)]! @max-[119.99px]:max-w-full!' : ''}`}
           style={{ maxInlineSize: labelMaxInline(board.width) }}
         >
           {board.interactive ? (
             <span
               role="img"
               aria-label="Prototype"
-              className="size-2 shrink-0 self-center rounded-full bg-blue-600"
+              className={`size-2 shrink-0 self-center rounded-full bg-blue-600 ${topStatus ? '@max-[200px]:hidden' : ''}`}
             />
           ) : null}
           {/* Before the title, so a narrow board truncates the title and keeps the approval state. */}
           {outdated ? (
-            <Status label="Outdated" text="text-warning-foreground" dot="bg-warning-foreground" />
+            <Status
+              label="Outdated"
+              text="text-warning-foreground"
+              dot="bg-warning-foreground"
+              dotShown={topStatus === 'Outdated'}
+            />
           ) : null}
           {notChanged ? (
             <Status
               label="Not changed yet"
               text="text-muted-foreground"
               dot="bg-muted-foreground"
+              dotShown={topStatus === 'Not changed yet'}
             />
           ) : null}
           {approval === 'approved' ? (
-            <Status label="Approved" text="text-success-foreground" dot="bg-success-foreground" />
+            <Status
+              label="Approved"
+              text="text-success-foreground"
+              dot="bg-success-foreground"
+              dotShown={topStatus === 'Approved'}
+            />
           ) : approval === 'changed' ? (
             <Status
               label="Changed"
               hint="Changed since approval"
               text="text-warning-foreground"
               dot="bg-warning-foreground"
+              dotShown={topStatus === 'Changed'}
             />
           ) : approval === 'new' ? (
-            <Status label="New" text="text-info-foreground" dot="bg-info-foreground" />
+            <Status
+              label="New"
+              text="text-info-foreground"
+              dot="bg-info-foreground"
+              dotShown={topStatus === 'New'}
+            />
           ) : null}
           <span dir="auto" className="truncate font-medium">
             {board.title}
