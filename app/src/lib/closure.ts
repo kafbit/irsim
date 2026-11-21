@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { readFile, stat } from 'node:fs/promises'
 import { join } from 'node:path'
+import { boardFileName } from './board-file.mjs'
 import { designDir } from './design-dir'
 import { readShared, type Shared } from './shared-folder'
 
@@ -36,7 +37,9 @@ export const importsOf = (source: string): string[] => {
 
 const stampOf = async (dir: string, name: string): Promise<string> => {
   try {
-    const info = await stat(join(dir, `${name}.dc.html`))
+    const file = boardFileName(dir, name)
+    if (file === null) return 'missing'
+    const info = await stat(join(dir, file))
     return `${info.mtimeMs}:${info.size}`
   } catch {
     return 'missing'
@@ -65,7 +68,7 @@ const build = async (dir: string, board: string, shared: Shared): Promise<Entry>
       missing.push(name)
       continue
     }
-    const source = await readFile(join(dir, `${name}.dc.html`), 'utf8')
+    const source = await readFile(join(dir, boardFileName(dir, name) ?? `${name}.html`), 'utf8')
     boards[name] = source
     queue.push(...importsOf(source))
   }

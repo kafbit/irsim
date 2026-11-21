@@ -48,6 +48,8 @@ commands:
                                              write ${CONFIG_FILE}, ignore .irsim/, add the managed block to AGENTS.md and CLAUDE.md
   update [--check]                           install the latest release (needs gh)
   doctor [--json]                            check the project rules, git setup and config
+  lint [--fix] [--json] [--design-dir <path>]
+                                             check the design folder format (--fix renames legacy boards and runs build)
   bridge <command>                           connect an agent harness to the canvas (bridge --help)
   uninstall [--purge] [--yes] [--dry-run]    remove this install (--purge also removes the cache)
   version                                    print the installed version
@@ -720,6 +722,41 @@ const update = async (args) => {
   }
 }
 
+const lint = async (args) => {
+  const opts = parse(args, { '--fix': 'bool', '--json': 'bool', '--design-dir': 'value' })
+  const design = resolveDesignDir(process.cwd(), opts['design-dir'])
+  const { lintDesign } = await import(pathToFileURL(join(ROOT, 'bin', 'lib', 'lint-design.mjs')).href)
+  const notes = []
+  if (opts.fix) {
+    for (const file of readdirSync(design)) {
+      if (!file.endsWith('.dc.html')) continue
+      const target = file.slice(0, -'.dc.html'.length) + '.html'
+      if (existsSync(join(design, target))) continue
+      renameSync(join(design, file), join(design, target))
+      notes.push(`renamed ${file} to ${target}`)
+    }
+    const { buildCanvas } = await loadBuildCanvas()
+    try {
+      const result = buildCanvas(design)
+      notes.push(`wrote ${result.file}: ${result.pages} pages, ${result.boards} boards`)
+    } catch (error) {
+      notes.push(`build failed: ${error.message}`)
+    }
+  }
+  const result = lintDesign(design)
+  if (opts.json) {
+    console.log(JSON.stringify(opts.fix ? { ...result, fixed: notes } : result, null, 2))
+  } else {
+    for (const note of notes) console.log(note)
+    for (const p of result.problems) {
+      console.log(`${p.severity} ${p.file}${p.path ? ` ${p.path}` : ''} ${p.rule}: ${p.message} (fix: ${p.fix})`)
+    }
+    const errors = result.problems.filter((p) => p.severity === 'error').length
+    console.log(`${errors} errors, ${result.problems.length - errors} warnings`)
+  }
+  if (!result.ok) process.exit(1)
+}
+
 const doctor = async (args) => {
   const opts = parse(args, { '--json': 'bool' })
   const { formatDoctor, runDoctor } = await import(
@@ -796,6 +833,9 @@ switch (command) {
     break
   case 'doctor':
     await doctor(rest)
+    break
+  case 'lint':
+    await lint(rest)
     break
   case 'bridge': {
     const { runBridge } = await import(

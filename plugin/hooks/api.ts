@@ -36,6 +36,15 @@ export type CheckResult = {
   warnings: string[]
   screenshot?: string
 }
+export type LintProblem = {
+  severity: 'error' | 'warning'
+  file: string
+  path: string
+  rule: string
+  message: string
+  fix?: string
+}
+export type LintReport = { ok: boolean; problems: LintProblem[] }
 type ClaimedReply = { at: string }
 export type Claim = {
   count: number
@@ -222,6 +231,21 @@ export function doctorLines(report: DoctorReport): string {
   if (fail > 0) parts.push(`${fail} failed`)
   if (skip > 0) parts.push(`${skip} skipped`)
   lines.push(parts.join(', '))
+  return lines.join('\n')
+}
+
+/** One line per problem, then the count, or the pass line. */
+export function lintLines(report: LintReport): string {
+  const problems = report.problems ?? []
+  if (problems.length === 0) return 'The design folder passes the lint.'
+  const lines = problems.map((one) =>
+    oneLine(
+      `${one.severity} ${one.file} ${one.path} ${one.rule}: ${one.message}${one.fix ? ` (fix: ${one.fix})` : ''}`,
+    ),
+  )
+  const errors = problems.filter((one) => one.severity === 'error').length
+  const warnings = problems.length - errors
+  lines.push(`${errors} ${errors === 1 ? 'error' : 'errors'}, ${warnings} ${warnings === 1 ? 'warning' : 'warnings'}`)
   return lines.join('\n')
 }
 

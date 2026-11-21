@@ -11,6 +11,7 @@ export type Rect = { x: number; y: number; width: number; height: number }
 
 export type PlacedBoard = Rect & {
   name: string
+  file?: string | undefined
   title: string
   hash: string
   interactive?: boolean

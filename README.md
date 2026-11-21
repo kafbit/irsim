@@ -43,7 +43,7 @@ claude plugin marketplace add kafbit/irsim && claude plugin install irsim@kafbit
 
 ## Other agents
 
-Codex, OpenCode, Pi and Command Code get the same canvas: the `design_canvas` tool, the comments delivered to the session, and the `irsim-workflow` skill. The connectors call `irsim bridge`; the installer points `irsim` at this checkout, so the command exists even when the installed release predates it. `--uninstall` restores the previous `irsim` link.
+Codex, OpenCode, Pi and Command Code get the same canvas: the `design_canvas` tool, the comments delivered to the session, and the `irsim-workflow` and `irsim-design` skills. The connectors call `irsim bridge`; the installer points `irsim` at this checkout, so the command exists even when the installed release predates it. `--uninstall` restores the previous `irsim` link.
 
 ```bash
 scripts/install-agents.sh            # point irsim here, link OpenCode, Pi and Command Code
@@ -112,7 +112,7 @@ The same check runs from two more places:
 
 Below 25% zoom the canvas shows a thumbnail of each board instead of a live frame. The server renders a missing thumbnail the first time it is shown, with an installed Chrome, Chromium, Brave or Edge run headless, or the executable in `IRSIM_BROWSER`. `irsim thumbs [--page <id>] [--board <name>] [--force]` renders them ahead of time on the running server. Thumbnails are cached in `~/.cache/irsim/thumbs`, named by the content of the board and its imports, so every checkout and worktree with the same boards reuses them. While a changed board renders, its previous thumbnail shows with an Outdated label. A thumbnail no checkout has shown for 14 days is pruned by `irsim thumbs`.
 
-The plugin ships the `irsim-workflow` skill. It makes a change to what a screen shows start in the board: change the board, report its route, stop, then build the app after the user's confirmation.
+The plugin ships the `irsim-workflow` and `irsim-design` skills. `irsim-design` holds the file formats of a board and `design/canvas.json`. `irsim-workflow` makes a change to what a screen shows start in the board: change the board, report its route, stop, then build the app after the user's confirmation.
 
 ## Sections and variants
 

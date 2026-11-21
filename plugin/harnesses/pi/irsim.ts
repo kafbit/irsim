@@ -8,6 +8,8 @@
  */
 
 import { execFile } from 'node:child_process'
+import { existsSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { StringEnum, Type } from '@earendil-works/pi-ai'
 import type { ExtensionAPI, ExtensionCommandContext } from '@earendil-works/pi-coding-agent'
 
@@ -36,6 +38,19 @@ const bridge = (args: string[], cwd: string, signal?: AbortSignal): Promise<Brid
       },
     )
   })
+
+const SESSION_CONTEXT =
+  'This project keeps its screens as irsim boards. Load the `irsim-design` skill before you create or edit a board file or design/canvas.json, and the `irsim-workflow` skill before you change what a screen shows. Run `irsim lint` and design_canvas check before you say you are done.'
+
+const hasIrsimConfig = (from: string): boolean => {
+  let dir = from
+  for (;;) {
+    if (existsSync(join(dir, '.irsim.json'))) return true
+    const parent = dirname(dir)
+    if (parent === dir) return false
+    dir = parent
+  }
+}
 
 const flag = (args: string[], name: string, value: unknown): void => {
   if (typeof value === 'string' && value !== '') args.push(`--${name}`, value)
@@ -110,13 +125,17 @@ export default function (pi: ExtensionAPI): void {
     return `Listening for irsim comments in ${sessionId}.`
   }
 
+  pi.on('before_agent_start', (event, ctx) =>
+    hasIrsimConfig(ctx.cwd) ? { systemPrompt: `${event.systemPrompt}\n\n${SESSION_CONTEXT}` } : undefined,
+  )
+
   pi.registerTool({
     name: 'design_canvas',
     label: 'Design canvas',
     description:
-      'Reads and answers design canvas comments, checks boards, and checks the project. Actions: open, page, comments, reply, resolve, check, doctor. check renders a board (or every board of a page) in headless Chromium and returns errors, warnings and a screenshot path to look at. doctor checks the project rules, git setup and config. Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.',
+      'Reads and answers design canvas comments, checks boards, lints the design folder, and checks the project. Actions: open, page, comments, reply, resolve, check, lint, doctor. check renders a board (or every board of a page) in headless Chromium and returns errors, warnings and a screenshot path to look at, after the format problems of the design folder. lint lists the format problems of the board files and design/canvas.json. doctor checks the project rules, git setup and config. Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.',
     parameters: Type.Object({
-      action: StringEnum(['open', 'page', 'comments', 'reply', 'resolve', 'check', 'doctor'] as const),
+      action: StringEnum(['open', 'page', 'comments', 'reply', 'resolve', 'check', 'lint', 'doctor'] as const),
       page: Type.Optional(Type.String({ description: 'Page id, for open, page, comments and check.' })),
       board: Type.Optional(Type.String({ description: 'Board name, for open and check.' })),
       status: Type.Optional(

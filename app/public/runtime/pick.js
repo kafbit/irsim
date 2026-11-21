@@ -79,9 +79,11 @@ const pathOf = (element) => {
 const detailsOf = (element) => {
   const stamp = element.getAttribute('data-dc-at') ?? ''
   const cut = stamp.lastIndexOf(':')
+  const name = stamp.slice(0, cut)
+  const files = /** @type {Record<string, string> | undefined} */ (/** @type {any} */ (window).__CANVAS_ENV__?.files)
   const box = element.getBoundingClientRect()
   return {
-    file: `design/${stamp.slice(0, cut)}.dc.html`,
+    file: `design/${files?.[name] ?? `${name}.html`}`,
     line: Number(stamp.slice(cut + 1)),
     element: {
       tag: element.localName,

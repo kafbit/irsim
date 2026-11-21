@@ -8,7 +8,12 @@ export const REPLY_RULE =
 
 const unique = (values: string[]): string[] => [...new Set(values)]
 
-const boardOf = (file: string): string => file.replace(/^.*\//, '').replace(/\.dc\.html$/, '')
+const boardOf = (file: string): string => file.replace(/^.*\//, '').replace(/\.dc\.html$/, '').replace(/\.html$/, '')
+
+/** The file name of a board in the design folder; the default names a new board `<name>.html`. */
+export type BoardFile = (board: string) => string
+
+const newFile: BoardFile = (board) => `${board}.html`
 
 const indent = (body: string): string =>
   body
@@ -42,10 +47,11 @@ const item = (
   index: number,
   imagePaths: Record<string, string>,
   designFolder: string,
+  fileOf: BoardFile,
 ): string => {
   const place = placeText(
     isWholeBoard(comment)
-      ? { file: `${designFolder}/${comment.board}.dc.html`, line: 0 }
+      ? { file: `${designFolder}/${fileOf(comment.board)}`, line: 0 }
       : comment,
   )
   const target = targetText(comment)
@@ -72,6 +78,7 @@ export const buildTurnText = (
   comments: Comment[],
   imagePaths: Record<string, string> = {},
   designFolder = 'design',
+  fileOf: BoardFile = newFile,
 ): string => {
   const pages = unique(comments.map((comment) => comment.page))
   const batches = unique(comments.flatMap((comment) => (comment.batch ? [comment.batch] : [])))
@@ -88,7 +95,7 @@ export const buildTurnText = (
     : ''
   return [
     `Design canvas: ${comments.length} ${noun}${mix} ${where} (${batch}). Read only the lines named.${wholeBoard} Boards live in ${designFolder}/.`,
-    ...comments.map((comment, index) => item(comment, index, imagePaths, designFolder)),
+    ...comments.map((comment, index) => item(comment, index, imagePaths, designFolder, fileOf)),
     'Reply to each with design_canvas {action: "reply", id, body}; resolve with {action: "resolve", id}.',
     REPLY_RULE,
     `Ids: ${comments.map((comment) => comment.id).join(', ')}`,
@@ -103,13 +110,14 @@ export const buildApprovalText = (
   approvals: Approval[],
   current: Record<string, boolean>,
   designFolder = 'design',
+  fileOf: BoardFile = newFile,
 ): string => {
   const batches = new Map<string, Approval[]>()
   for (const approval of approvals) {
     if (approval.batch) batches.set(approval.batch, [...(batches.get(approval.batch) ?? []), approval])
   }
   const batchLines = [...batches.values()].flatMap((group) => {
-    const files = group.map((approval) => `${designFolder}/${approval.board}.dc.html`)
+    const files = group.map((approval) => `${designFolder}/${fileOf(approval.board)}`)
     const stale = group.filter((approval) => current[approval.id] === false)
     const note = group.find((approval) => approval.note)?.note
     return [
@@ -124,7 +132,7 @@ export const buildApprovalText = (
     ]
   })
   const lines = approvals.filter((approval) => !approval.batch).flatMap((approval) => {
-    const file = `${designFolder}/${approval.board}.dc.html`
+    const file = `${designFolder}/${fileOf(approval.board)}`
     return [
       `Design canvas: the user approved board ${approval.board} (page ${approval.page}). This is the confirmation to build it.`,
       ...(approval.note ? [indent(approval.note)] : []),
@@ -141,21 +149,22 @@ export const buildVariantText = (
   requests: VariantRequest[],
   designFolder = 'design',
   imagePaths: Record<string, string> = {},
+  fileOf: BoardFile = newFile,
 ): string => {
   const lines = requests.flatMap((request) => [
     request.pick
-      ? `Design canvas: the user asked for ${request.variants.length} variants of board ${request.base} (page ${request.page}) from a comment on ${placeText(request.pick)} · ${targetText(request.pick)}. Each file below is a copy of ${designFolder}/${request.base}.dc.html; edit only that file.`
-      : `Design canvas: the user asked for ${request.variants.length} variants of board ${request.base} (page ${request.page}). Each file below is a copy of ${designFolder}/${request.base}.dc.html; edit only that file.`,
+      ? `Design canvas: the user asked for ${request.variants.length} variants of board ${request.base} (page ${request.page}) from a comment on ${placeText(request.pick)} · ${targetText(request.pick)}. Each file below is a copy of ${designFolder}/${fileOf(request.base)}; edit only that file.`
+      : `Design canvas: the user asked for ${request.variants.length} variants of board ${request.base} (page ${request.page}). Each file below is a copy of ${designFolder}/${fileOf(request.base)}; edit only that file.`,
     ...(request.pick && request.note ? [indent(request.note)] : []),
     ...request.variants.map(
-      (variant) => `   ${designFolder}/${variant.name}.dc.html: ${variant.label}. ${variant.direction}`,
+      (variant) => `   ${designFolder}/${fileOf(variant.name)}: ${variant.label}. ${variant.direction}`,
     ),
     ...(!request.pick && request.note ? [indent(request.note)] : []),
     ...(request.images ?? []).flatMap((id) => {
       const path = imagePaths[id]
       return path ? [`   image: ${path}`] : []
     }),
-    `   Keep each board's size and the board conventions. Run design_canvas {action: "check", board} on each and look at the screenshot. Do not edit ${request.base}.dc.html; the user compares the variants and chooses one in irsim.`,
+    `   Keep each board's size and the board conventions. Run design_canvas {action: "check", board} on each and look at the screenshot. Do not edit ${fileOf(request.base)}; the user compares the variants and chooses one in irsim.`,
   ])
   return [...lines, REPLY_RULE].join('\n')
 }

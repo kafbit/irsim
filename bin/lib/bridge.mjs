@@ -1,5 +1,5 @@
 import { execFileSync, spawn } from 'node:child_process'
-import { existsSync, readFileSync, realpathSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
 import { connect } from 'node:net'
 import { basename, dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -317,6 +317,25 @@ const doctorLines = (report) => {
   return lines.join('\n')
 }
 
+const lintLines = (report) => {
+  const problems = Array.isArray(report?.problems) ? report.problems : []
+  if (problems.length === 0) return 'The design folder passes the lint.'
+  const lines = problems.map((one) =>
+    oneLine(
+      `${one.severity} ${one.file} ${one.path} ${one.rule}: ${one.message}${one.fix ? ` (fix: ${one.fix})` : ''}`,
+    ),
+  )
+  const errors = problems.filter((one) => one.severity === 'error').length
+  const warnings = problems.length - errors
+  lines.push(`${errors} ${errors === 1 ? 'error' : 'errors'}, ${warnings} ${warnings === 1 ? 'warning' : 'warnings'}`)
+  return lines.join('\n')
+}
+
+const readLint = async (port) => {
+  const report = await request(port, '/api/lint').catch(() => null)
+  return report && Array.isArray(report.problems) ? report : null
+}
+
 export const runDoctor = async (cwd = process.cwd()) => {
   const { runDoctor: report } = await import(
     pathToFileURL(join(dirname(new URL(import.meta.url).pathname), 'doctor.mjs')).href
@@ -346,7 +365,7 @@ const resolveTarget = async (port, wanted) => {
   throw new Error(`no page or board named "${name}", pages: ${ids}`)
 }
 
-const TOOL_ACTIONS = ['open', 'page', 'comments', 'reply', 'resolve', 'check', 'doctor']
+const TOOL_ACTIONS = ['open', 'page', 'comments', 'reply', 'resolve', 'check', 'lint', 'doctor']
 
 const runTool = async ({ action, ...args }) => {
   if (!TOOL_ACTIONS.includes(action)) {
@@ -415,7 +434,15 @@ const runTool = async ({ action, ...args }) => {
       const path = args.board
         ? `/api/boards/${encodeURIComponent(args.board)}/check`
         : `/api/pages/${encodeURIComponent(args.page)}/check`
-      return checkLines(await request(port, path, { method: 'POST', timeout: 120_000 }))
+      const lint = await readLint(port)
+      const results = checkLines(await request(port, path, { method: 'POST', timeout: 120_000 }))
+      return lint && lint.problems.length > 0
+        ? `Format problems:\n${lintLines(lint)}\n${results}`
+        : results
+    }
+    case 'lint': {
+      const report = await request(port, '/api/lint')
+      return lintLines(report)
     }
   }
   throw new Error(`unknown action ${action}`)
@@ -434,6 +461,30 @@ const parseHookInput = async () => {
   } catch {
     return {}
   }
+}
+
+const SESSION_CONTEXT =
+  'This project keeps its screens as irsim boards. Load the `irsim-design` skill before you create or edit a board file or design/canvas.json, and the `irsim-workflow` skill before you change what a screen shows. Run `irsim lint` and design_canvas check before you say you are done.'
+
+const LINT_REPORTS_PER_SESSION = 2
+
+const lintReportFile = (root, session) =>
+  join(root, '.irsim', 'lint-reports', String(session).replace(/[^A-Za-z0-9_-]/g, '_'))
+
+const lintReportCount = (root, session) => {
+  try {
+    return Number(readFileSync(lintReportFile(root, session), 'utf8')) || 0
+  } catch {
+    return 0
+  }
+}
+
+const countLintReport = (root, session) => {
+  try {
+    const file = lintReportFile(root, session)
+    mkdirSync(dirname(file), { recursive: true })
+    writeFileSync(file, String(lintReportCount(root, session) + 1))
+  } catch {}
 }
 
 /**
@@ -456,7 +507,7 @@ const codexHook = async (event) => {
   if (!(await health(port))) return {}
   if (event === 'SessionStart') {
     if (session) await register(port, { agent: 'codex', session, cwd }).catch(() => undefined)
-    return {}
+    return { hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: SESSION_CONTEXT } }
   }
   if (!session) return {}
   if (event === 'SessionEnd') {
@@ -468,7 +519,13 @@ const codexHook = async (event) => {
   await register(port, { agent: 'codex', session, cwd }).catch(() => undefined)
   if (event === 'Stop' && payload.stop_hook_active === true) return {}
   const result = await claim(port, session).catch(() => null)
-  if (!result || !result.count || !result.text) return {}
+  if (!result || !result.count || !result.text) {
+    if (event !== 'Stop' || lintReportCount(root, session) >= LINT_REPORTS_PER_SESSION) return {}
+    const lint = await readLint(port)
+    if (!lint || !lint.problems.some((one) => one.severity === 'error')) return {}
+    countLintReport(root, session)
+    return { decision: 'block', reason: `${lintLines(lint)}\nFix these, then stop.` }
+  }
   const text = result.text
   if (event === 'Stop') {
     return { decision: 'block', reason: text }
@@ -484,13 +541,13 @@ const codexHook = async (event) => {
 const MCP_TOOL = {
   name: 'design_canvas',
   description:
-    'Reads and answers design canvas comments, checks boards, and checks the project. Actions: open, page, comments, reply, resolve, check, doctor. check renders a board (or every board of a page) in headless Chromium and returns errors, warnings and a screenshot path to look at. doctor checks the project rules, git setup and config. Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.',
+    'Reads and answers design canvas comments, checks boards, lints the design folder, and checks the project. Actions: open, page, comments, reply, resolve, check, lint, doctor. check renders a board (or every board of a page) in headless Chromium and returns errors, warnings and a screenshot path to look at, after the format problems of the design folder. lint lists the format problems of the board files and design/canvas.json. doctor checks the project rules, git setup and config. Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.',
   inputSchema: {
     type: 'object',
     properties: {
       action: {
         type: 'string',
-        enum: ['open', 'page', 'comments', 'reply', 'resolve', 'check', 'doctor'],
+        enum: ['open', 'page', 'comments', 'reply', 'resolve', 'check', 'lint', 'doctor'],
       },
       page: { type: 'string', description: 'Page id, for open, page, comments and check.' },
       board: { type: 'string', description: 'Board name, for open and check.' },
@@ -667,7 +724,7 @@ export const runBridge = async (args) => {
           '  claim --session <id> [--json]                          claim queued comments',
           '  release --session <id> --claim <json>                  put a claim that was not delivered back',
           '  leave --session <id>                                   unregister a session',
-          '  tool --action <name> [--page] [--board] [--id] [--body] run a design_canvas action',
+          '  tool --action <name> [--page] [--board] [--id] [--body] run a design_canvas action (open, page, comments, reply, resolve, check, lint, doctor)',
           '  hook codex <Event>                                     serve one Codex hook (stdin JSON)',
           '  mcp                                                    serve design_canvas over MCP (stdio)',
           '  doctor                                                 print the doctor report',

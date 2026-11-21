@@ -55,6 +55,10 @@ link "$root/plugin/skills/irsim-workflow" \
   "${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/skills/irsim-workflow"
 link "$root/plugin/skills/irsim-workflow" \
   "${OPENCODE_CONFIG_DIR:-$HOME/.config/opencode}/skills/irsim-workflow"
+link "$root/plugin/skills/irsim-design" \
+  "${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/skills/irsim-design"
+link "$root/plugin/skills/irsim-design" \
+  "${OPENCODE_CONFIG_DIR:-$HOME/.config/opencode}/skills/irsim-design"
 link "$root/plugin/harnesses/codex/prompts/irsim.md" \
   "${CODEX_HOME:-$HOME/.codex}/prompts/irsim.md"
 

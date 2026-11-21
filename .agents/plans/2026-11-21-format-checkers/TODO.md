@@ -1,0 +1,11 @@
+- [x] Board file helper `bin/lib/board-file.mjs` and its app copy
+- [x] Board format: every `.dc.html` path goes through the helper, `.html` boards work, legacy still works
+- [x] `bin/lib/lint-design.mjs` and its copy for the app, with a test that keeps them equal
+- [x] Tests: canvas.json rules, board rules, the dukkan-FE broken file as a fixture
+- [x] `irsim lint` and `--fix` in `bin/irsim`, help text
+- [x] `readCanvasPages` fills missing title, size and position and drops boards with no file, with tests
+- [x] `design_canvas` action `lint`, and `check` runs it first (plugin tool and its docs)
+- [x] Stop hook for Claude Code and Codex, capped at two reports per session
+- [x] Skill `irsim-design`, the Codex copy, link from `irsim-workflow`, connectors package `files`
+- [x] Session-start instructions in every harness name both skills
+- [x] Verify: affected tests, typecheck, lint, `irsim lint` on dukkan-FE (read only), Playwright load of the broken file

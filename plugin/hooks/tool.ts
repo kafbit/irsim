@@ -1,10 +1,10 @@
-import { CanvasError, api, doctorLines, oneLine, runDoctor } from './api'
-import type { CheckResult, Comment, Engine, Page } from './api'
+import { CanvasError, api, doctorLines, lintLines, oneLine, runDoctor } from './api'
+import type { CheckResult, Comment, Engine, LintReport, Page } from './api'
 import { openCanvas } from './canvas'
 
 export const TOOL_NAME = 'design_canvas'
 export const TOOL_DESCRIPTION =
-  'Reads and answers design canvas comments, checks boards, and checks the project. Actions: open, page, comments, reply, resolve, check, doctor. check renders a board (or every board of a page) in headless Chromium and returns errors, warnings and a screenshot path to look at. doctor checks the project rules, git setup and config. Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.'
+  'Reads and answers design canvas comments, checks boards, lints the design folder, and checks the project. Actions: open, page, comments, reply, resolve, check, lint, doctor. check renders a board (or every board of a page) in headless Chromium and returns errors, warnings and a screenshot path to look at, after the format problems of the design folder. lint lists the format problems of the board files and design/canvas.json. doctor checks the project rules, git setup and config. Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.'
 
 export const TOOL_MATCH = /^mcp__.*__design_canvas$/
 
@@ -13,7 +13,7 @@ export const TOOL_SCHEMA = {
   properties: {
     action: {
       type: 'string',
-      enum: ['open', 'page', 'comments', 'reply', 'resolve', 'check', 'doctor'],
+      enum: ['open', 'page', 'comments', 'reply', 'resolve', 'check', 'lint', 'doctor'],
     },
     page: { type: 'string', description: 'Page id, for open, page, comments and check.' },
     board: { type: 'string', description: 'Board name, for open and check.' },
@@ -92,7 +92,10 @@ async function check($: Engine, board?: string, page?: string): Promise<string> 
   const path = board
     ? `/api/boards/${encodeURIComponent(board)}/check`
     : `/api/pages/${encodeURIComponent(page ?? '')}/check`
-  return checkLines(await api<CheckResult[]>($, path, { method: 'POST' }))
+  const lint = await api<LintReport>($, '/api/lint').catch(() => null)
+  const results = checkLines(await api<CheckResult[]>($, path, { method: 'POST' }))
+  if (!lint || !Array.isArray(lint.problems) || lint.problems.length === 0) return results
+  return `Format problems:\n${lintLines(lint)}\n${results}`
 }
 
 function need(args: Record<string, unknown>, key: string): string {
@@ -138,6 +141,8 @@ export async function runTool($: Engine, args: Record<string, unknown>): Promise
     }
     case 'check':
       return check($, optional(args, 'board'), optional(args, 'page'))
+    case 'lint':
+      return lintLines(await api<LintReport>($, '/api/lint'))
     case 'doctor':
       return doctorLines(await runDoctor($))
     default:

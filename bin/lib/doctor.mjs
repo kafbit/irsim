@@ -1,11 +1,11 @@
 import { execFileSync } from 'node:child_process'
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { boardFileName, listBoards } from './board-file.mjs'
 
 const CONFIG_FILE = '.irsim.json'
-const SUFFIX = '.dc.html'
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const TEMPLATE = join(ROOT, 'templates', 'agents-block.md')
 const START = '<!-- IRSIM_START -->'
@@ -220,7 +220,7 @@ const configChecks = (root, design, env) => {
   } else {
     let boards = 0
     try {
-      boards = readdirSync(design).filter((file) => file.endsWith(SUFFIX)).length
+      boards = listBoards(design).length
     } catch {}
     checks.push(check('design-dir', 'config', 'design folder', 'ok', `${basename(design)}, ${boards} boards`))
   }
@@ -243,7 +243,7 @@ const configChecks = (root, design, env) => {
   }
 
   if (design !== null && listed.length > 0) {
-    const missing = listed.filter((name) => !existsSync(join(design, `${name}${SUFFIX}`)))
+    const missing = listed.filter((name) => boardFileName(design, name) === null)
     checks.push(
       missing.length === 0
         ? check('board-files', 'config', 'board files', 'ok', 'every board in canvas.json has a file')
@@ -292,15 +292,25 @@ const ruleChecks = (root) => {
   }
 
   const gitattributes = join(root, '.gitattributes')
+  const generated = existsSync(gitattributes)
+    ? read(gitattributes)
+        .split('\n')
+        .map((line) => line.trim().split(/\s+/))
+        .find(
+          ([pattern, ...flags]) =>
+            (pattern === 'design/*.html' || pattern === 'design/*.dc.html') &&
+            flags.some((flag) => flag.startsWith('linguist-generated') || flag === 'gitlab-generated'),
+        )?.[0]
+    : undefined
   checks.push(
-    existsSync(gitattributes) && /\.dc\.html/.test(read(gitattributes))
-      ? check('collapse-board-diffs', 'rules', 'board diffs', 'ok', '.dc.html files are marked generated')
+    generated
+      ? check('collapse-board-diffs', 'rules', 'board diffs', 'ok', `${generated} is marked generated`)
       : check(
           'collapse-board-diffs',
           'rules',
           'board diffs',
           'warn',
-          'design/*.dc.html is not marked generated, so reviews show its markup',
+          'neither design/*.html nor design/*.dc.html is marked generated, so reviews show the board markup',
           'see README, Review boards in pull requests',
         ),
   )
@@ -445,7 +455,7 @@ export const runDoctor = async ({ cwd = process.cwd(), env = process.env } = {})
     context: {
       root,
       designDir: design,
-      boards: design === null || !existsSync(design) ? 0 : readdirSync(design).filter((file) => file.endsWith(SUFFIX)).length,
+      boards: design === null || !existsSync(design) ? 0 : listBoards(design).length,
       repo: remote.slug,
       remote: remote.url,
       branch: branch.name,

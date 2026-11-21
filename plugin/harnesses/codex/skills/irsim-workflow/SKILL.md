@@ -5,6 +5,8 @@ description: The design-first process for any project that keeps its screens as 
 
 # irsim workflow
 
+Load the `irsim-design` skill before you create or edit a board file or `design/canvas.json`.
+
 The boards in the design folder are the design. The app must match them, and they must match the app.
 
 ## When this applies
@@ -16,7 +18,7 @@ It does not apply to a change that alters nothing a person sees (a refactor, a s
 ## The order
 
 1. Plan. Name the boards that change, what changes in each, and the app files that would follow. List open choices, do not decide them. Put the board change in the plan as its own step, before the implementation steps.
-2. Change the board. Edit the `.dc.html` file. Draw the new states: disabled and locked controls, confirmation dialogs, empty, loading and error states, and every language and width the screen has. The canvas has no prop switcher: the user sees only the boards placed on a page. Draw each state, and each option of a choice the user must make, as its own state board: a `dc-import` wrapper of the base board with fixed props, named `<Board><State>`, with a title, placed on the page. Group the states of one screen in a section (see Sections).
+2. Change the board. Edit the board file, `<Name>.html` (`.dc.html` is a legacy form that is still read). Draw the new states: disabled and locked controls, confirmation dialogs, empty, loading and error states, and every language and width the screen has. The canvas has no prop switcher: the user sees only the boards placed on a page. Draw each state, and each option of a choice the user must make, as its own state board: a `dc-import` wrapper of the base board with fixed props, named `<Board><State>`, with a title, placed on the page. Group the states of one screen in a section (see Sections).
 3. Check the board. Run `design_canvas {action: "check", board: "<Board>"}` (or `page` for every board of a page). Fix every error and warning it lists, then open the screenshot it returns and look at it. Check again until it reports `ok`.
 4. Report and stop. Give the board name and its route (`/p/<page>?board=<Board>`), the plan and the open choices. Give the route of each state board. Never ask the user to set a prop value to see a state. Write no app code until the user confirms in a separate message. A request is not a confirmation: "implement", "make it", "move X" and a pasted screenshot all ask for the board change. The user can also confirm with the Approve button in irsim: a turn that starts with "Design canvas: the user approved board X" is the confirmation for that board. If that turn says the board changed after the approval, it is not a confirmation; ask again.
 5. Implement. Read the board file again first, because the user may have edited it. A board the user edited is the source of truth over your last copy and over the plan.

@@ -21,7 +21,7 @@ const DEFAULT_WORKTREES: Worktrees = { '/work/design-app': { root: '/work', port
 function world(
   on: On,
   claim: { count: number; text?: string } = { count: 0 },
-  options: { worktrees?: Worktrees; env?: string; submit?: 'drop' | 'reject'; hold?: Promise<void> } = {},
+  options: { worktrees?: Worktrees; env?: string; submit?: 'drop' | 'reject'; hold?: Promise<void>; lint?: unknown } = {},
 ) {
   const worktrees = options.worktrees ?? DEFAULT_WORKTREES
   const session = { cwd: '/work/design-app' }
@@ -136,6 +136,7 @@ function world(
         ],
       })
     }
+    if (url.pathname === '/api/lint' && options.lint !== undefined) return json(options.lint)
     if (url.pathname === '/api/comments/claim') return json(claim)
     if (url.pathname === '/api/comments') {
       return json([
@@ -494,4 +495,49 @@ test('the doctor tool action returns the same lines as the command', async ($, o
 
   expect(viaTool.result).toBe(viaCommand.text)
   expect(viaTool.result).toContain('2 ok, 1 warning, 1 failed')
+})
+
+const LINT = {
+  ok: false,
+  problems: [
+    { severity: 'error', file: 'design/canvas.json', path: 'pages[0].boards[0]', rule: 'board-title', message: 'the board has no title', fix: 'irsim lint --fix' },
+    { severity: 'warning', file: 'design/Leads.html', path: 'title', rule: 'title-empty', message: 'the title is empty' },
+  ],
+}
+
+test('the lint tool action calls GET /api/lint and lists the problems', async ($, on) => {
+  const w = world(on, { count: 0 }, { lint: LINT })
+  await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
+
+  const lint = await $.tool.call({ tool: TOOL, action: 'lint' })
+
+  expect(lint.result).toBe(
+    [
+      'error design/canvas.json pages[0].boards[0] board-title: the board has no title (fix: irsim lint --fix)',
+      'warning design/Leads.html title title-empty: the title is empty',
+      '1 error, 1 warning',
+    ].join('\n'),
+  )
+  expect(w.calls.map((call) => call.path)).toContain('/api/lint')
+})
+
+test('the lint tool action says the folder passes when there are no problems', async ($, on) => {
+  world(on, { count: 0 }, { lint: { ok: true, problems: [] } })
+  await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
+
+  const lint = await $.tool.call({ tool: TOOL, action: 'lint' })
+
+  expect(lint.result).toBe('The design folder passes the lint.')
+})
+
+test('check puts the lint problems before the check output, and ignores a canvas without /api/lint', async ($, on) => {
+  world(on, { count: 0 }, { lint: LINT })
+  await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
+
+  const checked = await $.tool.call({ tool: TOOL, action: 'check', board: 'Leads' })
+  const lines = String(checked.result).split('\n')
+
+  expect(lines[0]).toBe('Format problems:')
+  expect(lines).toContain('1 error, 1 warning')
+  expect(lines.at(-1)).toContain('Leads ok 820 ms')
 })

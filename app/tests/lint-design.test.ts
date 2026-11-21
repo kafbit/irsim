@@ -1,0 +1,201 @@
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { lintDesign, readBoardMeta } from '../src/lib/lint-design.mjs'
+
+let base = ''
+let dir = ''
+
+const html = (title: string, preview: unknown = { width: 800, height: 600 }, extra = '') =>
+  `<html lang="en" dir="ltr"><head><title>${title}</title></head><body>${extra}` +
+  `<script type="text/x-dc" data-props='${JSON.stringify(preview === null ? {} : { $preview: preview })}'></script></body></html>`
+
+const board = (name: string, source = html(name)) => writeFileSync(join(dir, `${name}.html`), source)
+const canvas = (value: unknown) => writeFileSync(join(dir, 'canvas.json'), typeof value === 'string' ? value : JSON.stringify(value))
+const entry = (name: string, extra: object = {}) => ({ name, title: name, x: 0, y: 0, width: 800, height: 600, ...extra })
+const page = (boards: object[], extra: object = {}) => ({ id: 'p', title: 'P', boards, ...extra })
+const rules = (result = lintDesign(dir)) => result.problems.map((p) => p.rule)
+
+beforeEach(() => {
+  base = mkdtempSync(join(tmpdir(), 'irsim-lint-'))
+  dir = join(base, 'design')
+  mkdirSync(dir)
+})
+afterEach(() => rmSync(base, { recursive: true, force: true }))
+
+describe('lintDesign canvas.json', () => {
+  it('passes a clean folder', () => {
+    board('A')
+    canvas({ version: 1, pages: [page([entry('A')])] })
+    expect(lintDesign(dir)).toEqual({ ok: true, problems: [] })
+  })
+
+  it('warns when canvas.json is missing and boards exist', () => {
+    board('A')
+    const result = lintDesign(dir)
+    expect(result.ok).toBe(true)
+    expect(rules(result)).toContain('canvas-json-missing')
+  })
+
+  it('reports invalid JSON as an error', () => {
+    canvas('{ nope')
+    const result = lintDesign(dir)
+    expect(result.ok).toBe(false)
+    expect(rules(result)).toEqual(['canvas-json-invalid'])
+  })
+
+  it('checks version, page id, title and icon', () => {
+    board('A')
+    canvas({ version: 2, pages: [page([entry('A')], { title: '', icon: 'Not Kebab' }), page([], { title: 'Q' })] })
+    expect(rules()).toEqual(expect.arrayContaining(['canvas-version', 'page-title', 'page-icon', 'page-id-duplicate']))
+  })
+
+  it('checks board name, file, duplicate, title and rect', () => {
+    board('A')
+    canvas({
+      version: 1,
+      pages: [
+        page([entry('A'), entry('A'), entry('Gone'), entry('1bad'), entry('A', { width: 100, height: 10, x: 'z' })]),
+        { id: 'q', title: 'Q', boards: [{ name: 'A', x: 1, y: 2 }] },
+      ],
+    })
+    expect(new Set(rules())).toEqual(
+      new Set(['board-name', 'board-file-missing', 'board-duplicate', 'board-rect', 'board-title']),
+    )
+  })
+
+  it('warns about a board file no page lists', () => {
+    board('A')
+    board('B')
+    canvas({ version: 1, pages: [page([entry('A')])] })
+    const result = lintDesign(dir)
+    expect(result.problems).toHaveLength(1)
+    expect(result.problems[0]).toMatchObject({ rule: 'board-unlisted', severity: 'warning', file: 'B.html' })
+  })
+
+  it('checks sections', () => {
+    board('A')
+    canvas({
+      version: 1,
+      pages: [
+        page([entry('A', { section: 'nope' })], {
+          sections: [
+            { id: 's1', title: 'One', color: 'pink', x: 1 },
+            { id: 's1', title: '' },
+            { id: 's2', title: 'Two', parent: 'ghost' },
+            { id: 'c1', title: 'C1', parent: 'c2' },
+            { id: 'c2', title: 'C2', parent: 'c1' },
+            { id: 'd1', title: 'D1' },
+            { id: 'd2', title: 'D2', parent: 'd1' },
+            { id: 'd3', title: 'D3', parent: 'd2' },
+            { id: 'd4', title: 'D4', parent: 'd3' },
+          ],
+        }),
+      ],
+    })
+    expect(new Set(rules())).toEqual(
+      new Set([
+        'section-missing',
+        'section-color',
+        'section-area',
+        'section-id-duplicate',
+        'section-title',
+        'section-parent-missing',
+        'section-cycle',
+        'section-depth',
+      ]),
+    )
+  })
+
+  it('warns, and does not fail, for a board smaller than the resize minimum', () => {
+    board('A')
+    canvas({ version: 1, pages: [page([entry('A', { width: 100, height: 100 })])] })
+    const result = lintDesign(dir)
+    const rects = result.problems.filter((p) => p.rule === 'board-rect')
+    expect(rects.map((p) => p.severity)).toEqual(['warning', 'warning'])
+    expect(result.ok).toBe(true)
+  })
+
+  it('reproduces the hand written incident: boards with only name, x, y', () => {
+    board('A')
+    board('B')
+    canvas({ version: 1, pages: [{ id: 'p', title: 'P', boards: [{ name: 'A', x: 0, y: 0 }, { name: 'B', x: 900, y: 0 }] }] })
+    const result = lintDesign(dir)
+    expect(result.ok).toBe(false)
+    const found = result.problems.map((p) => `${p.rule}:${p.path}`)
+    expect(found).toContain('board-title:pages[0].boards[0].title')
+    expect(found).toContain('board-rect:pages[0].boards[1].width')
+    expect(found).toContain('board-rect:pages[0].boards[1].height')
+  })
+
+  it('sorts problems by file then path', () => {
+    board('A', '<html></html>')
+    canvas({ version: 1, pages: [page([entry('A', { width: 1, height: 1 })])] })
+    const keys = lintDesign(dir).problems.map((p) => `${p.file}|${p.path}`)
+    expect(keys).toEqual([...keys].sort())
+  })
+})
+
+describe('lintDesign board files', () => {
+  it('warns about the legacy name and both forms', () => {
+    writeFileSync(join(dir, 'Old.dc.html'), html('Old'))
+    board('Twin')
+    writeFileSync(join(dir, 'Twin.dc.html'), html('Twin'))
+    canvas({ version: 1, pages: [page([entry('Old'), entry('Twin')])] })
+    const result = lintDesign(dir)
+    expect(result.ok).toBe(true)
+    expect(rules(result)).toEqual(expect.arrayContaining(['board-legacy-name', 'board-both-forms']))
+  })
+
+  it('requires a title tag and a script with valid JSON', () => {
+    board('NoTitle', '<html><head></head><body><script type="text/x-dc" data-props=\'{}\'></script></body></html>')
+    board('NoScript', '<html><head><title>x</title></head><body><x-dc></x-dc></body></html>')
+    board('BadJson', '<html><head><title>x</title></head><body><script type="text/x-dc" data-props=\'{bad\'></script></body></html>')
+    canvas({ version: 1, pages: [page([entry('NoTitle'), entry('NoScript'), entry('BadJson')])] })
+    const result = lintDesign(dir)
+    expect(result.problems.filter((p) => p.rule === 'board-title-tag').map((p) => p.file)).toEqual(['NoTitle.html'])
+    expect(result.problems.filter((p) => p.rule === 'board-script').map((p) => p.file)).toEqual(['BadJson.html', 'NoScript.html'])
+  })
+
+  it('warns when the preview size is missing', () => {
+    board('A', html('A', null))
+    canvas({ version: 1, pages: [page([entry('A')])] })
+    expect(rules()).toEqual(['board-preview'])
+  })
+
+  it('reports an import of a board without a file', () => {
+    board('A', html('A', { width: 800, height: 600 }, '<dc-import name="Ghost"></dc-import><dc-import name="B"></dc-import>'))
+    board('B')
+    canvas({ version: 1, pages: [page([entry('A'), entry('B')])] })
+    const found = lintDesign(dir).problems.filter((p) => p.rule === 'board-import-missing')
+    expect(found).toHaveLength(1)
+    expect(found[0]?.message).toContain('Ghost')
+  })
+
+  it('checks the root language only when boardLanguage is en', () => {
+    board('A', '<html><head><title>A</title></head><body><script type="text/x-dc" data-props=\'{"$preview":{"width":800,"height":600}}\'></script></body></html>')
+    canvas({ version: 1, pages: [page([entry('A')])] })
+    expect(rules()).toEqual([])
+    writeFileSync(join(base, '.irsim.json'), JSON.stringify({ boardLanguage: 'en' }))
+    expect(rules()).toEqual(['board-root-lang'])
+    writeFileSync(join(base, '.irsim.json'), JSON.stringify({ boardLanguage: 'ar' }))
+    expect(rules()).toEqual([])
+  })
+})
+
+describe('readBoardMeta', () => {
+  it('reads title and preview size, with defaults', () => {
+    expect(readBoardMeta(html('T &amp; U', { width: 500, height: 300 }))).toEqual({ title: 'T & U', width: 500, height: 300 })
+    expect(readBoardMeta(html('T', null))).toEqual({ title: 'T', width: 1440, height: 900 })
+  })
+})
+
+describe('lint-design copies', () => {
+  it('keeps bin and app copies byte-equal', () => {
+    const root = resolve(import.meta.dirname, '..', '..')
+    const a = readFileSync(join(root, 'bin', 'lib', 'lint-design.mjs'))
+    const b = readFileSync(join(root, 'app', 'src', 'lib', 'lint-design.mjs'))
+    expect(a.equals(b)).toBe(true)
+  })
+})

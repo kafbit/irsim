@@ -31,7 +31,7 @@ const configuredDesignDir = (dir: string): string => {
 }
 
 /**
- * Resolves the folder of `*.dc.html` boards: `--design-dir` argv, `IRSIM_DESIGN_DIR` (or the legacy
+ * Resolves the folder of `*.html` boards (and legacy `*.dc.html`): `--design-dir` argv, `IRSIM_DESIGN_DIR` (or the legacy
  * `CANVAS_DESIGN_DIR`), the `designDir` of the nearest `.irsim.json` above `cwd`, then `<cwd>/design`.
  * Throws `NO_DESIGN_DIR` when none applies, and the JSON error when `.irsim.json` is malformed.
  */

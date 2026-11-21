@@ -54,7 +54,7 @@ export function usePlayFlags(pageId: string) {
 
 /**
  * Link clicks inside a frame (see `public/runtime/links.js`). `onNavigate(from, target)` runs for
- * `<a href="Target.dc.html">` in the board `from`. A web link opens in a new tab here, because the
+ * `<a href="Target.html">` (or the legacy `Target.dc.html`) in the board `from`. A web link opens in a new tab here, because the
  * frame sandbox has no pop-ups.
  */
 export function usePlayLinks(onNavigate: (from: string, target: string) => void) {

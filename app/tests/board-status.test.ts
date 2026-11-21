@@ -60,7 +60,7 @@ describe('buildApprovalText for a batch', () => {
     const text = buildApprovalText([approval('a_1', 'A'), approval('a_2', 'B')], { a_1: true, a_2: true })
     expect(text.split('\n').filter((line) => line.startsWith('Design canvas:'))).toHaveLength(1)
     expect(text).toContain('A, B')
-    expect(text).toContain('design/A.dc.html, design/B.dc.html')
+    expect(text).toContain('design/A.html, design/B.html')
   })
   it('names a board that changed after the approval', () => {
     const text = buildApprovalText([approval('a_1', 'A'), approval('a_2', 'B')], { a_1: true, a_2: false })

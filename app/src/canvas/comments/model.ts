@@ -46,13 +46,14 @@ export function parsePick(data: unknown): PickedElement | null {
 /** The pick for a comment on a whole board: line 0, the board title as text and the whole frame as rect. */
 export function boardPick(board: {
   name: string
+  file?: string | undefined
   title: string
   width: number
   height: number
 }): PickedElement {
   return {
     board: board.name,
-    file: `design/${board.name}.dc.html`,
+    file: `design/${board.file ?? `${board.name}.html`}`,
     line: 0,
     element: { tag: 'board', path: '', text: board.title || board.name },
     rect: { x: 0, y: 0, width: board.width, height: board.height },

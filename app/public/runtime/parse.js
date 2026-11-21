@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * A `.dc.html` board, turned into the tree the renderer walks.
+ * A board file (`.html`, or the legacy `.dc.html`), turned into the tree the renderer walks.
  *
  * The browser has already parsed the file by the time this runs, so the input is a Document and
  * not a string: `<x-dc>` survives as an unknown element, the template inside it as ordinary

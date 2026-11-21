@@ -9,10 +9,10 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { join, resolve, sep } from 'node:path'
+import { boardFileName } from './board-file.mjs'
 import { boardsOnDisk, buildCanvas, readBoard } from './build-canvas.mjs'
 
 const BOARD_NAME = /^[A-Za-z][A-Za-z0-9]*$/
-const SUFFIX = '.dc.html'
 const UNSORTED = { id: 'unsorted', title: 'Unsorted' }
 const GAP = 80
 const ROW_WIDTH = 12000
@@ -36,7 +36,7 @@ const overlaps = (a, b) => within(a, b) || within(b, a)
 
 const sourcesOf = (designDir, names) => {
   const sources = new Map()
-  for (const name of names) sources.set(name, readFileSync(join(designDir, `${name}${SUFFIX}`), 'utf8'))
+  for (const name of names) sources.set(name, readFileSync(join(designDir, boardFileName(designDir, name) ?? `${name}.html`), 'utf8'))
   return sources
 }
 
@@ -165,7 +165,7 @@ const unorderedPage = (names, designDir, pages) => {
   let y = existing && existing.boards.length > 0 ? bottom + GAP : 0
   let rowHeight = 0
   for (const name of names) {
-    const meta = readBoard(readFileSync(join(designDir, `${name}${SUFFIX}`), 'utf8'))
+    const meta = readBoard(readFileSync(join(designDir, boardFileName(designDir, name) ?? `${name}.html`), 'utf8'))
     if (x > 0 && x + meta.width > ROW_WIDTH) {
       y += rowHeight + GAP
       x = 0
