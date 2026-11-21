@@ -64,7 +64,19 @@ describe('design_canvas lint', () => {
     const text = await runTool($, { action: 'check', board: 'Leads' })
     expect(text.split('\n')[0]).toBe('Format problems:')
     expect(text.endsWith('Leads ok 5 ms · no screenshot')).toBe(true)
-    expect(text).toContain('1 error, 1 warning')
+    expect(text).toContain('warning design/Leads.html title title-empty: the title is empty')
+    expect(text).not.toContain('other warning')
+  })
+
+  it('counts the warnings of boards that were not checked', async () => {
+    const other = { severity: 'warning', file: 'design/Other.html', path: '', rule: 'board-preview', message: 'no preview', fix: '' }
+    const { $ } = engine({
+      '/api/lint': { body: { ok: true, problems: [{ ...other }, { ...other, file: 'design/More.html' }] } },
+      '/api/boards/Leads/check': { body: [{ board: 'Leads', ok: true, ms: 5, errors: [], warnings: [] }] },
+    })
+    expect(await runTool($, { action: 'check', board: 'Leads' })).toBe(
+      ['Format problems:', '2 other warnings, run design_canvas lint to list them', 'Leads ok 5 ms · no screenshot'].join('\n'),
+    )
   })
 
   it('leaves the check output alone when the lint is clean, missing or failing', async () => {

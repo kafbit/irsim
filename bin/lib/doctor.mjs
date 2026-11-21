@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { basename, dirname, join, resolve } from 'node:path'
+import { basename, dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { boardFileName, listBoards } from './board-file.mjs'
 
@@ -293,9 +293,12 @@ const ruleChecks = (root, design) => {
 
   const gitattributes = join(root, '.gitattributes')
   const used = design !== null && existsSync(design) ? listBoards(design) : []
+  const rel = (design === null ? 'design' : relative(root, design) || '.').split('\\').join('/')
+  const prefix = rel === '.' ? '' : `${rel}/`
+  const current = [`${prefix}*.html`, `${prefix}**/*.html`, '*.html', '**/*.html']
+  const legacy = [`${prefix}*.dc.html`, '*.dc.html', '**/*.dc.html']
   const covers = (pattern) =>
-    pattern === 'design/*.html' ||
-    (pattern === 'design/*.dc.html' && used.every((board) => board.legacy))
+    current.includes(pattern) || (legacy.includes(pattern) && used.every((board) => board.legacy))
   const generated = existsSync(gitattributes)
     ? read(gitattributes)
         .split('\n')
@@ -314,7 +317,7 @@ const ruleChecks = (root, design) => {
           'rules',
           'board diffs',
           'warn',
-          'no design/*.html pattern covering the board files is marked generated, so reviews show the board markup',
+          `no ${prefix}*.html pattern covering the board files is marked generated, so reviews show the board markup`,
           'see README, Review boards in pull requests',
         ),
   )

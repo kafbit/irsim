@@ -9,15 +9,19 @@ const MIN_WIDTH = 240
 const MIN_HEIGHT = 160
 const MAX_DEPTH = 3
 const DEFAULT_SIZE = { width: 1440, height: 900 }
-const FIX_BUILD = 'run irsim lint --fix'
+const FIX_BUILD = 'run irsim build'
+
+const NAMED = { quot: '"', apos: "'", lt: '<', gt: '>', amp: '&' }
 
 const decode = (text) =>
-  text
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;|&apos;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&amp;/g, '&')
+  text.replace(/&(?:#(\d+)|#x([0-9a-f]+)|(quot|apos|lt|gt|amp));/gi, (match, dec, hex, named) => {
+    if (named) return NAMED[named.toLowerCase()]
+    try {
+      return String.fromCodePoint(dec !== undefined ? Number(dec) : parseInt(hex, 16))
+    } catch {
+      return match
+    }
+  })
 
 const SCRIPT_TAG = /<script\b((?:"[^"]*"|'[^']*'|[^>"'])*)>/g
 

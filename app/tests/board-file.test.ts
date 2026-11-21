@@ -61,9 +61,9 @@ describe('board files on disk', () => {
     expect(boardFileName(dir, 'A')).toBe('A.dc.html')
   })
 
-  it('keeps the new name when it is not a board and no legacy file exists', () => {
+  it('returns null when the new name is not a board and no legacy file exists', () => {
     writeFileSync(join(dir, 'A.html'), '<html><body>plain page</body></html>')
-    expect(boardFileName(dir, 'A')).toBe('A.html')
+    expect(boardFileName(dir, 'A')).toBeNull()
   })
 
   it('returns null for no file and for a bad name', () => {

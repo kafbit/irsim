@@ -249,6 +249,27 @@ export function lintLines(report: LintReport): string {
   return lines.join('\n')
 }
 
+export const boardNameOf = (value: string): string => value.replace(/\.dc\.html$/, '').replace(/\.html$/, '')
+
+const problemLine = (one: LintProblem): string =>
+  oneLine(
+    `${one.severity} ${one.file} ${one.path} ${one.rule}: ${one.message}${one.fix ? ` (fix: ${one.fix})` : ''}`,
+  )
+
+/** The lint errors, the warnings of the checked boards and a count of the other warnings, or `''` when there is nothing to print. */
+export function checkLintLines(report: LintReport, checked: string[]): string {
+  const names = new Set(checked)
+  const shown: string[] = []
+  let other = 0
+  for (const one of report.problems ?? []) {
+    if (one.severity === 'error') shown.push(problemLine(one))
+    else if (names.has(boardNameOf(one.file.split('/').pop() ?? ''))) shown.push(problemLine(one))
+    else other += 1
+  }
+  if (other > 0) shown.push(`${other} other ${other === 1 ? 'warning' : 'warnings'}, run design_canvas lint to list them`)
+  return shown.join('\n')
+}
+
 export async function runDoctor($: Engine): Promise<DoctorReport> {
   const root = await worktreeOf($)
   const result = await $.process.run(['irsim', 'doctor', '--json'], { cwd: root.root })

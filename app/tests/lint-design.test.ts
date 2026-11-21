@@ -187,7 +187,7 @@ describe('lintDesign board files', () => {
 })
 
 describe('lintDesign canvas shape and board templates', () => {
-  it('requires overrides and bindings, and names irsim lint --fix when they are absent', () => {
+  it('requires overrides and bindings, and names irsim build when they are absent', () => {
     board('A')
     canvas({ version: 1, pages: [page([entry('A')])], overrides: undefined, bindings: undefined })
     const result = lintDesign(dir)
@@ -197,7 +197,7 @@ describe('lintDesign canvas shape and board templates', () => {
       'canvas-bindings:bindings:error',
       'canvas-overrides:overrides:error',
     ])
-    expect(found.every((p) => p.fix === 'run irsim lint --fix')).toBe(true)
+    expect(found.every((p) => p.fix === 'run irsim build')).toBe(true)
   })
 
   it('names the exact JSON when overrides or bindings are malformed', () => {
@@ -252,5 +252,21 @@ describe('lint-design copies', () => {
     const a = readFileSync(join(root, 'bin', 'lib', 'lint-design.mjs'))
     const b = readFileSync(join(root, 'app', 'src', 'lib', 'lint-design.mjs'))
     expect(a.equals(b)).toBe(true)
+  })
+})
+
+describe('lintDesign plain html and entities', () => {
+  it('reports board-file-missing for an entry whose Name.html is not a board', () => {
+    writeFileSync(join(dir, 'Notes.html'), '<html><body>plain page</body></html>')
+    canvas({ version: 1, pages: [page([entry('Notes')])] })
+    const result = lintDesign(dir)
+    expect(result.ok).toBe(false)
+    expect(result.problems.some((p) => p.rule === 'board-file-missing' && p.severity === 'error')).toBe(true)
+  })
+
+  it('decodes numeric entities in data-props', () => {
+    board('A', '<html lang="en" dir="ltr"><head><title>A</title></head><body><x-dc></x-dc><script type="text/x-dc" data-props="{&#34;$preview&#34;:{&#x22;width&#x22;:800,&#34;height&#34;:600}}"></script></body></html>')
+    canvas({ version: 1, pages: [page([entry('A')])] })
+    expect(lintDesign(dir)).toEqual({ ok: true, problems: [] })
   })
 })

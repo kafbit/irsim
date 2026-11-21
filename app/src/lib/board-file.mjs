@@ -24,7 +24,7 @@ const readable = (path) => {
 /**
  * The file name of the board `name` in `dir`: `<name>.html` when that file exists and its source is
  * a board, else the legacy `<name>.dc.html`, else `null`. A `<name>.html` that is not a board does
- * not hide a legacy file, and is the answer only when there is no legacy file.
+ * not hide a legacy file, and gives `null` when there is no legacy file.
  */
 export const boardFileName = (dir, name) => {
   if (!NAME.test(name)) return null
@@ -33,7 +33,7 @@ export const boardFileName = (dir, name) => {
   const source = readable(join(dir, current))
   if (source !== null && isBoardSource(source)) return current
   if (existsSync(join(dir, legacy))) return legacy
-  return source !== null ? current : null
+  return null
 }
 
 /**

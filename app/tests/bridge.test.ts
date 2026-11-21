@@ -193,11 +193,21 @@ describe('bridge', () => {
         'Format problems:',
         'error design/canvas.json pages[0].boards[0] board-title: the board has no title (fix: irsim lint --fix)',
         'warning design/Leads.html title title-empty: the title is empty',
-        '1 error, 1 warning',
         'Leads ok 5 ms · no screenshot',
       ].join('\n'),
     )
     expect(received.map(({ path }) => path)).toContain('/api/lint')
+  })
+
+  it('counts the warnings of boards that were not checked', async () => {
+    lintReport = {
+      ok: true,
+      problems: [{ severity: 'warning', file: 'design/Other.html', path: '', rule: 'board-preview', message: 'no preview', fix: '' }],
+    }
+    const out = (await bridge(['tool', 'check', '--board', 'Leads', '--cwd', ROOT])).trim()
+    expect(out).toBe(
+      ['Format problems:', '1 other warning, run design_canvas lint to list them', 'Leads ok 5 ms · no screenshot'].join('\n'),
+    )
   })
 
   it('adds the irsim skills to a Codex session start', async () => {
@@ -239,6 +249,28 @@ describe('bridge', () => {
       expect(first.reason.endsWith('Fix these, then stop.')).toBe(true)
       expect((await stop()).decision).toBe('block')
       expect(await stop()).toEqual({})
+    })
+
+    it('records the start mark and returns the context when the canvas is down', async () => {
+      claimed = false
+      lintReport = { ok: false, problems: lintProblems }
+      const out = JSON.parse(
+        await bridge(['hook', 'codex', 'SessionStart'], JSON.stringify({ session_id: session, cwd: project }), { IRSIM_PORT: '1' }),
+      )
+      expect(out.hookSpecificOutput.additionalContext).toContain('`irsim-design` skill')
+      expect(received.some(({ path }) => path === '/api/sessions')).toBe(false)
+      touch(2_000)
+      expect((await stop()).decision).toBe('block')
+    })
+
+    it('returns nothing on a session start in a folder without an irsim project', async () => {
+      const bare = mkdtempSync(join(tmpdir(), 'irsim-bare-'))
+      try {
+        const out = await bridge(['hook', 'codex', 'SessionStart'], JSON.stringify({ session_id: session, cwd: bare }), { IRSIM_PORT: '1' })
+        expect(JSON.parse(out)).toEqual({})
+      } finally {
+        rmSync(bare, { recursive: true, force: true })
+      }
     })
 
     it('does not block when the design folder is unchanged since the session start', async () => {

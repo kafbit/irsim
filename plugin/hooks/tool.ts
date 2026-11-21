@@ -1,4 +1,4 @@
-import { CanvasError, api, doctorLines, lintLines, oneLine, runDoctor } from './api'
+import { CanvasError, api, boardNameOf, checkLintLines, doctorLines, lintLines, oneLine, runDoctor } from './api'
 import type { CheckResult, Comment, Engine, LintReport, Page } from './api'
 import { openCanvas } from './canvas'
 
@@ -93,9 +93,11 @@ async function check($: Engine, board?: string, page?: string): Promise<string> 
     ? `/api/boards/${encodeURIComponent(board)}/check`
     : `/api/pages/${encodeURIComponent(page ?? '')}/check`
   const lint = await api<LintReport>($, '/api/lint').catch(() => null)
-  const results = checkLines(await api<CheckResult[]>($, path, { method: 'POST' }))
-  if (!lint || !Array.isArray(lint.problems) || lint.problems.length === 0) return results
-  return `Format problems:\n${lintLines(lint)}\n${results}`
+  const checked = await api<CheckResult[]>($, path, { method: 'POST' })
+  const results = checkLines(checked)
+  if (!lint || !Array.isArray(lint.problems)) return results
+  const problems = checkLintLines(lint, checked.map((one) => boardNameOf(one.board)))
+  return problems === '' ? results : `Format problems:\n${problems}\n${results}`
 }
 
 function need(args: Record<string, unknown>, key: string): string {

@@ -21,7 +21,7 @@ const DEFAULT_WORKTREES: Worktrees = { '/work/design-app': { root: '/work', port
 function world(
   on: On,
   claim: { count: number; text?: string } = { count: 0 },
-  options: { worktrees?: Worktrees; env?: string; submit?: 'drop' | 'reject'; hold?: Promise<void>; lint?: unknown; files?: string[] } = {},
+  options: { worktrees?: Worktrees; env?: string; submit?: 'drop' | 'reject'; hold?: Promise<void>; lint?: unknown; files?: string[]; texts?: Record<string, string> } = {},
 ) {
   const worktrees = options.worktrees ?? DEFAULT_WORKTREES
   const session = { cwd: '/work/design-app' }
@@ -42,6 +42,7 @@ function world(
   on('env.get', () => ({ value: options.env }))
   on('session.id', () => ({ value: SESSION }))
   on('fs.exists', (_, e) => ({ value: (options.files ?? ['/work/.irsim.json']).includes(e.path) }))
+  on('fs.read', (_, e) => ({ value: options.texts?.[e.path] ?? '{}' }))
   on('session.cwd', () => ({ value: session.cwd }))
   on('command.register', (_, e) => ({ value: { command: e.name } }))
   on('tool.register', (_, e) => ({ value: { tool: `mcp__irsim__${e.name}` } }))
@@ -531,7 +532,7 @@ test('the lint tool action says the folder passes when there are no problems', a
   expect(lint.result).toBe('The design folder passes the lint.')
 })
 
-test('check puts the lint problems before the check output, and ignores a canvas without /api/lint', async ($, on) => {
+test('check puts the lint errors and the warnings of the checked board before the check output', async ($, on) => {
   world(on, { count: 0 }, { lint: LINT })
   await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
 
@@ -539,8 +540,31 @@ test('check puts the lint problems before the check output, and ignores a canvas
   const lines = String(checked.result).split('\n')
 
   expect(lines[0]).toBe('Format problems:')
-  expect(lines).toContain('1 error, 1 warning')
+  expect(lines).toContain('error design/canvas.json pages[0].boards[0] board-title: the board has no title (fix: irsim lint --fix)')
+  expect(lines).toContain('warning design/Leads.html title title-empty: the title is empty')
   expect(lines.at(-1)).toContain('Leads ok 820 ms')
+})
+
+test('check counts the warnings of other boards', async ($, on) => {
+  const other = { severity: 'warning', file: 'design/Other.html', path: '', rule: 'board-preview', message: 'no preview' }
+  world(on, { count: 0 }, { lint: { ok: true, problems: [other, { ...other, file: 'design/More.html' }] } })
+  await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
+
+  const checked = await $.tool.call({ tool: TOOL, action: 'check', board: 'Leads' })
+  const lines = String(checked.result).split('\n')
+
+  expect(lines[0]).toBe('Format problems:')
+  expect(lines[1]).toBe('2 other warnings, run design_canvas lint to list them')
+})
+
+test('check without /api/lint is the plain check output', async ($, on) => {
+  world(on, { count: 0 })
+  await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
+
+  const checked = await $.tool.call({ tool: TOOL, action: 'check', board: 'Leads' })
+
+  expect(String(checked.result)).not.toContain('Format problems:')
+  expect(String(checked.result)).toContain('Leads ok 820 ms')
 })
 
 const FORMAT_ERRORS = {
@@ -592,7 +616,7 @@ test('a design write then a completed turn submits the lint errors', async ($, o
   on('tool.call', () => ({ result: 'ok' }))
   await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
 
-  await writeDesign($, '/work/design-app/design/canvas.json')
+  await writeDesign($, '/work/design/canvas.json')
   await $.turn.complete({ turnId: 't1', reason: 'answer', answer: '', durationMs: 1 })
 
   expect(w.submitted).toHaveLength(1)
@@ -618,9 +642,65 @@ test('the lint prompt is submitted at most twice per session', async ($, on) => 
   await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
 
   for (let turn = 0; turn < 3; turn += 1) {
-    await writeDesign($, '/work/design-app/design/Leads.html')
+    await writeDesign($, '/work/design/canvas.json')
     await $.turn.complete({ turnId: `t${turn}`, reason: 'answer', answer: '', durationMs: 1 })
   }
 
   expect(w.submitted).toHaveLength(2)
+})
+
+test('a write to one board is not reported for an error in another', async ($, on) => {
+  const other = { ...LINT.problems[0], file: 'design/Other.html', path: '' }
+  const w = world(on, { count: 0 }, { lint: { ok: false, problems: [other] } })
+  on('tool.call', () => ({ result: 'ok' }))
+  await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
+
+  await writeDesign($, '/work/design/Leads.html')
+  await $.turn.complete({ turnId: 't1', reason: 'answer', answer: '', durationMs: 1 })
+
+  expect(w.submitted).toEqual([])
+})
+
+test('a write outside the design folder is not tracked', async ($, on) => {
+  const w = world(on, { count: 0 }, { lint: FORMAT_ERRORS })
+  on('tool.call', () => ({ result: 'ok' }))
+  await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
+
+  await writeDesign($, '/work/design-app/design/canvas.json')
+  await $.turn.complete({ turnId: 't1', reason: 'answer', answer: '', durationMs: 1 })
+
+  expect(w.submitted).toEqual([])
+})
+
+test('the design folder comes from designDir of the nearest .irsim.json', async ($, on) => {
+  const w = world(
+    on,
+    { count: 0 },
+    {
+      lint: { ok: false, problems: [{ ...LINT.problems[0], file: 'canvas.json' }] },
+      files: ['/work/.irsim.json'],
+      texts: { '/work/.irsim.json': '{"designDir":"ui/boards"}' },
+    },
+  )
+  on('tool.call', () => ({ result: 'ok' }))
+  await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
+
+  await writeDesign($, '/work/design/canvas.json')
+  await $.turn.complete({ turnId: 't1', reason: 'answer', answer: '', durationMs: 1 })
+  expect(w.submitted).toEqual([])
+
+  await writeDesign($, '/work/ui/boards/canvas.json')
+  await $.turn.complete({ turnId: 't2', reason: 'answer', answer: '', durationMs: 1 })
+  expect(w.submitted).toHaveLength(1)
+})
+
+test('without .irsim.json the git root design folder counts when it has canvas.json', async ($, on) => {
+  const w = world(on, { count: 0 }, { lint: FORMAT_ERRORS, files: ['/work/design/canvas.json'] })
+  on('tool.call', () => ({ result: 'ok' }))
+  await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
+
+  await writeDesign($, '/work/design/canvas.json')
+  await $.turn.complete({ turnId: 't1', reason: 'answer', answer: '', durationMs: 1 })
+
+  expect(w.submitted).toHaveLength(1)
 })

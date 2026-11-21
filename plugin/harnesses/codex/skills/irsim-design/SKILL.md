@@ -91,7 +91,7 @@ Board entry:
 |---|---|---|---|
 | `name` | string | yes | The board file name without `.html`. A name with no file is dropped. |
 | `title` | string | filled | Read from `<title>`. Never write it by hand. |
-| `width`, `height` | number | filled | Read from `$preview`. Never write them by hand. At least 240 and 160. |
+| `width`, `height` | number | filled | Read from `$preview`. Never write them by hand. A size under 240 x 160 gets a lint warning and is fine for a small part. |
 | `x`, `y` | number | filled | Canvas position. Leave out for a new board, it is placed below the others. Do not place by hand. |
 | `section` | string | no | The `id` of the innermost section of the same page. |
 | `interactive` | boolean | no | Overrides the guess whether the board is a prototype. |
@@ -136,15 +136,17 @@ A complete 2-page example (the fields marked filled are left out on purpose):
       "icon": "settings",
       "boards": [{ "name": "SettingsForm" }]
     }
-  ]
+  ],
+  "overrides": { "colors": {}, "radius": {}, "type": {} },
+  "bindings": {}
 }
 ```
 
-`irsim build` (or `irsim lint --fix`) fills `title`, `width`, `height`, `x` and `y` from the board files, adds boards that no page lists to the `unsorted` page, and drops entries whose file is gone. A file that has no entry yet shows up on the `unsorted` page.
+`irsim build` fills `title`, `width`, `height`, `x` and `y` from the board files, adds boards that no page lists to the `unsorted` page, and drops entries whose file is gone. A file that has no entry yet shows up on the `unsorted` page.
 
 ## Finish
 
 1. Run `irsim lint`. Fix every error and read every warning. `design_canvas {action: "lint"}` returns the same list.
-2. Run `irsim build` or `irsim lint --fix` to fill `canvas.json`. Never hand-write `title`, `width` or `height`.
-3. Run `design_canvas {action: "check", page: "<id>"}` and look at the screenshots. `check` also reports the lint problems first, under `Format problems:`.
+2. Run `irsim build` to fill `canvas.json`. Never hand-write `title`, `width` or `height`. `irsim lint --fix` runs the build too and also renames legacy `.dc.html` files to `.html`.
+3. Run `design_canvas {action: "check", page: "<id>"}` and look at the screenshots. `check` also lists every lint error first, under `Format problems:`, and the warnings of the checked boards. It counts the other warnings, and `design_canvas {action: "lint"}` lists them.
 4. Report the board routes `/p/<page>?board=<Board>`.

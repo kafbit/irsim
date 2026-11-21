@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileS
 import { connect } from 'node:net'
 import { basename, dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { listBoards } from './board-file.mjs'
+import { boardNameOf, listBoards } from './board-file.mjs'
 
 const CONFIG_FILE = '.irsim.json'
 const PORT_MIN = 3200
@@ -332,6 +332,22 @@ const lintLines = (report) => {
   return lines.join('\n')
 }
 
+const problemLine = (one) =>
+  oneLine(`${one.severity} ${one.file} ${one.path} ${one.rule}: ${one.message}${one.fix ? ` (fix: ${one.fix})` : ''}`)
+
+const checkLintLines = (report, checked) => {
+  const names = new Set(checked)
+  const shown = []
+  let other = 0
+  for (const one of report.problems) {
+    if (one.severity === 'error') shown.push(problemLine(one))
+    else if (names.has(boardNameOf(basename(String(one.file))))) shown.push(problemLine(one))
+    else other += 1
+  }
+  if (other > 0) shown.push(`${other} other ${other === 1 ? 'warning' : 'warnings'}, run design_canvas lint to list them`)
+  return shown.join('\n')
+}
+
 const readLint = async (port) => {
   const report = await request(port, '/api/lint').catch(() => null)
   return report && Array.isArray(report.problems) ? report : null
@@ -436,10 +452,11 @@ const runTool = async ({ action, ...args }) => {
         ? `/api/boards/${encodeURIComponent(args.board)}/check`
         : `/api/pages/${encodeURIComponent(args.page)}/check`
       const lint = await readLint(port)
-      const results = checkLines(await request(port, path, { method: 'POST', timeout: 120_000 }))
-      return lint && lint.problems.length > 0
-        ? `Format problems:\n${lintLines(lint)}\n${results}`
-        : results
+      const checked = await request(port, path, { method: 'POST', timeout: 120_000 })
+      const results = checkLines(checked)
+      if (!lint) return results
+      const problems = checkLintLines(lint, checked.map((one) => boardNameOf(one.board)))
+      return problems === '' ? results : `Format problems:\n${problems}\n${results}`
     }
     case 'lint': {
       const report = await request(port, '/api/lint')
@@ -547,14 +564,16 @@ const codexHook = async (event) => {
     process.env.IRSIM_SESSION
   const root = projectRoot(cwd)
   const port = await canvasPort(root)
-  if (!(await health(port))) return {}
+  const healthy = await health(port)
   if (event === 'SessionStart') {
+    if (!existsSync(join(root, CONFIG_FILE)) && !existsSync(join(designFolder(root), 'canvas.json'))) return {}
     if (session) {
-      await register(port, { agent: 'codex', session, cwd }).catch(() => undefined)
+      if (healthy) await register(port, { agent: 'codex', session, cwd }).catch(() => undefined)
       recordDesignStart(root, session)
     }
     return { hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: SESSION_CONTEXT } }
   }
+  if (!healthy) return {}
   if (!session) return {}
   if (event === 'SessionEnd') {
     await leave(port, session).catch(() => undefined)

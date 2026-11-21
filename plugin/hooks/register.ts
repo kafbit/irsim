@@ -10,24 +10,55 @@ const SESSION_CONTEXT =
 
 const LINT_REPORTS_PER_SESSION = 2
 const WRITE_TOOLS = /^(Write|Edit|MultiEdit)$/
-const designWrites = new Set<string>()
+const designWrites = new Map<string, Set<string>>()
+const lintReports = new Map<string, number>()
+let designFolder: string | null = null
 let irsimProject = false
 
-async function isIrsimProject($: Engine, cwd: string): Promise<boolean> {
+const parentOf = (dir: string): string => {
+  const cut = dir.lastIndexOf('/')
+  return cut <= 0 ? '/' : dir.slice(0, cut)
+}
+
+const resolvePath = (base: string, path: string): string => {
+  const parts: string[] = path.startsWith('/') ? [] : base.split('/').filter(Boolean)
+  for (const part of path.split('/')) {
+    if (part === '' || part === '.') continue
+    if (part === '..') parts.pop()
+    else parts.push(part)
+  }
+  return `/${parts.join('/')}`
+}
+
+async function findDesignFolder($: Engine, cwd: string): Promise<string | null> {
   try {
+    let dir = resolvePath('/', cwd)
+    for (;;) {
+      const config = `${dir === '/' ? '' : dir}/.irsim.json`
+      if (await $.fs.exists(config)) {
+        let designDir = 'design'
+        try {
+          const value = JSON.parse(await $.fs.read(config))?.designDir
+          if (typeof value === 'string' && value) designDir = value
+        } catch {}
+        return resolvePath(dir, designDir)
+      }
+      if (dir === '/') break
+      dir = parentOf(dir)
+    }
     const top = await $.process.run(['git', 'rev-parse', '--show-toplevel'], { cwd })
     const root = top.exitCode === 0 && top.stdout.trim() ? top.stdout.trim() : cwd
-    return (await $.fs.exists(`${root}/.irsim.json`)) || (await $.fs.exists(`${root}/design/canvas.json`))
+    return (await $.fs.exists(`${root}/design/canvas.json`)) ? resolvePath(root, 'design') : null
   } catch {
-    return false
+    return null
   }
 }
-const lintReports = new Map<string, number>()
 
-const isDesignFile = (path: unknown): boolean =>
+const isDesignFile = (path: unknown): path is string =>
   typeof path === 'string' &&
-  (path.endsWith('canvas.json') || path.endsWith('.html')) &&
-  path.includes('/design/')
+  designFolder !== null &&
+  path.startsWith(`${designFolder}/`) &&
+  (path.endsWith('canvas.json') || path.endsWith('.html'))
 
 export const register: Register = (on) => {
   on('prompt.compose', async ($, e, next) => {
@@ -41,7 +72,8 @@ export const register: Register = (on) => {
   on('session.start', async ($, e, next) => {
     setTurnRunning(false)
     const started = await next(e)
-    irsimProject = await isIrsimProject($, e.cwd)
+    designFolder = await findDesignFolder($, e.cwd)
+    irsimProject = designFolder !== null
     await $.command.register({
       name: 'irsim',
       description: 'Open irsim and listen for its comments',
@@ -102,8 +134,12 @@ export const register: Register = (on) => {
 
   on('tool.call', { tool: WRITE_TOOLS }, async ($, e, next) => {
     const result = await next(e)
-    if (isDesignFile((e as unknown as Record<string, unknown>).file_path)) {
-      designWrites.add(await $.session.id())
+    const path = (e as unknown as Record<string, unknown>).file_path
+    if (isDesignFile(path)) {
+      const session = await $.session.id()
+      const written = designWrites.get(session) ?? new Set<string>()
+      written.add(path)
+      designWrites.set(session, written)
     }
     return result
   })
@@ -135,11 +171,17 @@ export const register: Register = (on) => {
 async function reportLint($: Engine): Promise<void> {
   try {
     const session = await $.session.id()
-    if (!designWrites.delete(session)) return
+    const written = designWrites.get(session)
+    designWrites.delete(session)
+    if (!written || written.size === 0) return
     const sent = lintReports.get(session) ?? 0
     if (sent >= LINT_REPORTS_PER_SESSION) return
     const report = await api<LintReport>($, '/api/lint')
-    const errors = (report.problems ?? []).filter((problem) => problem.severity === 'error')
+    const errors = (report.problems ?? []).filter(
+      (problem) =>
+        problem.severity === 'error' &&
+        [...written].some((path) => path === problem.file || path.endsWith(`/${problem.file}`)),
+    )
     if (errors.length === 0) return
     lintReports.set(session, sent + 1)
     await $.prompt.submit({
