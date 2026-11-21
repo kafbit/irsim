@@ -149,6 +149,10 @@
           "id": "full-screen-views-compare-view",
           "title": "Compare view",
           "parent": "full-screen-views"
+        },
+        {
+          "id": "agent-composer",
+          "title": "Agent composer"
         }
       ],
       "boards": [
@@ -612,15 +616,6 @@
           "section": "sidebar-and-pages-sidebar"
         },
         {
-          "name": "CanvasSidebarAdd",
-          "title": "Canvas sidebar: new group",
-          "x": -6569,
-          "y": 5064,
-          "width": 288,
-          "height": 820,
-          "section": "sidebar-and-pages-sidebar"
-        },
-        {
           "name": "CanvasSidebarGroupMenu",
           "title": "Canvas sidebar: group menu",
           "x": -6201,
@@ -654,15 +649,6 @@
           "y": 6124,
           "width": 960,
           "height": 760,
-          "section": "sidebar-and-pages-page-index"
-        },
-        {
-          "name": "CanvasPagesAdd",
-          "title": "Canvas pages: new group",
-          "x": -4921,
-          "y": 6124,
-          "width": 960,
-          "height": 560,
           "section": "sidebar-and-pages-page-index"
         },
         {
@@ -718,24 +704,6 @@
           "width": 288,
           "height": 820,
           "section": "inspector-selection"
-        },
-        {
-          "name": "CanvasInspectorVariants",
-          "title": "Canvas inspector: variants",
-          "x": -1437,
-          "y": 10946,
-          "width": 288,
-          "height": 960,
-          "section": "inspector-variants"
-        },
-        {
-          "name": "CanvasInspectorVariantSent",
-          "title": "Canvas inspector: variants sent",
-          "x": -1069,
-          "y": 10946,
-          "width": 288,
-          "height": 960,
-          "section": "inspector-variants"
         },
         {
           "name": "CanvasInspectorVariant",
@@ -915,15 +883,6 @@
           "y": 9663,
           "width": 1440,
           "height": 48,
-          "section": "bars-search-and-controls-top-bar"
-        },
-        {
-          "name": "CanvasTopBarMenu",
-          "title": "Top bar: approve menu open",
-          "x": 7464,
-          "y": 9663,
-          "width": 1440,
-          "height": 220,
           "section": "bars-search-and-controls-top-bar"
         },
         {
@@ -1197,6 +1156,33 @@
           "section": "sidebar-and-pages-page-index"
         },
         {
+          "name": "CanvasPagesEmpty",
+          "title": "Canvas pages: empty, prompt",
+          "x": -7001,
+          "y": 6944,
+          "width": 960,
+          "height": 560,
+          "section": "sidebar-and-pages-page-index"
+        },
+        {
+          "name": "CanvasPagesEmptyDraft",
+          "title": "Canvas pages: empty, prompt typed",
+          "x": -5961,
+          "y": 6944,
+          "width": 960,
+          "height": 560,
+          "section": "sidebar-and-pages-page-index"
+        },
+        {
+          "name": "CanvasPagesEmptyNoSession",
+          "title": "Canvas pages: empty, no agent session",
+          "x": -4921,
+          "y": 6944,
+          "width": 960,
+          "height": 560,
+          "section": "sidebar-and-pages-page-index"
+        },
+        {
           "name": "CanvasSidebarPageMenu",
           "title": "Canvas sidebar: page menu",
           "x": -5853,
@@ -1251,31 +1237,139 @@
           "section": "app-screens-interaction"
         },
         {
-          "name": "CanvasSectionMenuTidy",
-          "title": "Section: tidy submenu",
-          "x": 9471,
-          "y": 7094,
-          "width": 900,
-          "height": 640,
-          "section": "sections-right-click-menu"
+          "name": "CanvasComposer",
+          "title": "Canvas composer",
+          "x": -173,
+          "y": 14282,
+          "width": 640,
+          "height": 300,
+          "section": "agent-composer"
         },
         {
-          "name": "CanvasInspectorTidy",
-          "title": "Canvas inspector: tidy a section as a grid",
+          "name": "CanvasComposerTyped",
+          "title": "Canvas composer: typed",
+          "x": 547,
+          "y": 14282,
+          "width": 640,
+          "height": 300,
+          "section": "agent-composer"
+        },
+        {
+          "name": "CanvasComposerScoped",
+          "title": "Canvas composer: about the selection",
+          "x": 1267,
+          "y": 14282,
+          "width": 640,
+          "height": 320,
+          "section": "agent-composer"
+        },
+        {
+          "name": "CanvasComposerImages",
+          "title": "Canvas composer: pasted images",
+          "x": 1987,
+          "y": 14282,
+          "width": 640,
+          "height": 300,
+          "section": "agent-composer"
+        },
+        {
+          "name": "CanvasComposerOptions",
+          "title": "Canvas composer: options",
+          "x": -173,
+          "y": 14782,
+          "width": 640,
+          "height": 420,
+          "section": "agent-composer"
+        },
+        {
+          "name": "CanvasComposerNoSession",
+          "title": "Canvas composer: no agent session",
+          "x": 547,
+          "y": 14782,
+          "width": 640,
+          "height": 300,
+          "section": "agent-composer"
+        },
+        {
+          "name": "CanvasComposerCompact",
+          "title": "Canvas composer: slim bar",
+          "x": 1267,
+          "y": 14782,
+          "width": 640,
+          "height": 96,
+          "section": "agent-composer"
+        },
+        {
+          "name": "CanvasTopBarMore",
+          "title": "Canvas top bar: more menu",
+          "x": 11506,
+          "y": 10851,
+          "width": 1440,
+          "height": 340,
+          "section": "bars-search-and-controls-top-bar"
+        },
+        {
+          "name": "CanvasFrameMenuCopy",
+          "title": "Frame: copy submenu",
+          "x": 321,
+          "y": 8143,
+          "width": 640,
+          "height": 308,
+          "section": "frames-right-click-menu"
+        },
+        {
+          "name": "CanvasAppCanvasMenuView",
+          "title": "Canvas app: canvas menu, view submenu",
+          "x": 4465,
+          "y": 2494,
+          "width": 1440,
+          "height": 948,
+          "section": "app-screens-interaction"
+        },
+        {
+          "name": "CanvasInspectorMultiMenu",
+          "title": "Inspector: several boards, section menu",
           "x": 383,
           "y": 9886,
           "width": 288,
-          "height": 820,
+          "height": 900,
           "section": "inspector-selection"
         },
         {
-          "name": "CanvasInspectorTidyWrap",
-          "title": "Canvas inspector: tidy a section with wrap",
+          "name": "CanvasArrange",
+          "title": "Arrange boards: row",
           "x": 731,
           "y": 9886,
-          "width": 288,
-          "height": 820,
+          "width": 640,
+          "height": 480,
           "section": "inspector-selection"
+        },
+        {
+          "name": "CanvasArrangeGrid",
+          "title": "Arrange boards: grid",
+          "x": 731,
+          "y": 10946,
+          "width": 640,
+          "height": 480,
+          "section": "inspector-selection"
+        },
+        {
+          "name": "CanvasArrangeWrap",
+          "title": "Arrange boards: wrap",
+          "x": 1451,
+          "y": 11146,
+          "width": 640,
+          "height": 480,
+          "section": "inspector-selection"
+        },
+        {
+          "name": "CanvasCompareGenerating",
+          "title": "Canvas compare: variants generating",
+          "x": -5565,
+          "y": 14160,
+          "width": 1440,
+          "height": 900,
+          "section": "full-screen-views-compare-view"
         }
       ]
     },

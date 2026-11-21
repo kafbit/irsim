@@ -331,6 +331,20 @@ describe('buildPageRequestText', () => {
     expect(text.endsWith(REPLY_RULE)).toBe(true)
   })
 
+  it('renders an ask with the prompt, the scope and the images', () => {
+    const base = { ...request('icon'), kind: 'ask' as const, prompt: 'Add a settings page\nwith tabs', images: ['i_a', 'i_gone'] }
+    const page = buildPageRequestText([{ ...base, scope: 'page' }], { sales: 'Sales' }, 'design', { i_a: '/data/images/i_a.png' })
+    expect(page).toContain('Scope: the page Sales (page id sales)')
+    expect(page).toContain('   Add a settings page\n   with tabs')
+    expect(page).toContain('   image: /data/images/i_a.png')
+    expect(page).not.toContain('i_gone')
+    expect(page).toContain('create or change boards and pages yourself')
+    expect(page).toContain('design/canvas.json')
+    expect(buildPageRequestText([{ ...base, scope: 'board', board: 'Leads' }])).toContain('the board Leads')
+    expect(buildPageRequestText([{ ...base, scope: 'boards', boards: ['A', 'B'] }])).toContain('the boards A, B')
+    expect(buildPageRequestText([{ ...base, scope: 'section', section: 'Flow' }])).toContain('the section Flow of the page sales')
+  })
+
   it('asks to tidy the page by editing only canvas.json', () => {
     const text = buildPageRequestText([request('reorganize')], { sales: 'Sales' })
     expect(text).toContain('tidy page Sales (sales)')

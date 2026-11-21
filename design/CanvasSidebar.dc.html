@@ -17,10 +17,7 @@ body{margin:0}
 <div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="position: relative; display: flex; width: 100%; min-height: 100vh; background: var(--card); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
 <aside aria-label="Sidebar" style="display: flex; flex-direction: column; gap: 12px; width: 288px; flex-shrink: 0; box-sizing: border-box; min-height: 100vh; padding: 12px; background: var(--card); border-right: 1px solid var(--border);">
 <nav aria-label="Pages" style="position: relative; display: flex; flex-direction: column; flex-shrink: 0;">
-<div style="display: flex; align-items: center; justify-content: space-between; padding: 3px 4px 3px 8px; border-radius: 10px; color: var(--muted-foreground);"><span>All pages</span><button type="button" aria-label="New group" style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; flex-shrink: 0; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--muted-foreground); cursor: pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button></div>
-<sc-if value="{{showAdd}}" hint-placeholder-val="{{false}}">
-<div role="dialog" aria-label="New group" style="position: absolute; top: 100%; right: 0; margin-top: 4px; z-index: 10; box-sizing: border-box; width: 240px; padding: 8px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);"><div style="margin-bottom: 4px; font-size: 12px; color: var(--muted-foreground);">Group name</div><div style="display: flex; align-items: center; gap: 8px;"><div style="display: flex; align-items: center; flex: 1; min-width: 0; height: 32px; box-sizing: border-box; padding: 0 8px; border: 1px solid var(--input); border-radius: 8px; font-size: 13px; color: var(--foreground);">Archive</div><button type="button" style="height: 32px; padding: 0 12px; border: 1px solid var(--primary); border-radius: 8px; background: var(--primary); color: var(--primary-foreground); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Add</button></div></div>
-</sc-if>
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 3px 4px 3px 8px; border-radius: 10px; color: var(--muted-foreground);"><span>All pages</span></div>
 <sc-for list="{{navRows}}" as="item">
 <sc-if value="{{item.isGroup}}" hint-placeholder-val="{{false}}">
 <div style="display: flex; align-items: center; gap: 4px; margin-top: 4px; position: relative; padding: 4px 8px; border-radius: 10px; cursor: grab;"><span style="display: inline-flex; flex-shrink: 0; color: var(--muted-foreground); transform: rotate({{item.rotate}}deg);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span><span style="min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 600; color: var(--muted-foreground);">{{item.title}}</span><span style="font-size: 12px; color: var(--muted-foreground);">{{item.count}}</span><sc-if value="{{item.menu}}" hint-placeholder-val="{{false}}"><div role="menu" aria-label="Group actions" style="position: absolute; top: 100%; left: 24px; margin-top: 2px; z-index: 20; display: flex; flex-direction: column; box-sizing: border-box; width: 200px; padding: 6px; border: 1px solid var(--border); border-radius: 12px; background: var(--popover); color: var(--foreground); font-family: system-ui, sans-serif; font-size: 14px; font-weight: 400; cursor: default; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);"><div role="menuitem" style="display: flex; align-items: center; gap: 10px; min-height: 38px; box-sizing: border-box; padding: 6px 10px; border-radius: 6px; font-size: 14px; color: var(--foreground); background: transparent;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: var(--muted-foreground);"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path></svg><span style="flex: 1; white-space: nowrap;">Rename group</span></div><div role="menuitem" style="display: flex; align-items: center; gap: 10px; min-height: 38px; box-sizing: border-box; padding: 6px 10px; border-radius: 6px; font-size: 14px; color: var(--foreground); background: var(--accent);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: var(--muted-foreground);"><path d="M5 4h6a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"></path><path d="M13 14h6a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1z"></path></svg><span style="flex: 1; white-space: nowrap;">Ungroup</span></div></div></sc-if></div>
@@ -60,13 +57,14 @@ body{margin:0}
 </div>
 </section>
 </sc-if>
+<div style="flex-shrink: 0; margin: 0 -12px -12px; padding: 12px; border-top: 1px solid var(--border); --cv-h: 0px; --cv-pad: 0px; --cv-bg: transparent;"><dc-import name="CanvasComposer" narrow="yes" scope="{{composerScope}}" target="{{selected}}" theme="{{theme}}" hint-size="288px,150px"></dc-import></div>
 </aside>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"menu":{"editor":"enum","default":"none","options":["none","group","page","frame","section"]},"picker":{"editor":"enum","default":"no","options":["no","yes"]},"theme":{"editor":"enum","default":"light","options":["light","dark"]},"page":{"editor":"enum","default":"Components","options":["Components","Home"]},"selected":{"editor":"enum","default":"Button","options":["Button","none"]},"search":{"editor":"text","default":""},"update":{"editor":"enum","default":"none","options":["none","available"]},"sections":{"editor":"enum","default":"no","options":["no","yes"]},"groups":{"editor":"enum","default":"no","options":["no","yes"]},"adding":{"editor":"enum","default":"no","options":["no","yes"]},"collapsed":{"editor":"enum","default":"no","options":["no","yes"]},"$preview":{"width":288,"height":820}}'>
+<script type="text/x-dc" data-dc-script data-props='{"menu":{"editor":"enum","default":"none","options":["none","group","page","frame","section"]},"picker":{"editor":"enum","default":"no","options":["no","yes"]},"theme":{"editor":"enum","default":"light","options":["light","dark"]},"page":{"editor":"enum","default":"Components","options":["Components","Home"]},"selected":{"editor":"enum","default":"Button","options":["Button","none"]},"search":{"editor":"text","default":""},"update":{"editor":"enum","default":"none","options":["none","available"]},"sections":{"editor":"enum","default":"no","options":["no","yes"]},"groups":{"editor":"enum","default":"no","options":["no","yes"]},"collapsed":{"editor":"enum","default":"no","options":["no","yes"]},"$preview":{"width":288,"height":820}}'>
 class Component extends DCLogic {
   renderVals() {
-    const { page, selected, search, update, theme, sections, groups, adding, collapsed, menu, picker } = this.props
+    const { page, selected, search, update, theme, sections, groups, collapsed, menu, picker } = this.props
     const icons = { Components: 'M4 3h5a1 1 0 0 1 1 1v7a1 1 0 0 1 -1 1h-5a1 1 0 0 1 -1 -1v-7a1 1 0 0 1 1 -1zM15 3h5a1 1 0 0 1 1 1v3a1 1 0 0 1 -1 1h-5a1 1 0 0 1 -1 -1v-3a1 1 0 0 1 1 -1zM15 12h5a1 1 0 0 1 1 1v7a1 1 0 0 1 -1 1h-5a1 1 0 0 1 -1 -1v-7a1 1 0 0 1 1 -1zM4 16h5a1 1 0 0 1 1 1v3a1 1 0 0 1 -1 1h-5a1 1 0 0 1 -1 -1v-3a1 1 0 0 1 1 -1z', Checkout: 'M2.05 2.05l1.099-.028a1 1 0 0 1 1.008.815l2.69 14.347A1 1 0 0 0 7.83 18H18M4.563 5h16.435a1 1 0 0 1 .981 1.204l-1.026 6.226A2 2 0 0 1 18.962 14H6.25M16 20a2 2 0 1 0 4 0a2 2 0 1 0 -4 0M6 20a2 2 0 1 0 4 0a2 2 0 1 0 -4 0' }
     const grouped = sections === 'yes'
     const pages = [
@@ -169,13 +167,14 @@ class Component extends DCLogic {
     return {
       themeClass: theme === 'dark' ? 'dark' : '',
       navRows,
-      showAdd: adding === 'yes',
       searchText: search ? search : 'Search boards',
       searchColor: search ? 'var(--foreground)' : 'var(--muted-foreground)',
       countLabel: `${shown.length} ${shown.length === 1 ? 'board' : 'boards'}`,
       rows: rowsFor(shown, selected, grouped),
       empty: shown.length === 0,
       showUpdate: update === 'available',
+      composerScope: selected === 'none' ? 'page' : 'board',
+      theme: theme === 'dark' ? 'dark' : 'light',
     }
   }
 }

@@ -1,25 +1,23 @@
-import type { ApprovalState } from './approvals/use-approvals'
-import { pendingOf } from './approvals/pending'
 import { canNest, sharedSection } from './sections'
 import type { CanvasSection } from './types'
 
 export type MenuItemId =
+  | 'ask-agent'
   | 'copy'
+  | 'copy-name'
   | 'play'
   | 'comment'
   | 'variants'
-  | 'approve'
+  | 'section'
   | 'create-section'
   | 'rename-section'
   | 'create-sub-section'
   | 'remove-from-section'
   | 'delete-section'
   | 'show-on-canvas'
-  | 'tidy'
-  | 'tidy-row'
-  | 'tidy-column'
-  | 'tidy-wrap'
-  | 'tidy-grid'
+  | 'arrange'
+  | 'page'
+  | 'view'
   | 'copy-page-name'
   | 'copy-page-link'
   | 'select-all'
@@ -36,42 +34,41 @@ export type MenuItem = {
   label: string
   shortcut?: string
   danger?: boolean
-  note?: string
+  disabled?: boolean
   children?: MenuItem[]
 }
 
-export const TIDY_ITEMS: MenuItem[] = [
-  { id: 'tidy-row', label: 'In a row' },
-  { id: 'tidy-column', label: 'In a column' },
-  { id: 'tidy-wrap', label: 'Wrap', note: 'Reflows when the section is resized' },
-  { id: 'tidy-grid', label: 'Grid…', note: 'Opens the controls in the right sidebar' },
-]
-
 export function canvasMenuGroups(input: { connected: boolean; sidebarShown: boolean }): MenuItem[][] {
   const { connected, sidebarShown } = input
-  const groups: MenuItem[][] = [
+  return [
     [
-      { id: 'copy-page-name', label: 'Copy page name' },
-      { id: 'copy-page-link', label: 'Copy page link' },
+      { id: 'ask-agent', label: 'Ask the agent…', disabled: !connected },
+      { id: 'reorganize', label: 'Reorganize frames with agent', disabled: !connected },
+      { id: 'choose-icon', label: 'Choose icon with agent', disabled: !connected },
     ],
     [
-      { id: 'select-all', label: 'Select all', shortcut: 'Ctrl+A' },
-      { id: 'zoom-fit', label: 'Zoom to fit', shortcut: 'Shift+1' },
-      { id: 'zoom-100', label: 'Zoom to 100%', shortcut: 'Shift+0' },
-      { id: 'toggle-sidebar', label: sidebarShown ? 'Hide sidebar' : 'Show sidebar', shortcut: 'Ctrl+\\' },
+      {
+        id: 'page',
+        label: 'Page',
+        children: [
+          { id: 'rename-page', label: 'Rename page' },
+          { id: 'change-icon', label: 'Change icon…' },
+          { id: 'copy-page-name', label: 'Copy page name' },
+          { id: 'copy-page-link', label: 'Copy page link' },
+        ],
+      },
+      {
+        id: 'view',
+        label: 'View',
+        children: [
+          { id: 'select-all', label: 'Select all', shortcut: 'Ctrl+A' },
+          { id: 'zoom-fit', label: 'Zoom to fit', shortcut: 'Shift+1' },
+          { id: 'zoom-100', label: 'Zoom to 100%', shortcut: 'Shift+0' },
+          { id: 'toggle-sidebar', label: sidebarShown ? 'Hide sidebar' : 'Show sidebar', shortcut: 'Ctrl+\\' },
+        ],
+      },
     ],
-    [
-      { id: 'rename-page', label: 'Rename page' },
-      { id: 'change-icon', label: 'Change icon…' },
-    ],
-    connected
-      ? [
-          { id: 'reorganize', label: 'Reorganize frames with agent' },
-          { id: 'choose-icon', label: 'Choose icon with agent' },
-        ]
-      : [],
   ]
-  return groups.filter((group) => group.length > 0)
 }
 
 type MenuBoard = {
@@ -81,24 +78,15 @@ type MenuBoard = {
   variantOf?: string | undefined
 }
 
-export const pendingNames = (
-  names: string[],
-  stateOf: (name: string) => ApprovalState | undefined,
-): string[] => {
-  const { changed, added } = pendingOf(names, stateOf)
-  return [...changed, ...added]
-}
-
 export function menuGroups(input: {
   names: string[]
   boards: MenuBoard[]
   sections: CanvasSection[]
-  stateOf: (name: string) => ApprovalState | undefined
   connected: boolean
   wholeSection: string | null
   sidebar?: boolean
 }): MenuItem[][] {
-  const { names, boards, sections, stateOf, connected, wholeSection, sidebar = false } = input
+  const { names, boards, sections, connected, wholeSection, sidebar = false } = input
   const [only] = names
   const single = names.length === 1 && wholeSection === null && only !== undefined
   const board = single ? boards.find((candidate) => candidate.name === only) : undefined
@@ -119,9 +107,14 @@ export function menuGroups(input: {
       ? [{ id: 'show-on-canvas', label: 'Show on canvas' }]
       : []
 
-  const copy: MenuItem[] = [
-    { id: 'copy', label: single ? 'Copy frame name' : `Copy ${names.length} frame names` },
-  ]
+  const ask: MenuItem = { id: 'ask-agent', label: 'Ask the agent…', disabled: !connected }
+  const agentItems: MenuItem[] = [ask]
+  if (target === 'frame' && connected && !board?.variantOf) {
+    agentItems.push({ id: 'variants', label: 'Generate variants…' })
+  }
+  if (target === 'section') {
+    agentItems.push({ id: 'reorganize', label: 'Reorganize with agent', disabled: !connected })
+  }
 
   const frameItems: MenuItem[] = []
   if (target === 'frame') {
@@ -129,44 +122,38 @@ export function menuGroups(input: {
     frameItems.push({ id: 'comment', label: 'Comment' })
   }
 
-  const agentItems: MenuItem[] = []
-  if (connected) {
-    if (target === 'frame') {
-      if (!board?.variantOf) agentItems.push({ id: 'variants', label: 'Generate variants' })
-      if (only && pendingNames([only], stateOf).length > 0) {
-        agentItems.push({ id: 'approve', label: 'Approve and build' })
-      }
-    } else {
-      const pending = pendingNames(names, stateOf).length
-      if (pending > 0) agentItems.push({ id: 'approve', label: `Approve ${pending} and build` })
-    }
-  }
-
   const direct =
     target === 'section' &&
     names.some((name) => boards.find((candidate) => candidate.name === name)?.section === wholeSection)
-  const tidyItems: MenuItem[] =
-    target === 'section' && direct
-      ? [{ id: 'tidy', label: 'Tidy', children: TIDY_ITEMS }]
-      : []
-
-  const sectionItems: MenuItem[] = []
   const nestId = target === 'section' ? wholeSection : typeof shared === 'string' ? shared : null
   const nest: MenuItem = { id: 'create-sub-section', label: 'Create sub-section' }
   const remove: MenuItem = { id: 'remove-from-section', label: 'Remove from section' }
   const create: MenuItem = { id: 'create-section', label: 'Create section', shortcut: 'Shift+S' }
-  if (target === 'frames') sectionItems.push(create)
-  if (target === 'mixed') sectionItems.push(create, remove)
+  const sectionChildren: MenuItem[] = []
+  if (target === 'frame') sectionChildren.push(board?.section ? remove : create)
+  if (target === 'frames') sectionChildren.push(create)
+  if (target === 'mixed') sectionChildren.push(create, remove)
   if (target === 'part') {
-    if (nestId !== null && canNest(nestId, sections)) sectionItems.push(nest)
-    sectionItems.push(remove)
+    if (nestId !== null && canNest(nestId, sections)) sectionChildren.push(nest)
+    sectionChildren.push(remove)
   }
   if (target === 'section') {
-    sectionItems.push({ id: 'rename-section', label: 'Rename section' })
-    if (direct && nestId !== null && canNest(nestId, sections)) sectionItems.push(nest)
-    if (direct) sectionItems.push(remove)
-    sectionItems.push({ id: 'delete-section', label: 'Delete section', danger: true })
+    if (direct && nestId !== null && canNest(nestId, sections)) sectionChildren.push(nest)
+    sectionChildren.push(
+      { id: 'rename-section', label: 'Rename section' },
+      { id: 'delete-section', label: 'Delete section', danger: true },
+    )
   }
 
-  return [locate, copy, frameItems, agentItems, tidyItems, sectionItems].filter((group) => group.length > 0)
+  const copyLabel =
+    target === 'section' ? 'Copy section name' : single ? 'Copy frame name' : `Copy ${names.length} frame names`
+  const arrange: MenuItem[] =
+    target === 'section' ? [{ id: 'arrange', label: 'Arrange…', disabled: !direct }] : []
+  const foot: MenuItem[] = [
+    ...arrange,
+    { id: 'section', label: 'Section', children: sectionChildren },
+    { id: 'copy', label: 'Copy', children: [{ id: 'copy-name', label: copyLabel }] },
+  ]
+
+  return [locate, agentItems, frameItems, foot].filter((group) => group.length > 0)
 }

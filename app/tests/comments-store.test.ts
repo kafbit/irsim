@@ -548,6 +548,23 @@ describe('release', () => {
     expect((await claim('s1')).pages.map((one) => one.id)).toEqual([request.id])
   })
 
+  it('queues an ask with its fields and refuses it without a live session', async () => {
+    const ask = {
+      page: 'sales',
+      kind: 'ask' as const,
+      prompt: 'Add a page',
+      scope: 'boards' as const,
+      boards: ['A', 'B'],
+    }
+    expect(await createPageRequest({ ...ask, sessionId: 's9' })).toBe('no_session')
+    const request = await createPageRequest({ ...ask, sessionId: 's1' })
+    if (typeof request === 'string') throw new Error(request)
+    expect(request).toMatchObject({ kind: 'ask', prompt: 'Add a page', scope: 'boards', boards: ['A', 'B'] })
+    const claimed = await claim('s1')
+    expect(claimed.text).toContain('Add a page')
+    expect(claimed.text).toContain('the boards A, B')
+  })
+
   it('ignores resolved comments and the items of other sessions', async () => {
     const mine = await sent('s1')
     const theirs = await sent('s2')

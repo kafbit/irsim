@@ -99,12 +99,20 @@ export type VariantRequest = {
   createdAt: string
 }
 
-export type PageRequestKind = 'reorganize' | 'icon'
+export type PageRequestKind = 'reorganize' | 'icon' | 'ask'
+
+export type AskScopeKind = 'page' | 'board' | 'boards' | 'section'
 
 export type PageRequest = {
   id: string
   page: string
   kind: PageRequestKind
+  prompt?: string
+  scope?: AskScopeKind
+  board?: string
+  boards?: string[]
+  section?: string
+  images?: string[]
   sessionId: string
   at: string
   status: 'queued' | 'delivered'

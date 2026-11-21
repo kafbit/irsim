@@ -11,6 +11,13 @@
 <style>
 body{margin:0}
 .cv-root{--pick:#14161a;--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted:#efefeb;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--destructive-tint:#fbe9e6;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a;--play:#2563eb;--mock-bg:#f6f6f3;--mock-ink:#14161a;--mock-card:#ffffff;--mock-line:#e4e4e0;--mock-bar:#d6d7d2}
+@property --aura-angle{syntax:"<angle>";initial-value:0deg;inherits:false}
+@keyframes aura-spin{to{--aura-angle:360deg}}
+.aura{position:absolute;inset:-4px;border-radius:16px;pointer-events:none}
+.aura::before,.aura::after{content:"";position:absolute;inset:0;border-radius:inherit;background:conic-gradient(from var(--aura-angle),transparent 0deg,var(--play) 100deg,var(--highlight) 200deg,transparent 300deg);animation:aura-spin 2.4s linear infinite}
+.aura::before,.aura::after{padding:3px;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.aura::after{padding:4px;filter:blur(10px);opacity:0.8}
+@media (prefers-reduced-motion:reduce){.aura::before,.aura::after{animation:none}}
 .cv-root.dark{--pick:#14161a;--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--destructive-tint:#3b1814;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8;--play:#60a5fa}
 </style>
 </helmet>
@@ -28,14 +35,17 @@ body{margin:0}
 <div style="display: flex; justify-content: center; align-items: flex-start; gap: 16px; flex: 1; min-height: 0; box-sizing: border-box; padding: 16px; overflow: hidden;">
 <sc-for list="{{columns}}" as="col">
 <section style="display: flex; flex-direction: column; gap: 12px; flex: {{colFlex}}; width: {{colWidth}}; min-width: 0; box-sizing: border-box;">
-<div style="display: flex; align-items: baseline; gap: 8px;"><span style="font-size: 14px; font-weight: 600;">{{col.label}}</span><span style="font-size: 12px; color: var(--muted-foreground);">{{col.name}}</span><sc-if value="{{col.unchanged}}" hint-placeholder-val="{{false}}"><span style="font-size: 12px; color: var(--muted-foreground);">Not changed yet</span></sc-if></div>
-<div style="position: relative; width: {{boardWidth}}px; max-width: 100%; align-self: center; height: 680px; box-sizing: border-box; overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: var(--card);">
-<div style="position: absolute; left: 0; top: 0; width: 288px; height: 680px; overflow: hidden;">
-<dc-import name="CanvasInspector" theme="{{theme}}" approval="none" imports="{{col.imports}}" hint-size="288px,680px"></dc-import>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 2px; width: {{boardWidth}}px; max-width: 100%; align-self: center; text-align: center;"><div style="display: flex; align-items: center; justify-content: center; gap: 8px;"><span style="font-size: 14px; font-weight: 600;">{{col.label}}</span><sc-if value="{{col.unchanged}}" hint-placeholder-val="{{false}}"><span style="display: inline-flex; align-items: center; gap: 6px; height: 20px; box-sizing: border-box; padding: 0 8px; border-radius: 9999px; background: var(--secondary); font-size: 12px; color: var(--muted-foreground);"><span aria-hidden="true" style="width: 6px; height: 6px; border-radius: 50%; background: var(--play);"></span>Not changed yet</span></sc-if></div><span style="max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted-foreground);">{{col.name}}</span></div>
+<div style="position: relative; width: {{boardWidth}}px; max-width: 100%; align-self: center; height: 650px;">
+<sc-if value="{{col.unchanged}}" hint-placeholder-val="{{false}}"><div class="aura" role="status" aria-label="The agent is generating this variant"></div></sc-if>
+<div style="position: relative; width: 100%; height: 100%; box-sizing: border-box; overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: var(--card);">
+<div style="position: absolute; left: 0; top: 0; width: 288px; height: 650px; overflow: hidden;">
+<dc-import name="CanvasInspector" theme="{{theme}}" approval="none" imports="{{col.imports}}" hint-size="288px,650px"></dc-import>
+</div>
 </div>
 </div>
 <sc-if value="{{col.plain}}" hint-placeholder-val="{{true}}">
-<button type="button" style="display: inline-flex; align-items: center; justify-content: center; height: 34px; margin: 0; padding: 0 12px; border: 1px solid {{col.border}}; border-radius: 10px; background: {{col.bg}}; color: {{col.fg}}; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;">{{col.button}}</button>
+<button type="button" style="display: inline-flex; align-items: center; justify-content: center; width: {{boardWidth}}px; max-width: 100%; align-self: center; height: 34px; margin: 0; padding: 0 12px; border: 1px solid {{col.border}}; border-radius: 10px; background: {{col.bg}}; color: {{col.fg}}; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;">{{col.button}}</button>
 </sc-if>
 <sc-if value="{{col.confirming}}" hint-placeholder-val="{{false}}">
 <div role="alertdialog" aria-label="Confirm the choice" style="display: flex; flex-direction: column; gap: 10px; box-sizing: border-box; padding: 12px; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--card);">
@@ -48,7 +58,7 @@ body{margin:0}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"width":{"editor":"enum","default":"board","options":["board","1280","768","390"]},"error":{"editor":"enum","default":"no","options":["no","yes"]},"unchanged":{"editor":"enum","default":"no","options":["no","yes"]},"confirm":{"editor":"enum","default":"none","options":["none","choose","keep"]},"$preview":{"width":1440,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"width":{"editor":"enum","default":"board","options":["board","1280","768","390"]},"error":{"editor":"enum","default":"no","options":["no","yes"]},"unchanged":{"editor":"enum","default":"no","options":["no","yes","all"]},"confirm":{"editor":"enum","default":"none","options":["none","choose","keep"]},"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
     const { theme, width, error, unchanged, confirm } = this.props
@@ -69,8 +79,8 @@ class Component extends DCLogic {
     const secondary = { border: 'transparent', bg: 'var(--secondary)', fg: 'var(--foreground)' }
     const columns = [
       { label: 'Original', name: 'CanvasInspector', imports: '3', button: 'Keep original', unchanged: false, ...secondary },
-      { label: 'Simpler', name: 'CanvasInspectorVariantSimpler', imports: '0', button: 'Choose', unchanged: false, ...primary },
-      { label: 'Clearer', name: 'CanvasInspectorVariantClearer', imports: '3', button: 'Choose', unchanged: unchanged === 'yes', ...primary },
+      { label: 'Simpler', name: 'CanvasInspectorVariantSimpler', imports: '0', button: 'Choose', unchanged: unchanged === 'all', ...primary },
+      { label: 'Clearer', name: 'CanvasInspectorVariantClearer', imports: '3', button: 'Choose', unchanged: unchanged === 'yes' || unchanged === 'all', ...primary },
     ]
     // `confirm`: none acts at once (today); choose and keep show the confirmation in that column.
     const confirmFor = { choose: 'Simpler', keep: 'Original' }[confirm]

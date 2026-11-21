@@ -2,20 +2,26 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { Check, ChevronDown, PanelLeft, Search, Settings } from 'lucide-react'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui'
+import { Check, Ellipsis, PanelLeft, Search } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../ui'
 import type { PendingBoards } from './approvals/pending'
 import { SessionRow } from './comments/session-row'
 import { useSession } from './comments/use-session'
+import { sendPageRequest } from './page-requests'
+import { useTheme } from './use-theme'
 
 const ICON = 'inline-flex size-8 shrink-0 items-center justify-center rounded-lg border p-0'
 
-const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`
-
 /**
  * The bar above the sidebar and the canvas: the sidebar toggle, the page name, the search field,
- * the listening agent session, Approve and build (with `Approve all and build` in its menu) and
- * Settings. Approve and build acts on the New and Changed boards and sends one turn.
+ * the listening agent session, `Approve all and build` (shown while a board is New or Changed, it
+ * sends every board of the page in one turn) and the More menu.
  */
 export function TopBar({
   pageTitle,
@@ -26,6 +32,12 @@ export function TopBar({
   onSearch,
   onSettings,
   onApprove,
+  pageId,
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
+  onShortcuts,
 }: {
   pageTitle: string
   boards: string[]
@@ -35,12 +47,18 @@ export function TopBar({
   onSearch: () => void
   onSettings: () => void
   onApprove: (input: { boards: string[]; sessionId: string }) => Promise<void>
+  pageId: string
+  canUndo: boolean
+  canRedo: boolean
+  onUndo: () => void
+  onRedo: () => void
+  onShortcuts?: () => void
 }) {
+  const { theme, toggle: toggleTheme } = useTheme()
   const session = useSession()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const total = pending.changed.length + pending.added.length
-  const pendingNames = [...pending.changed, ...pending.added]
   const ready = Boolean(session.sessionId) && !busy
 
   const run = async (names: string[]) => {
@@ -57,12 +75,15 @@ export function TopBar({
   }
 
   const toggle = sidebarShown ? 'Hide sidebar' : 'Show sidebar'
-  const sub =
-    pending.changed.length > 0 && pending.added.length > 0
-      ? `${pending.changed.length} changed, ${pending.added.length} new`
-      : pending.added.length > 0
-        ? plural(pending.added.length, 'new board')
-        : plural(pending.changed.length, 'changed board')
+  const reorganize = async () => {
+    if (!session.sessionId) return
+    setError(null)
+    try {
+      await sendPageRequest({ page: pageId, kind: 'reorganize', sessionId: session.sessionId })
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : String(failure))
+    }
+  }
 
   return (
     <header
@@ -113,77 +134,54 @@ export function TopBar({
           onPick={session.pick}
         />
       </div>
+      {total > 0 ? (
+        <button
+          type="button"
+          disabled={!ready || boards.length === 0}
+          title={session.sessionId ? undefined : 'No agent session listening'}
+          onClick={() => void run(boards)}
+          className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-primary bg-primary px-3 text-[13px] font-medium text-primary-foreground disabled:opacity-50"
+        >
+          <Check size={16} aria-hidden="true" />
+          Approve all and build
+        </button>
+      ) : null}
       <DropdownMenu dir="ltr">
-        {total > 0 ? (
-          <div className="flex shrink-0 items-center">
-            <button
-              type="button"
-              disabled={!ready}
-              title={session.sessionId ? undefined : 'No agent session listening'}
-              onClick={() => void run(pendingNames)}
-              className="inline-flex h-8 items-center gap-1.5 rounded-s-lg border border-primary bg-primary px-3 text-[13px] font-medium text-primary-foreground disabled:opacity-50"
-            >
-              <Check size={16} aria-hidden="true" />
-              Approve and build
-              <span className="inline-flex h-4.5 items-center rounded-full bg-primary-foreground px-1.5 text-[11px] font-semibold text-primary">
-                {total}
-              </span>
-            </button>
-            <span aria-hidden="true" className="h-8 w-px shrink-0 bg-border" />
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                aria-label="Approve options"
-                className={`${ICON} rounded-s-none border-primary bg-primary text-primary-foreground`}
-              >
-                <ChevronDown size={16} aria-hidden="true" />
-              </button>
-            </DropdownMenuTrigger>
-          </div>
-        ) : (
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              aria-label="Approve options"
-              className={`${ICON} border-border bg-card text-foreground`}
-            >
-              <ChevronDown size={16} aria-hidden="true" />
-            </button>
-          </DropdownMenuTrigger>
-        )}
-        <DropdownMenuContent lang="en" align="end" className="w-70">
-          <DropdownMenuItem
-            disabled={!ready || total === 0}
-            onSelect={() => void run(pendingNames)}
-            className="flex-col items-start gap-0.5"
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            aria-label="More"
+            className={`${ICON} border-transparent text-foreground hover:bg-accent`}
           >
-            <span className="font-medium">
-              Approve {total > 0 ? plural(total, 'changed board') : 'changed boards'} and build
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {total > 0 ? sub : 'No changed boards'}
-            </span>
+            <Ellipsis size={16} aria-hidden="true" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent lang="en" align="end" className="w-60">
+          <DropdownMenuItem onSelect={onSettings}>Settings</DropdownMenuItem>
+          <DropdownMenuItem onSelect={toggleTheme}>
+            {theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
           </DropdownMenuItem>
-          <DropdownMenuItem
-            disabled={!ready || boards.length === 0}
-            onSelect={() => void run(boards)}
-            className="flex-col items-start gap-0.5"
-          >
-            <span className="font-medium">Approve all and build</span>
-            <span className="text-xs text-muted-foreground">
-              {plural(boards.length, 'board')} on this page
-            </span>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem disabled={!canUndo} onSelect={onUndo}>
+            Undo
+            <span className="ms-auto text-xs text-muted-foreground">Ctrl Z</span>
           </DropdownMenuItem>
+          <DropdownMenuItem disabled={!canRedo} onSelect={onRedo}>
+            Redo
+            <span className="ms-auto text-xs text-muted-foreground">Shift Ctrl Z</span>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem disabled={!session.sessionId} onSelect={() => void reorganize()}>
+            Reorganize frames with agent
+          </DropdownMenuItem>
+          {onShortcuts ? (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={onShortcuts}>Keyboard shortcuts</DropdownMenuItem>
+            </>
+          ) : null}
         </DropdownMenuContent>
       </DropdownMenu>
-      <button
-        type="button"
-        aria-label="Settings"
-        onClick={onSettings}
-        className={`${ICON} border-transparent text-foreground hover:bg-accent`}
-      >
-        <Settings size={16} aria-hidden="true" />
-      </button>
       {error ? (
         <p
           role="alert"

@@ -119,3 +119,31 @@ export function clearLayoutEdits(
     after: { sections: { set: laid.map(({ id, title }) => ({ id, title, layout: null })) } },
   }
 }
+
+const whole = (value: string, fallback: number, min: number, max: number) => {
+  const parsed = Math.round(Number(value))
+  return Number.isFinite(parsed) && value.trim() !== ''
+    ? Math.min(max, Math.max(min, parsed))
+    : fallback
+}
+
+export const gridDefaults = (count: number): { columns: number; rows: number } => {
+  const columns = Math.max(1, Math.ceil(Math.sqrt(count)))
+  return { columns, rows: Math.max(1, Math.ceil(count / columns)) }
+}
+
+export const arrangeRequest = (
+  mode: TidyMode,
+  fields: { gap: string; columns: string; rows: string; width: string },
+  count: number,
+): TidyRequest => {
+  const request: TidyRequest = { mode, gap: whole(fields.gap, DEFAULT_GAP, 0, 400) }
+  const limit = Math.max(1, count)
+  if (mode === 'grid') {
+    const defaults = gridDefaults(count)
+    request.columns = whole(fields.columns, defaults.columns, 1, limit)
+    request.rows = whole(fields.rows, Math.ceil(limit / request.columns), 1, limit)
+  }
+  if (mode === 'wrap') request.width = whole(fields.width, 1200, 120, 20000)
+  return request
+}

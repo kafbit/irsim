@@ -14,6 +14,13 @@ body{margin:0}
 .cf-root.dark{--pick:#14161a;--background:#111214;--foreground:#ecece8;--card:#1a1b1e;--secondary:#26272b;--muted-foreground:#a3a7ae;--accent:#26272b;--border:#2d2e33;--border-strong:#3b3c42;--primary:#ecece8;--primary-foreground:#14161a;--destructive:#ff8f80;--destructive-tint:#3b1814;--success:#15301f;--success-foreground:#86d6a6;--warning:#3b2a14;--warning-foreground:#f3b66f;--info:#14263e;--info-foreground:#93bcf0;--highlight:#f2a33a;--shell:#0b0c0d;--surface:#121315;--input:#666b74;--ring:#ecece8;--play:#60a5fa;--play-hover:#93c5fd}
 .cf-pulse{animation:cf-pulse 2s cubic-bezier(0.4,0,0.6,1) infinite}
 @keyframes cf-pulse{50%{opacity:0.5}}
+@property --aura-angle{syntax:"<angle>";initial-value:0deg;inherits:false}
+@keyframes aura-spin{to{--aura-angle:360deg}}
+.aura{position:absolute;inset:-4px;border-radius:16px;pointer-events:none}
+.aura::before,.aura::after{content:"";position:absolute;inset:0;border-radius:inherit;background:conic-gradient(from var(--aura-angle),transparent 0deg,var(--play) 100deg,var(--highlight) 200deg,transparent 300deg);animation:aura-spin 2.4s linear infinite}
+.aura::before,.aura::after{padding:3px;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.aura::after{padding:4px;filter:blur(10px);opacity:0.8}
+@media (prefers-reduced-motion:reduce){.aura::before,.aura::after{animation:none}}
 </style>
 </helmet>
 <div dir="ltr" lang="en" class="cf-root {{themeClass}}" style="position: relative; box-sizing: border-box; width: 100%; min-height: var(--cv-h, 100vh); padding: 48px 20px 20px 20px; background: var(--cv-bg, var(--shell)); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
@@ -74,6 +81,9 @@ body{margin:0}
 </div>
 </sc-if>
 </div>
+<sc-if value="{{generating}}" hint-placeholder-val="{{false}}">
+<div class="aura" role="status" aria-label="The agent is generating this variant"></div>
+</sc-if>
 <sc-if value="{{selected}}" hint-placeholder-val="{{false}}">
 <div aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; outline: 2px solid var(--ring); pointer-events: none;">
 <sc-if value="{{handlesShown}}" hint-placeholder-val="{{true}}"><sc-for list="{{handles}}" as="handle"><span style="position: absolute; left: {{handle.left}}; top: {{handle.top}}; width: 8px; height: 8px; box-sizing: border-box; border: 1px solid var(--ring); background: #ffffff; transform: translate(-50%, -50%);"></span></sc-for></sc-if>
@@ -95,15 +105,15 @@ body{margin:0}
 </div>
 </sc-if>
 <sc-if value="{{menuOpen}}" hint-placeholder-val="{{false}}">
-<div style="position: absolute; left: 130px; top: 24px; z-index: 2;"><dc-import name="CanvasContextMenu" target="frame" session="{{session}}" play="{{playable}}" variant="{{variantFlag}}" pending="{{pendingCount}}" theme="{{theme}}" hint-size="240px,260px"></dc-import></div>
+<div style="position: absolute; left: 130px; top: 24px; z-index: 2;"><dc-import name="CanvasContextMenu" target="frame" session="{{session}}" submenu="{{submenu}}" play="{{playable}}" variant="{{variantFlag}}" pending="{{pendingCount}}" theme="{{theme}}" hint-size="240px,268px"></dc-import></div>
 </sc-if>
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"live","options":["live","selected","thumbnail","selectedMany","stale","generating","pending","failed","playing","commenting"]},"prototype":{"editor":"enum","default":"no","options":["no","yes"]},"hover":{"editor":"enum","default":"none","options":["none","title"]},"whole":{"editor":"enum","default":"none","options":["none","pin","composing"]},"approval":{"editor":"enum","default":"none","options":["none","approved","changed","new"]},"menu":{"editor":"enum","default":"closed","options":["closed","open"]},"session":{"editor":"enum","default":"one","options":["one","none"]},"width":{"editor":"number","default":360},"height":{"editor":"number","default":240},"$preview":{"width":400,"height":308}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"live","options":["live","selected","thumbnail","selectedMany","stale","generating","pending","failed","playing","commenting"]},"prototype":{"editor":"enum","default":"no","options":["no","yes"]},"hover":{"editor":"enum","default":"none","options":["none","title"]},"whole":{"editor":"enum","default":"none","options":["none","pin","composing"]},"approval":{"editor":"enum","default":"none","options":["none","approved","changed","new"]},"menu":{"editor":"enum","default":"closed","options":["closed","open"]},"session":{"editor":"enum","default":"one","options":["one","none"]},"submenu":{"editor":"enum","default":"none","options":["none","section","copy"]},"width":{"editor":"number","default":360},"height":{"editor":"number","default":240},"$preview":{"width":400,"height":308}}'>
 class Component extends DCLogic {
   renderVals() {
-    const { state, prototype, approval, theme, hover, whole, menu, session } = this.props
+    const { state, prototype, approval, theme, hover, whole, menu, session, submenu } = this.props
     const width = Number(this.props.width)
     const height = Number(this.props.height)
     const playing = state === 'playing'
@@ -125,6 +135,7 @@ class Component extends DCLogic {
       words: compact ? [] : statuses,
       protoDot: prototype === 'yes' && (!compact || !top),
       menuOpen: menu === 'open',
+      submenu: submenu || 'none',
       session: session === 'none' ? 'none' : 'one',
       playable: prototype === "yes" ? "yes" : "no",
       variantFlag: state === 'generating' ? 'yes' : 'no',

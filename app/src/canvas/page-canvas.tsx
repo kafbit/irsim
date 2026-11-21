@@ -10,7 +10,7 @@ import { useApprovals } from './approvals/use-approvals'
 import { CommentLayer } from './comments/comment-layer'
 import { Composer } from './comments/composer'
 import { ContextMenu } from './context-menu'
-import { canvasMenuGroups, menuGroups, type MenuItemId, pendingNames } from './context-menu-model'
+import { canvasMenuGroups, menuGroups, type MenuItemId } from './context-menu-model'
 import { boardPick, buildNote, numberComments, placedRect } from './comments/model'
 import { ThreadPanel } from './comments/thread-panel'
 import type { Comment, CommentView, PickedElement } from './comments/types'
@@ -22,6 +22,7 @@ import { Frame } from './frame'
 import { GlobalSearch } from './global-search'
 import { editsOf, type Move } from './frame-edit'
 import { boardsInRect, buildPageLayout, type Rect } from './geometry'
+import { ArrangeDialog } from './arrange-dialog'
 import { Inspector, InspectorMulti } from './inspector'
 import { Marquee } from './marquee'
 import { noticeFor } from './history'
@@ -32,7 +33,7 @@ import { SnapGuides, type SnapGuidesHandle } from './snap-guides'
 import type { Guide } from './snap'
 import { patchPage } from './page-menu'
 import { PagePopovers, type PagePopover } from './page-popover'
-import { sendPageRequest } from './page-requests'
+import { sendAsk, sendPageRequest } from './page-requests'
 import { PlayView } from './play-view'
 import { NO_SELECTION, reduceSelection, type Selection } from './selection'
 import {
@@ -159,8 +160,9 @@ export function PageCanvas({
     canvas: boolean
   } | null>(null)
   const [pagePopover, setPagePopover] = useState<PagePopover | null>(null)
-  const [gridFor, setGridFor] = useState<string | null>(null)
-  const [variantsFocus, setVariantsFocus] = useState<{ name: string; count: number } | null>(null)
+  const [askFocus, setAskFocus] = useState(0)
+  const [variantsOpen, setVariantsOpen] = useState(0)
+  const [arrangeFor, setArrangeFor] = useState<string | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   const mounts = useMounts(boards)
   const marqueeRef = useRef<HTMLDivElement>(null)
@@ -756,13 +758,12 @@ export function PageCanvas({
               variantOf: variantOf.get(board.name),
             })),
             sections,
-            stateOf: approvals.stateOf,
             connected,
             wholeSection: menu.wholeSection,
             sidebar: menu.sidebar,
           })
         : [],
-    [menu, boards, variantOf, sections, approvals.stateOf, sidebarShown],
+    [menu, boards, variantOf, sections, sidebarShown],
   )
   const runMenuItem = (id: MenuItemId, sessionId: string | null) => {
     if (!menu) return
@@ -778,21 +779,6 @@ export function PageCanvas({
         .writeText(text)
         .then(() => setNotice(done, 'info'))
         .catch(fail)
-    const placedSection = wholeSection
-      ? placedSectionList.find((item) => item.section.id === wholeSection)
-      : undefined
-    const tidyWith = (mode: 'row' | 'column' | 'wrap') => {
-      if (!placedSection) return
-      const members = directMembers(placedSection.section.id, boards)
-      const widest = Math.max(0, ...members.map((member) => member.width))
-      tidySection(placedSection.section.id, {
-        mode,
-        gap: placedSection.section.layout?.gap ?? DEFAULT_GAP,
-        ...(mode === 'wrap'
-          ? { width: Math.max(placedSection.bounds.width - SECTION_PAD * 2, widest) }
-          : {}),
-      })
-    }
     if (id === 'copy-page-name') copyText(manifest.title, 'Copied the page name')
     else if (id === 'copy-page-link') {
       copyText(`${window.location.origin}/p/${encodeURIComponent(manifest.id)}`, 'Copied the page link')
@@ -802,7 +788,24 @@ export function PageCanvas({
     else if (id === 'toggle-sidebar') toggleSidebar()
     else if (id === 'rename-page') setPagePopover({ kind: 'rename', x, y })
     else if (id === 'change-icon') setPagePopover({ kind: 'icon', x, y })
-    else if ((id === 'reorganize' || id === 'choose-icon') && sessionId) {
+    else if (id === 'ask-agent') {
+      if (sidebarShown) setAskFocus((count) => count + 1)
+      else {
+        setSidebarShown(true)
+        window.setTimeout(() => setAskFocus((count) => count + 1), 0)
+      }
+    } else if (id === 'arrange' && wholeSection) setArrangeFor(wholeSection)
+    else if (id === 'reorganize' && wholeSection && sessionId) {
+      sendAsk({
+        sessionId,
+        page: manifest.id,
+        prompt: 'Reorganize the boards of this section: group them by flow with even gaps and no overlaps.',
+        scope: 'section',
+        section: wholeSection,
+      })
+        .then(() => setNotice('Asked the agent to reorganize the section', 'info'))
+        .catch(fail)
+    } else if ((id === 'reorganize' || id === 'choose-icon') && sessionId) {
       sendPageRequest({ page: manifest.id, kind: id === 'reorganize' ? 'reorganize' : 'icon', sessionId })
         .then(() =>
           setNotice(
@@ -817,13 +820,7 @@ export function PageCanvas({
         setSelectedSection(wholeSection)
         actions.focusBoards(names)
       } else if (first) focusBoard(first)
-    } else if (id === 'tidy-row') tidyWith('row')
-    else if (id === 'tidy-column') tidyWith('column')
-    else if (id === 'tidy-wrap') tidyWith('wrap')
-    else if (id === 'tidy-grid' && wholeSection) {
-      setPanelOpen(false)
-      setGridFor(wholeSection)
-    } else if (id === 'copy') {
+    } else if (id === 'copy-name') {
       navigator.clipboard
         .writeText(names.join('\n'))
         .then(() =>
@@ -837,9 +834,11 @@ export function PageCanvas({
     } else if (id === 'variants' && first) {
       dispatch({ type: 'select', name: first })
       setPanelOpen(false)
-      setVariantsFocus((current) => ({ name: first, count: (current?.count ?? 0) + 1 }))
-    } else if (id === 'approve' && sessionId) {
-      approveBoards({ boards: pendingNames(names, approvals.stateOf), sessionId }).catch(fail)
+      if (sidebarShown) setVariantsOpen((count) => count + 1)
+      else {
+        setSidebarShown(true)
+        window.setTimeout(() => setVariantsOpen((count) => count + 1), 0)
+      }
     } else if (id === 'create-section') createSection(names, false)
     else if (id === 'create-sub-section') createSection(direct, true)
     else if (id === 'rename-section' && wholeSection) setRenaming(wholeSection)
@@ -849,9 +848,6 @@ export function PageCanvas({
   useEffect(() => {
     if (menu && !menu.canvas && selection.names.length === 0) setMenu(null)
   }, [menu, selection.names.length])
-  useEffect(() => {
-    if (gridFor && sectionSelected !== gridFor) setGridFor(null)
-  }, [gridFor, sectionSelected])
   const savePageTitle = useCallback(
     (title: string) => {
       setPagePopover(null)
@@ -871,10 +867,6 @@ export function PageCanvas({
     },
     [manifest.id, onCanvasChange, setNotice],
   )
-  const clearVariantsFocus = useCallback(() => setVariantsFocus(null), [])
-  useEffect(() => {
-    if (variantsFocus && only !== variantsFocus.name) setVariantsFocus(null)
-  }, [only, variantsFocus])
 
   return (
     <div className="flex h-screen flex-col">
@@ -887,15 +879,24 @@ export function PageCanvas({
         onSearch={() => setSearchOpen(true)}
         onSettings={() => setSettingsOpen(true)}
         onApprove={approveBoards}
+        pageId={manifest.id}
+        canUndo={edit.history.canUndo()}
+        canRedo={edit.history.canRedo()}
+        onUndo={() => commands.undo?.()}
+        onRedo={() => commands.redo?.()}
       />
       <div className="flex min-h-0 flex-1">
       {sidebarShown ? (
         <Sidebar
           pages={pages}
           pageId={manifest.id}
+          pageTitle={manifest.title}
           boards={sidebarBoards}
           sections={sections}
           selected={selection.names}
+          selectedSection={sectionSelected}
+          askFocus={askFocus}
+          variantsOpen={variantsOpen}
           searchRef={searchRef}
           onFocusBoard={focusBoard}
           onSelectBoards={selectBoards}
@@ -1039,11 +1040,12 @@ export function PageCanvas({
           onFitSelection={commands['fit-selection'] ?? (() => {})}
           minimap={minimap}
           onToggleMinimap={toggleMinimap}
-          onOpenSettings={() => setSettingsOpen(true)}
         />
       </div>
       {panelOpen ? (
         <ThreadPanel
+          page={manifest.id}
+          pageTitle={manifest.title}
           comments={comments.comments}
           numbers={numbers}
           activeId={activeComment}
@@ -1066,8 +1068,6 @@ export function PageCanvas({
           pageId={manifest.id}
           pages={pages}
           placed={onPage}
-          sections={sections}
-          onSection={assignSection}
           multi={{
             boards,
             sections,
@@ -1075,12 +1075,9 @@ export function PageCanvas({
             onCreateSection: createSection,
             onDeleteSection: deleteSection,
             onColor: colorSection,
-            onTidy: tidySection,
-            gridFor,
+            onArrange: tidySection,
           }}
           onFocusBoard={focusBoard}
-          variantsFocus={variantsFocus?.count ?? 0}
-          onVariantsFocused={clearVariantsFocus}
         >
           {selectedBoard && approvals.stateOf(selectedBoard.name) !== undefined &&
           approvals.stateOf(selectedBoard.name) !== 'approved' ? (
@@ -1115,6 +1112,17 @@ export function PageCanvas({
         onRename={savePageTitle}
         onPick={savePageIcon}
         onClose={() => setPagePopover(null)}
+      />
+      <ArrangeDialog
+        key={arrangeFor ?? 'none'}
+        open={arrangeFor !== null}
+        onClose={() => setArrangeFor(null)}
+        onArrange={(request) => {
+          if (arrangeFor) tidySection(arrangeFor, request)
+          setArrangeFor(null)
+        }}
+        count={arrangeFor ? directMembers(arrangeFor, boards).length : 0}
+        gap={sections.find((candidate) => candidate.id === arrangeFor)?.layout?.gap ?? DEFAULT_GAP}
       />
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
       {fullBoard ? (

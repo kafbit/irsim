@@ -7,6 +7,7 @@ import { Button } from '../ui'
 import { ChevronLeft } from '../ui/icons'
 import { Shell, Status } from './canvas'
 import type { ManifestBoard, PageManifest } from './types'
+import { useEvents } from './comments/use-events'
 import { useApi } from './use-api'
 import { useTheme } from './use-theme'
 import {
@@ -23,6 +24,7 @@ import {
   widthOf,
 } from './variants/variants-model'
 
+const noop = () => {}
 const WIDTH_KEY = 'canvas:compare-width'
 const SETTLE_MS = 8000
 
@@ -158,30 +160,44 @@ function Column({
       className="flex min-h-0 min-w-0 flex-col gap-3"
       style={narrow ? { flex: '0 0 auto', width: NARROW_COLUMN } : { flex: '1 1 0' }}
     >
-      <div className="flex items-baseline gap-2">
-        <span className="text-sm font-semibold">
-          {base ? 'Original' : (board.variantLabel ?? board.name)}
-        </span>
-        <span className="text-xs text-muted-foreground">{board.name}</span>
-        {!base && board.unchanged ? (
-          <span className="text-xs text-muted-foreground">Not changed yet</span>
-        ) : null}
+      <div
+        className="flex flex-col items-center gap-0.5 self-center text-center"
+        style={{ width: shown > 0 ? shown : '100%', maxWidth: '100%' }}
+      >
+        <div className="flex items-center justify-center gap-2">
+          <span className="text-sm font-semibold">
+            {base ? 'Original' : (board.variantLabel ?? board.name)}
+          </span>
+          {!base && board.unchanged ? (
+            <span className="inline-flex h-5 items-center gap-1.5 rounded-full bg-secondary px-2 text-xs text-muted-foreground">
+              <span aria-hidden="true" className="size-1.5 rounded-full bg-blue-600" />
+              Not changed yet
+            </span>
+          ) : null}
+        </div>
+        <span className="max-w-full truncate text-xs text-muted-foreground">{board.name}</span>
       </div>
       <div ref={measure} className="min-h-0 flex-1">
         <div
-          className="relative mx-auto h-full overflow-hidden rounded-xl border border-border bg-card"
+          className="relative mx-auto h-full"
           style={{ width: shown > 0 ? shown : '100%', maxWidth: '100%' }}
         >
-          {mount && k > 0 ? (
-            <iframe
-              ref={frame}
-              src={`/b/${encodeURIComponent(board.name)}`}
-              title={board.name}
-              sandbox="allow-scripts allow-same-origin"
-              className="absolute top-0 left-0 block origin-top-left border-0 bg-white"
-              style={{ width, height, transform: `scale(${k})` }}
-            />
+          {!base && board.unchanged ? (
+            <div className="aura" role="status" aria-label="The agent is generating this variant" />
           ) : null}
+          <div className="relative h-full overflow-hidden rounded-xl border border-border bg-card">
+            {mount && k > 0 ? (
+              <iframe
+                ref={frame}
+                key={board.hash}
+                src={`/b/${encodeURIComponent(board.name)}?h=${board.hash}`}
+                title={board.name}
+                sandbox="allow-scripts allow-same-origin"
+                className="absolute top-0 left-0 block origin-top-left border-0 bg-white"
+                style={{ width, height, transform: `scale(${k})` }}
+              />
+            ) : null}
+          </div>
         </div>
       </div>
       {confirm ? (
@@ -226,6 +242,8 @@ function Column({
           ref={focusAgain}
           variant={base ? 'secondary' : 'primary'}
           size="sm"
+          className="max-w-full self-center"
+          style={{ width: shown > 0 ? shown : '100%' }}
           disabled={disabled}
           onClick={onAsk}
         >
@@ -364,6 +382,9 @@ function Compare({ manifest, base }: { manifest: PageManifest; base: ManifestBoa
 /** `/p/<page>/compare/<base>`: the base board and its variants side by side, live, with a Choose for each. */
 export function CompareRoute({ pageId, base }: { pageId: string; base: string }) {
   const manifest = useApi<PageManifest>(`/api/pages/${encodeURIComponent(pageId)}`)
+  const { refetch } = manifest
+  const refresh = useCallback(() => refetch(), [refetch])
+  useEvents({ onBoard: refresh, onComments: noop, onShared: refresh, onCanvas: refresh })
   const board = manifest.status === 'ready' ? manifest.data.boards.find((b) => b.name === base) : null
   return (
     <Shell>

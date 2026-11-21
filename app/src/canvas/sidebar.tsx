@@ -15,7 +15,9 @@ import {
 } from "react";
 import { CHROME_FORMAT } from "./chrome-format";
 import { PageMenu } from "./page-menu";
-import { GroupMenu, GroupTitle, NewGroupButton } from "./page-group-controls";
+import { GroupMenu, GroupTitle } from "./page-group-controls";
+import { AgentComposer } from "./composer";
+import type { ComposerScope } from "./composer-model";
 import { verticalListSortingStrategy } from "@dnd-kit/sortable";
 import type { PageGroup } from "./page-groups";
 import {
@@ -354,7 +356,6 @@ function PageNav({ pages, pageId }: { pages: PageSummary[]; pageId: string }) {
         <Link href="/" className={`${row} flex-1 text-muted-foreground`}>
           All pages
         </Link>
-        <NewGroupButton onAdd={store.add} align="end" />
       </div>
       <PageGroupsDnd store={store}>
         <GroupSortable groups={state.groups.map((group) => group.id)}>
@@ -385,9 +386,13 @@ function PageNav({ pages, pageId }: { pages: PageSummary[]; pageId: string }) {
 export function Sidebar({
   pages,
   pageId,
+  pageTitle,
   boards,
   sections,
   selected,
+  selectedSection,
+  askFocus,
+  variantsOpen,
   searchRef,
   onFocusBoard,
   onSelectBoards,
@@ -396,9 +401,13 @@ export function Sidebar({
 }: {
   pages: PageSummary[];
   pageId: string;
+  pageTitle: string;
   boards: ManifestBoard[];
   sections: CanvasSection[];
   selected: string[];
+  selectedSection: string | null;
+  askFocus: number;
+  variantsOpen: number;
   searchRef: Ref<HTMLInputElement>;
   onFocusBoard: (name: string) => void;
   onSelectBoards: (names: string[]) => void;
@@ -483,6 +492,17 @@ export function Sidebar({
     .filter((section) => !section.parent || !known.has(section.parent))
     .sort(bySectionTitle);
 
+  const section = sections.find((item) => item.id === selectedSection);
+  const only = selected.length === 1 ? boards.find((board) => board.name === selected[0]) : undefined;
+  const scope: ComposerScope =
+    section && selected.length > 0
+      ? { kind: "section", id: section.id, title: section.title }
+      : only
+        ? { kind: "board", name: only.name, title: only.title }
+        : selected.length > 0
+          ? { kind: "boards", names: selected }
+          : { kind: "page", title: pageTitle };
+
   return (
     <aside className="flex w-72 shrink-0 flex-col gap-3 border-e border-border bg-card p-3">
       <PageNav pages={pages} pageId={pageId} />
@@ -509,6 +529,9 @@ export function Sidebar({
         ) : null}
       </ul>
       <UpdateNotice />
+      <div className="-mx-3 -mb-3 shrink-0 border-t border-border p-3">
+        <AgentComposer page={pageId} scope={scope} narrow focusSignal={askFocus} optionsSignal={variantsOpen} />
+      </div>
     </aside>
   );
 }
