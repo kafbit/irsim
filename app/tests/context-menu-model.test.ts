@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { ApprovalState } from '../src/canvas/approvals/use-approvals'
-import { canvasMenuGroups, menuGroups, pendingNames } from '../src/canvas/context-menu-model'
+import { canvasMenuGroups, menuGroups } from '../src/canvas/context-menu-model'
 
 const boards = [
   { name: 'A', interactive: true },
@@ -10,8 +9,6 @@ const boards = [
   { name: 'V', variantOf: 'A' },
 ]
 const sections = [{ id: 's1', title: 'One' }]
-const states: Record<string, ApprovalState> = { A: 'new', B: 'changed', C: 'approved', D: 'new' }
-const stateOf = (name: string) => states[name]
 
 const ids = (groups: ReturnType<typeof menuGroups>) => groups.map((group) => group.map((i) => i.id))
 const run = (over: Partial<Parameters<typeof menuGroups>[0]>) =>
@@ -19,7 +16,6 @@ const run = (over: Partial<Parameters<typeof menuGroups>[0]>) =>
     names: ['A'],
     boards,
     sections,
-    stateOf,
     connected: true,
     wholeSection: null,
     ...over,
@@ -69,11 +65,11 @@ describe('menuGroups', () => {
     expect(groups[1]?.[2]?.children?.[0]?.label).toBe('Copy section name')
   })
 
-  it('keeps Arrange for a section holding only sub-sections', () => {
+  it('disables Arrange for a section holding only sub-sections', () => {
     const nested = [{ id: 's1', title: 'One' }, { id: 's2', title: 'Two', parent: 's1' }]
     const tree = [{ name: 'C', section: 's2' }]
     const whole = run({ names: ['C'], boards: tree, sections: nested, wholeSection: 's1', connected: false })
-    expect(ids(whole).flat()).toContain('arrange')
+    expect(whole[1]?.[0]).toMatchObject({ id: 'arrange', disabled: true })
     expect(whole[1]?.[1]?.children?.map((item) => item.id)).toEqual(['rename-section', 'delete-section'])
   })
 
@@ -147,11 +143,5 @@ describe('canvasMenuGroups', () => {
     expect(canvasMenuGroups({ connected: false, sidebarShown: true })[1]?.[1]?.children?.[3]?.label).toBe(
       'Hide sidebar',
     )
-  })
-})
-
-describe('pendingNames', () => {
-  it('keeps the new and changed names', () => {
-    expect(pendingNames(['A', 'B', 'C', 'V'], stateOf)).toEqual(['B', 'A'])
   })
 })

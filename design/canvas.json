@@ -616,15 +616,6 @@
           "section": "sidebar-and-pages-sidebar"
         },
         {
-          "name": "CanvasSidebarAdd",
-          "title": "Canvas sidebar: new group",
-          "x": -6569,
-          "y": 5064,
-          "width": 288,
-          "height": 820,
-          "section": "sidebar-and-pages-sidebar"
-        },
-        {
           "name": "CanvasSidebarGroupMenu",
           "title": "Canvas sidebar: group menu",
           "x": -6201,
@@ -658,15 +649,6 @@
           "y": 6124,
           "width": 960,
           "height": 760,
-          "section": "sidebar-and-pages-page-index"
-        },
-        {
-          "name": "CanvasPagesAdd",
-          "title": "Canvas pages: new group",
-          "x": -4921,
-          "y": 6124,
-          "width": 960,
-          "height": 560,
           "section": "sidebar-and-pages-page-index"
         },
         {

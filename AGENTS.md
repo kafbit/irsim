@@ -10,8 +10,8 @@ A change to one updates the other in the same pull request.
 
 | App source | Board |
 |---|---|
-| `canvas/sidebar.tsx` | `CanvasSidebar`, `CanvasSidebarSections`, `CanvasSidebarGroups`, `CanvasSidebarAdd`, `CanvasSidebarSectionsCollapsed`, `CanvasSidebarGroupMenu`, `CanvasSidebarPageMenu`, `CanvasSidebarFrameMenu`, `CanvasSidebarSectionMenu`, `CanvasSidebarIconPicker` |
-| `canvas/page-index.tsx` | `CanvasPages`, `CanvasPagesGroups`, `CanvasPagesDrag`, `CanvasPagesAdd`, `CanvasPagesEmpty` (the prompt box and, in the top bar row, the agent session), `CanvasPagesEmptyDraft`, `CanvasPagesEmptyNoSession` (Send disabled), `CanvasPagesGroupMenu`, `CanvasPagesPageMenu`, `CanvasPagesRenaming`, `CanvasPagesIconPicker` |
+| `canvas/sidebar.tsx` | `CanvasSidebar`, `CanvasSidebarSections`, `CanvasSidebarGroups`, `CanvasSidebarSectionsCollapsed`, `CanvasSidebarGroupMenu`, `CanvasSidebarPageMenu`, `CanvasSidebarFrameMenu`, `CanvasSidebarSectionMenu`, `CanvasSidebarIconPicker` |
+| `canvas/page-index.tsx` | `CanvasPages`, `CanvasPagesGroups`, `CanvasPagesDrag`, `CanvasPagesEmpty` (the prompt box and, in the top bar row, the agent session), `CanvasPagesEmptyDraft`, `CanvasPagesEmptyNoSession` (Send disabled), `CanvasPagesGroupMenu`, `CanvasPagesPageMenu`, `CanvasPagesRenaming`, `CanvasPagesIconPicker` |
 | `canvas/page-groups.ts`, `canvas/use-page-groups.ts` | `CanvasPagesGroups`, `CanvasPagesDrag`, `CanvasSidebarGroups`, `CanvasSidebarGroupMenu`, `CanvasPagesGroupMenu` |
 | `canvas/inspector.tsx`, `canvas/approvals/approve-box.tsx` | `CanvasInspector`, `CanvasInspectorMulti`, `CanvasInspectorImports`, `CanvasInspectorImportsExpanded`, `CanvasInspectorMultiShared` (all selected boards in one section, with Delete section), `CanvasInspectorMultiMenu` (the Section menu), `CanvasArrange`, `CanvasArrangeGrid`, `CanvasArrangeWrap` (the Arrange modal: row, column, wrap, grid; prop `tidy`) |
 | `canvas/variants/variants-box.tsx` | `CanvasInspector` (modes `variant-sent` and `variant`), `CanvasInspectorVariantSent`, `CanvasInspectorVariant`; variants are generated from the composer Options (`CanvasComposerOptions`) |

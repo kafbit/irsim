@@ -32,12 +32,17 @@ const postVariants = async (input: {
   board: string
   presets: string[]
   note: string
+  images: string[]
   sessionId: string
 }): Promise<void> => {
   const response = await fetch('/api/variants', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ ...input, note: input.note || undefined }),
+    body: JSON.stringify({
+      ...input,
+      note: input.note || undefined,
+      images: input.images.length > 0 ? input.images : undefined,
+    }),
   })
   if (response.status === 201) return
   const body = (await response.json().catch(() => ({}))) as { error?: string }
@@ -197,7 +202,15 @@ export function AgentComposer({
     setError(null)
     try {
       if (generating && board !== null) {
-        await postVariants({ page, board, presets: chosen, note: text.trim(), sessionId })
+        await postVariants({
+          page,
+          board,
+          presets: chosen,
+          note: text.trim(),
+          images: pasted.images,
+          sessionId,
+        })
+        pasted.reset([])
         setVariants(false)
         setChosen([])
       } else {

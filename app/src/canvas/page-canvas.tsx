@@ -757,13 +757,12 @@ export function PageCanvas({
               variantOf: variantOf.get(board.name),
             })),
             sections,
-            stateOf: approvals.stateOf,
             connected,
             wholeSection: menu.wholeSection,
             sidebar: menu.sidebar,
           })
         : [],
-    [menu, boards, variantOf, sections, approvals.stateOf, sidebarShown],
+    [menu, boards, variantOf, sections, sidebarShown],
   )
   const runMenuItem = (id: MenuItemId, sessionId: string | null) => {
     if (!menu) return

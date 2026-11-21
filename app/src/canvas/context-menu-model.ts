@@ -1,5 +1,3 @@
-import type { ApprovalState } from './approvals/use-approvals'
-import { pendingOf } from './approvals/pending'
 import { canNest, sharedSection } from './sections'
 import type { CanvasSection } from './types'
 
@@ -80,19 +78,10 @@ type MenuBoard = {
   variantOf?: string | undefined
 }
 
-export const pendingNames = (
-  names: string[],
-  stateOf: (name: string) => ApprovalState | undefined,
-): string[] => {
-  const { changed, added } = pendingOf(names, stateOf)
-  return [...changed, ...added]
-}
-
 export function menuGroups(input: {
   names: string[]
   boards: MenuBoard[]
   sections: CanvasSection[]
-  stateOf?: (name: string) => ApprovalState | undefined
   connected: boolean
   wholeSection: string | null
   sidebar?: boolean
@@ -158,7 +147,8 @@ export function menuGroups(input: {
 
   const copyLabel =
     target === 'section' ? 'Copy section name' : single ? 'Copy frame name' : `Copy ${names.length} frame names`
-  const arrange: MenuItem[] = target === 'section' ? [{ id: 'arrange', label: 'Arrange…' }] : []
+  const arrange: MenuItem[] =
+    target === 'section' ? [{ id: 'arrange', label: 'Arrange…', disabled: !direct }] : []
   const foot: MenuItem[] = [
     ...arrange,
     { id: 'section', label: 'Section', children: sectionChildren },

@@ -58,13 +58,16 @@ function ColorRow({
       <h3 className="m-0 text-xs font-normal text-muted-foreground">Color</h3>
       <div role="group" aria-label="Section color" className="flex items-center gap-2 p-0.5">
         {SWATCHES.map((swatch) => (
-          <button
+          <DropdownMenuItem
             key={swatch.color}
-            type="button"
+            role="menuitemradio"
             aria-label={swatch.label}
-            aria-pressed={current === swatch.color}
-            onClick={() => onPick(swatch.color === 'gray' ? null : swatch.color)}
-            className="m-0 box-border size-5 cursor-pointer rounded-full border border-border-strong p-0 outline-offset-2 aria-pressed:outline-2 aria-pressed:outline-ring"
+            aria-checked={current === swatch.color}
+            onSelect={(event) => {
+              event.preventDefault()
+              onPick(swatch.color === 'gray' ? null : swatch.color)
+            }}
+            className="m-0 box-border h-5 min-h-0 w-5 shrink-0 cursor-pointer gap-0 rounded-full border border-border-strong p-0 aria-checked:shadow-[0_0_0_2px_var(--popover),0_0_0_4px_var(--ring)]"
             style={{ background: SECTION_TONES[swatch.color].dot }}
           />
         ))}

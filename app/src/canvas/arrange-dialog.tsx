@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Button, cn, Input } from '../ui'
 import { Columns3, Grid3x3, Rows3, WrapText } from '../ui/icons'
 import type { TidyMode } from './tidy'
+import { useMountEffect } from './use-mount-effect'
 import { arrangeRequest, DEFAULT_GAP, gridDefaults, type TidyRequest } from './tidy-section'
 
 const MODES: { mode: TidyMode; label: string; icon: React.ReactNode }[] = [
@@ -62,6 +63,14 @@ function ArrangePanel({
   const [rows, setRows] = useState(String(defaults.rows))
   const [width, setWidth] = useState('1200')
   const limit = Math.max(1, count)
+  const dialog = useRef<HTMLDivElement>(null)
+  useMountEffect(() => {
+    const previous = document.activeElement
+    dialog.current?.querySelector<HTMLElement>('[role="radio"][aria-checked="true"]')?.focus()
+    return () => {
+      if (previous instanceof HTMLElement) previous.focus()
+    }
+  })
   const editColumns = (value: string) => {
     setColumns(value)
     const next = Math.round(Number(value))
@@ -85,6 +94,7 @@ function ArrangePanel({
       }}
     >
       <div
+        ref={dialog}
         role="dialog"
         aria-modal="true"
         aria-label="Arrange boards"
