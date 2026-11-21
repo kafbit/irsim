@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/logo/irsim-logo.svg" alt="irsim" width="96" height="96"></p>
+
 # irsim
 
 irsim is a local design canvas. It draws the boards of a repository (`design/*.dc.html`) in sandboxed frames, lets you comment on a board, and delivers those comments to a coding agent session through a plugin.
