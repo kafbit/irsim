@@ -73,7 +73,7 @@ class Component extends DCLogic {
 
 ## design/canvas.json
 
-Top level: `{ "version": 1, "pages": [...], "overrides": {...}, "bindings": {...} }`. `overrides` and `bindings` are written by the canvas, leave them as they are or omit them.
+Top level: `{ "version": 1, "pages": [...], "overrides": {...}, "bindings": {...} }`. `overrides` and `bindings` are required. The canvas writes them, so leave their content as it is. A new file starts with `"overrides": {"colors": {}, "radius": {}, "type": {}}` and `"bindings": {}`. `irsim lint` reports an error when either is missing or malformed.
 
 Page:
 

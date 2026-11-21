@@ -28,9 +28,12 @@ describe('irsim lint', () => {
   it('exits 0 with warnings only and prints a summary line', () => {
     writeFileSync(
       join(dir, 'A.html'),
-      '<html lang="en"><head><title>A</title></head><body><script type="text/x-dc" data-props=\'{"$preview":{"width":800,"height":600}}\'></script></body></html>',
+      '<html lang="en"><head><title>A</title></head><body><x-dc></x-dc><script type="text/x-dc" data-props=\'{"$preview":{"width":800,"height":600}}\'></script></body></html>',
     )
-    writeFileSync(join(dir, 'canvas.json'), '{"version":1,"pages":[]}')
+    writeFileSync(
+      join(dir, 'canvas.json'),
+      '{"version":1,"pages":[],"overrides":{"colors":{},"radius":{},"type":{}},"bindings":{}}',
+    )
     const result = run()
     expect(result.status).toBe(0)
     expect(result.stdout).toContain('board-unlisted')

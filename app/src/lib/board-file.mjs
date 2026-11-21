@@ -13,23 +13,27 @@ export const boardNameOf = (value) => value.replace(/\.dc\.html$/, '').replace(/
 /** True for the source of a board: it holds the `<x-dc>` root or the `text/x-dc` script. */
 export const isBoardSource = (source) => MARKER.test(source)
 
-/**
- * The file name of the board `name` in `dir`: `<name>.html`, else the legacy `<name>.dc.html`, else
- * `null`. The new name wins when both exist.
- */
-export const boardFileName = (dir, name) => {
-  if (!NAME.test(name)) return null
-  if (existsSync(join(dir, `${name}${BOARD_SUFFIX}`))) return `${name}${BOARD_SUFFIX}`
-  if (existsSync(join(dir, `${name}${LEGACY_SUFFIX}`))) return `${name}${LEGACY_SUFFIX}`
-  return null
-}
-
 const readable = (path) => {
   try {
     return readFileSync(path, 'utf8')
   } catch {
     return null
   }
+}
+
+/**
+ * The file name of the board `name` in `dir`: `<name>.html` when that file exists and its source is
+ * a board, else the legacy `<name>.dc.html`, else `null`. A `<name>.html` that is not a board does
+ * not hide a legacy file, and is the answer only when there is no legacy file.
+ */
+export const boardFileName = (dir, name) => {
+  if (!NAME.test(name)) return null
+  const current = `${name}${BOARD_SUFFIX}`
+  const legacy = `${name}${LEGACY_SUFFIX}`
+  const source = readable(join(dir, current))
+  if (source !== null && isBoardSource(source)) return current
+  if (existsSync(join(dir, legacy))) return legacy
+  return source !== null ? current : null
 }
 
 /**

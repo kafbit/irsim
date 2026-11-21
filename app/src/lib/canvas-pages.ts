@@ -48,9 +48,6 @@ export type CanvasPage = {
   boards: CanvasBoard[]
 }
 
-const MIN_WIDTH = 240
-const MIN_HEIGHT = 160
-
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 const isNumber = (value: unknown): value is number =>
@@ -78,13 +75,20 @@ const normalizePage = async (dir: string, raw: unknown): Promise<CanvasPage | nu
     if (!isObject(entry) || typeof entry.name !== 'string') continue
     const file = boardFileName(dir, entry.name)
     if (file === null) continue
-    resolved.push({ board: entry, name: entry.name, meta: await metaOf(dir, file) })
+    const complete =
+      typeof entry.title === 'string' &&
+      entry.title.trim() !== '' &&
+      isNumber(entry.width) &&
+      isNumber(entry.height) &&
+      isNumber(entry.x) &&
+      isNumber(entry.y)
+    resolved.push({ board: entry, name: entry.name, meta: complete ? null : await metaOf(dir, file) })
   }
   const sized = resolved.map(({ board, name, meta }) => {
     const title =
       typeof board.title === 'string' && board.title.trim() !== '' ? board.title : meta?.title || name
-    const width = isNumber(board.width) ? board.width : Math.max(meta?.width ?? 1440, MIN_WIDTH)
-    const height = isNumber(board.height) ? board.height : Math.max(meta?.height ?? 900, MIN_HEIGHT)
+    const width = isNumber(board.width) ? board.width : meta?.width ?? 1440
+    const height = isNumber(board.height) ? board.height : meta?.height ?? 900
     return { ...board, name, title, width, height } as CanvasBoard & { x?: number; y?: number }
   })
   const placed = (board: { x?: unknown; y?: unknown }) => isNumber(board.x) && isNumber(board.y)

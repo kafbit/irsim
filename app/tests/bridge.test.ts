@@ -1,5 +1,7 @@
 import { execFile, spawnSync } from 'node:child_process'
-import { rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 
@@ -210,15 +212,27 @@ describe('bridge', () => {
 
   describe('Codex stop with lint errors', () => {
     const session = `lint-stop-${process.pid}`
-    const counter = `${ROOT}/.irsim/lint-reports/${session}`
-    beforeEach(() => rmSync(counter, { force: true }))
-    afterAll(() => rmSync(counter, { force: true }))
+    let project = ''
+    const canvas = () => join(project, 'design', 'canvas.json')
+    const touch = (seconds: number) => utimesSync(canvas(), seconds, seconds)
+    beforeEach(() => {
+      project = mkdtempSync(join(tmpdir(), 'irsim-stop-'))
+      mkdirSync(join(project, 'design'))
+      writeFileSync(join(project, '.irsim.json'), '{}')
+      writeFileSync(canvas(), '{}')
+      touch(1_000)
+    })
+    afterAll(() => rmSync(project, { recursive: true, force: true }))
+    const start = () =>
+      bridge(['hook', 'codex', 'SessionStart'], JSON.stringify({ session_id: session, cwd: project }))
     const stop = async (extra = {}) =>
-      JSON.parse(await bridge(['hook', 'codex', 'Stop'], JSON.stringify({ session_id: session, cwd: ROOT, ...extra })))
+      JSON.parse(await bridge(['hook', 'codex', 'Stop'], JSON.stringify({ session_id: session, cwd: project, ...extra })))
 
     it('blocks the stop with the problems, at most twice per session', async () => {
       claimed = false
       lintReport = { ok: false, problems: lintProblems }
+      await start()
+      touch(2_000)
       const first = await stop()
       expect(first.decision).toBe('block')
       expect(first.reason).toContain('error design/canvas.json')
@@ -227,8 +241,24 @@ describe('bridge', () => {
       expect(await stop()).toEqual({})
     })
 
+    it('does not block when the design folder is unchanged since the session start', async () => {
+      claimed = false
+      lintReport = { ok: false, problems: lintProblems }
+      await start()
+      expect(await stop()).toEqual({})
+    })
+
+    it('does not block a session that has no start record', async () => {
+      claimed = false
+      lintReport = { ok: false, problems: lintProblems }
+      touch(2_000)
+      expect(await stop()).toEqual({})
+    })
+
     it('keeps the comments first and ignores a lint with only warnings', async () => {
       lintReport = { ok: false, problems: lintProblems }
+      await start()
+      touch(2_000)
       expect(await stop()).toEqual({ decision: 'block', reason: claimText })
       claimed = false
       lintReport = { ok: true, problems: [lintProblems[1]] }

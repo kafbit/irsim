@@ -21,7 +21,7 @@ const DEFAULT_WORKTREES: Worktrees = { '/work/design-app': { root: '/work', port
 function world(
   on: On,
   claim: { count: number; text?: string } = { count: 0 },
-  options: { worktrees?: Worktrees; env?: string; submit?: 'drop' | 'reject'; hold?: Promise<void>; lint?: unknown } = {},
+  options: { worktrees?: Worktrees; env?: string; submit?: 'drop' | 'reject'; hold?: Promise<void>; lint?: unknown; files?: string[] } = {},
 ) {
   const worktrees = options.worktrees ?? DEFAULT_WORKTREES
   const session = { cwd: '/work/design-app' }
@@ -41,6 +41,7 @@ function world(
   on('turn.complete', (_, e) => ({ text: e.answer }))
   on('env.get', () => ({ value: options.env }))
   on('session.id', () => ({ value: SESSION }))
+  on('fs.exists', (_, e) => ({ value: (options.files ?? ['/work/.irsim.json']).includes(e.path) }))
   on('session.cwd', () => ({ value: session.cwd }))
   on('command.register', (_, e) => ({ value: { command: e.name } }))
   on('tool.register', (_, e) => ({ value: { tool: `mcp__irsim__${e.name}` } }))
@@ -540,4 +541,86 @@ test('check puts the lint problems before the check output, and ignores a canvas
   expect(lines[0]).toBe('Format problems:')
   expect(lines).toContain('1 error, 1 warning')
   expect(lines.at(-1)).toContain('Leads ok 820 ms')
+})
+
+const FORMAT_ERRORS = {
+  ok: false,
+  problems: [LINT.problems[0]],
+}
+
+test('prompt.compose adds nothing outside an irsim project', async ($, on) => {
+  world(on, { count: 0 }, { files: [] })
+  on('prompt.compose', () => ({ sections: [{ id: 'base', text: 'base', scope: 'shared' }] }))
+  await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
+
+  const composed = await $.prompt.compose({
+    model: 'm',
+    promptModel: 'm',
+    surfaces: [],
+    tools: [],
+    outputStyle: null,
+    traits: [],
+  })
+
+  expect(composed.sections.map((section) => section.id)).toEqual(['base'])
+})
+
+test('prompt.compose adds the irsim design section after the others', async ($, on) => {
+  world(on, { count: 0 })
+  on('prompt.compose', () => ({ sections: [{ id: 'base', text: 'base', scope: 'shared' }] }))
+  await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
+
+  const composed = await $.prompt.compose({
+    model: 'm',
+    promptModel: 'm',
+    surfaces: [],
+    tools: [],
+    outputStyle: null,
+    traits: [],
+  })
+
+  expect(composed.sections.map((section) => section.id)).toEqual(['base', 'irsim:design'])
+  expect(composed.sections[1]?.scope).toBe('session')
+  expect(composed.sections[1]?.text).toContain('irsim-design')
+})
+
+const writeDesign = ($: Engine, file_path: string) =>
+  $.tool.call({ tool: 'Write', file_path, content: '{}' })
+
+test('a design write then a completed turn submits the lint errors', async ($, on) => {
+  const w = world(on, { count: 0 }, { lint: FORMAT_ERRORS })
+  on('tool.call', () => ({ result: 'ok' }))
+  await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
+
+  await writeDesign($, '/work/design-app/design/canvas.json')
+  await $.turn.complete({ turnId: 't1', reason: 'answer', answer: '', durationMs: 1 })
+
+  expect(w.submitted).toHaveLength(1)
+  expect(w.submitted[0]).toContain('irsim lint found format problems in the design folder. Fix these, then stop.\n')
+  expect(w.submitted[0]).toContain('error design/canvas.json pages[0].boards[0] board-title')
+})
+
+test('no lint prompt without a design write', async ($, on) => {
+  const w = world(on, { count: 0 }, { lint: FORMAT_ERRORS })
+  on('tool.call', () => ({ result: 'ok' }))
+  await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
+
+  await writeDesign($, '/work/design-app/src/app.ts')
+  await $.turn.complete({ turnId: 't1', reason: 'answer', answer: '', durationMs: 1 })
+
+  expect(w.submitted).toEqual([])
+  expect(w.calls.map((call) => call.path)).not.toContain('/api/lint')
+})
+
+test('the lint prompt is submitted at most twice per session', async ($, on) => {
+  const w = world(on, { count: 0 }, { lint: FORMAT_ERRORS })
+  on('tool.call', () => ({ result: 'ok' }))
+  await $.session.start({ cwd: '/work/design-app', surface: 'terminal', isInteractive: true })
+
+  for (let turn = 0; turn < 3; turn += 1) {
+    await writeDesign($, '/work/design-app/design/Leads.html')
+    await $.turn.complete({ turnId: `t${turn}`, reason: 'answer', answer: '', durationMs: 1 })
+  }
+
+  expect(w.submitted).toHaveLength(2)
 })

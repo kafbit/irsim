@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { boardFileName, listBoards } from './board-file.mjs'
 
 const NAME = /^[A-Za-z][A-Za-z0-9]*$/
@@ -19,11 +19,22 @@ const decode = (text) =>
     .replace(/&gt;/g, '>')
     .replace(/&amp;/g, '&')
 
+const SCRIPT_TAG = /<script\b((?:"[^"]*"|'[^']*'|[^>"'])*)>/g
+
+/** The raw `data-props` of the `text/x-dc` script, or `undefined` when there is none or it has no data-props. */
+const dataProps = (source) => {
+  for (const tag of source.matchAll(SCRIPT_TAG)) {
+    if (!/(?:^|\s)type=(?:"text\/x-dc"|'text\/x-dc')/.test(tag[1])) continue
+    const attribute = /\bdata-props=(?:'([^']*)'|"([^"]*)")/.exec(tag[1])
+    return attribute?.[1] ?? attribute?.[2]
+  }
+  return undefined
+}
+
 /** The title and preview size of a board source. Throws when the `data-props` JSON does not parse. */
 export const readBoardMeta = (source) => {
   const title = decode(/<title>([^<]*)<\/title>/.exec(source)?.[1] ?? '').trim()
-  const attribute = /<script[^>]*type="text\/x-dc"[^>]*data-props=(?:'([^']*)'|"([^"]*)")/.exec(source)
-  const raw = attribute?.[1] ?? attribute?.[2]
+  const raw = dataProps(source)
   const props = raw ? JSON.parse(decode(raw)) : {}
   return {
     title,
@@ -35,6 +46,11 @@ export const readBoardMeta = (source) => {
 const isObject = (value) => typeof value === 'object' && value !== null && !Array.isArray(value)
 const isText = (value) => typeof value === 'string' && value.trim() !== ''
 const isNumber = (value) => typeof value === 'number' && Number.isFinite(value)
+
+const isStringMap = (value) => isObject(value) && Object.values(value).every((one) => typeof one === 'string')
+
+const OVERRIDES_FIX = 'set "overrides": {"colors": {}, "radius": {}, "type": {}}'
+const BINDINGS_FIX = 'set "bindings": {}'
 
 const lintCanvas = (designDir, boards, add) => {
   const file = 'canvas.json'
@@ -66,6 +82,24 @@ const lintCanvas = (designDir, boards, add) => {
   if (canvas.version !== 1) {
     add('warning', file, 'version', 'canvas-version', `version is ${JSON.stringify(canvas.version)}, expected 1`, 'set "version": 1')
   }
+  if (
+    !isObject(canvas.overrides) ||
+    !isStringMap(canvas.overrides.colors) ||
+    !isStringMap(canvas.overrides.radius) ||
+    !isStringMap(canvas.overrides.type)
+  ) {
+    add(
+      'error',
+      file,
+      'overrides',
+      'canvas-overrides',
+      'overrides must hold colors, radius and type string maps',
+      canvas.overrides === undefined ? FIX_BUILD : OVERRIDES_FIX,
+    )
+  }
+  if (!isStringMap(canvas.bindings)) {
+    add('error', file, 'bindings', 'canvas-bindings', 'bindings must be a string map', canvas.bindings === undefined ? FIX_BUILD : BINDINGS_FIX)
+  }
   if (!Array.isArray(canvas.pages)) {
     add('error', file, 'pages', 'canvas-json-invalid', 'pages must be an array', 'set "pages" to an array of pages')
     return
@@ -88,6 +122,9 @@ const lintCanvas = (designDir, boards, add) => {
     }
     if (page.icon !== undefined && !(typeof page.icon === 'string' && ICON.test(page.icon))) {
       add('warning', file, `${at}.icon`, 'page-icon', 'page icon must be a Lucide icon name in kebab-case', 'use a name such as "layout-dashboard" or remove icon')
+    }
+    if (!Array.isArray(page.boards)) {
+      add('error', file, `${at}.boards`, 'page-boards', 'boards must be an array', 'set "boards": [] or list the boards of the page')
     }
     const sectionIds = lintSections(file, at, page.sections, add)
     const boardList = Array.isArray(page.boards) ? page.boards : []
@@ -195,11 +232,20 @@ const lintSections = (file, at, sections, add) => {
 }
 
 const boardLanguage = (designDir) => {
-  try {
-    const value = JSON.parse(readFileSync(join(designDir, '..', '.irsim.json'), 'utf8'))?.boardLanguage
-    return typeof value === 'string' ? value : null
-  } catch {
-    return null
+  let dir = resolve(designDir)
+  for (;;) {
+    const file = join(dir, '.irsim.json')
+    if (existsSync(file)) {
+      try {
+        const value = JSON.parse(readFileSync(file, 'utf8'))?.boardLanguage
+        return typeof value === 'string' ? value : null
+      } catch {
+        return null
+      }
+    }
+    const parent = dirname(dir)
+    if (parent === dir) return null
+    dir = parent
   }
 }
 
@@ -224,11 +270,11 @@ const lintBoardFiles = (designDir, boards, add) => {
     if (title === '') {
       add('error', file, '', 'board-title-tag', `${file} has no non-empty <title>`, 'add <title>Board title</title> to the head')
     }
-    const attribute = /<script[^>]*type="text\/x-dc"[^>]*data-props=(?:'([^']*)'|"([^"]*)")/.exec(source)
-    const raw = attribute?.[1] ?? attribute?.[2]
-    if (raw === undefined) {
-      add('error', file, '', 'board-script', `${file} has no <script type="text/x-dc" data-props="..."> element`, 'add the text/x-dc script with a data-props JSON')
-    } else {
+    if (!/<x-dc[\s>]/.test(source)) {
+      add('error', file, '', 'board-template', `${file} has no <x-dc> element`, 'wrap the board markup in <x-dc>...</x-dc>')
+    }
+    const raw = dataProps(source)
+    if (raw !== undefined) {
       try {
         const props = JSON.parse(decode(raw))
         const preview = props?.$preview

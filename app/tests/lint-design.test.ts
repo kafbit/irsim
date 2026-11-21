@@ -8,11 +8,13 @@ let base = ''
 let dir = ''
 
 const html = (title: string, preview: unknown = { width: 800, height: 600 }, extra = '') =>
-  `<html lang="en" dir="ltr"><head><title>${title}</title></head><body>${extra}` +
+  `<html lang="en" dir="ltr"><head><title>${title}</title></head><body><x-dc>${extra}</x-dc>` +
   `<script type="text/x-dc" data-props='${JSON.stringify(preview === null ? {} : { $preview: preview })}'></script></body></html>`
 
 const board = (name: string, source = html(name)) => writeFileSync(join(dir, `${name}.html`), source)
-const canvas = (value: unknown) => writeFileSync(join(dir, 'canvas.json'), typeof value === 'string' ? value : JSON.stringify(value))
+const EMPTY = { overrides: { colors: {}, radius: {}, type: {} }, bindings: {} }
+const canvas = (value: unknown) =>
+  writeFileSync(join(dir, 'canvas.json'), typeof value === 'string' ? value : JSON.stringify({ ...EMPTY, ...(value as object) }))
 const entry = (name: string, extra: object = {}) => ({ name, title: name, x: 0, y: 0, width: 800, height: 600, ...extra })
 const page = (boards: object[], extra: object = {}) => ({ id: 'p', title: 'P', boards, ...extra })
 const rules = (result = lintDesign(dir)) => result.problems.map((p) => p.rule)
@@ -130,7 +132,7 @@ describe('lintDesign canvas.json', () => {
   })
 
   it('sorts problems by file then path', () => {
-    board('A', '<html></html>')
+    board('A', '<html><x-dc></x-dc></html>')
     canvas({ version: 1, pages: [page([entry('A', { width: 1, height: 1 })])] })
     const keys = lintDesign(dir).problems.map((p) => `${p.file}|${p.path}`)
     expect(keys).toEqual([...keys].sort())
@@ -149,13 +151,13 @@ describe('lintDesign board files', () => {
   })
 
   it('requires a title tag and a script with valid JSON', () => {
-    board('NoTitle', '<html><head></head><body><script type="text/x-dc" data-props=\'{}\'></script></body></html>')
-    board('NoScript', '<html><head><title>x</title></head><body><x-dc></x-dc></body></html>')
-    board('BadJson', '<html><head><title>x</title></head><body><script type="text/x-dc" data-props=\'{bad\'></script></body></html>')
-    canvas({ version: 1, pages: [page([entry('NoTitle'), entry('NoScript'), entry('BadJson')])] })
+    board('NoTitle', '<html><head></head><body><x-dc></x-dc><script type="text/x-dc" data-props=\'{}\'></script></body></html>')
+    board('Static', '<html><head><title>x</title></head><body><x-dc></x-dc></body></html>')
+    board('BadJson', '<html><head><title>x</title></head><body><x-dc></x-dc><script type="text/x-dc" data-props=\'{bad\'></script></body></html>')
+    canvas({ version: 1, pages: [page([entry('NoTitle'), entry('Static'), entry('BadJson')])] })
     const result = lintDesign(dir)
     expect(result.problems.filter((p) => p.rule === 'board-title-tag').map((p) => p.file)).toEqual(['NoTitle.html'])
-    expect(result.problems.filter((p) => p.rule === 'board-script').map((p) => p.file)).toEqual(['BadJson.html', 'NoScript.html'])
+    expect(result.problems.filter((p) => p.rule === 'board-script').map((p) => p.file)).toEqual(['BadJson.html'])
   })
 
   it('warns when the preview size is missing', () => {
@@ -174,13 +176,66 @@ describe('lintDesign board files', () => {
   })
 
   it('checks the root language only when boardLanguage is en', () => {
-    board('A', '<html><head><title>A</title></head><body><script type="text/x-dc" data-props=\'{"$preview":{"width":800,"height":600}}\'></script></body></html>')
+    board('A', '<html><head><title>A</title></head><body><x-dc></x-dc><script type="text/x-dc" data-props=\'{"$preview":{"width":800,"height":600}}\'></script></body></html>')
     canvas({ version: 1, pages: [page([entry('A')])] })
     expect(rules()).toEqual([])
     writeFileSync(join(base, '.irsim.json'), JSON.stringify({ boardLanguage: 'en' }))
     expect(rules()).toEqual(['board-root-lang'])
     writeFileSync(join(base, '.irsim.json'), JSON.stringify({ boardLanguage: 'ar' }))
     expect(rules()).toEqual([])
+  })
+})
+
+describe('lintDesign canvas shape and board templates', () => {
+  it('requires overrides and bindings, and names irsim lint --fix when they are absent', () => {
+    board('A')
+    canvas({ version: 1, pages: [page([entry('A')])], overrides: undefined, bindings: undefined })
+    const result = lintDesign(dir)
+    expect(result.ok).toBe(false)
+    const found = result.problems.filter((p) => p.rule === 'canvas-overrides' || p.rule === 'canvas-bindings')
+    expect(found.map((p) => `${p.rule}:${p.path}:${p.severity}`)).toEqual([
+      'canvas-bindings:bindings:error',
+      'canvas-overrides:overrides:error',
+    ])
+    expect(found.every((p) => p.fix === 'run irsim lint --fix')).toBe(true)
+  })
+
+  it('names the exact JSON when overrides or bindings are malformed', () => {
+    board('A')
+    canvas({ version: 1, pages: [page([entry('A')])], overrides: { colors: {}, radius: 1, type: {} }, bindings: { a: 1 } })
+    const found = lintDesign(dir).problems.filter((p) => p.rule === 'canvas-overrides' || p.rule === 'canvas-bindings')
+    expect(found.find((p) => p.rule === 'canvas-overrides')?.fix).toContain('{"colors": {}, "radius": {}, "type": {}}')
+    expect(found.find((p) => p.rule === 'canvas-bindings')?.fix).toContain('{}')
+  })
+
+  it('reports a page without a boards array', () => {
+    canvas({ version: 1, pages: [{ id: 'p', title: 'P' }] })
+    const found = lintDesign(dir).problems.filter((p) => p.rule === 'page-boards')
+    expect(found).toHaveLength(1)
+    expect(found[0]).toMatchObject({ severity: 'error', path: 'pages[0].boards' })
+  })
+
+  it('finds the script by its type in any attribute order and single quotes', () => {
+    board('A', "<html><head><title>A</title></head><body><x-dc></x-dc><script data-props='{bad' type='text/x-dc'></script></body></html>")
+    canvas({ version: 1, pages: [page([entry('A')])] })
+    expect(lintDesign(dir).problems.filter((p) => p.rule === 'board-script')).toHaveLength(1)
+  })
+
+  it('reports a board file without an x-dc element', () => {
+    board('A', '<html><head><title>A</title></head><body><script type="text/x-dc" data-props=\'{"$preview":{"width":800,"height":600}}\'></script></body></html>')
+    canvas({ version: 1, pages: [page([entry('A')])] })
+    expect(rules()).toEqual(['board-template'])
+  })
+
+  it('reads boardLanguage from the nearest .irsim.json above the design folder', () => {
+    const nested = join(base, 'a', 'b', 'design')
+    mkdirSync(nested, { recursive: true })
+    writeFileSync(join(nested, 'A.html'), '<html><head><title>A</title></head><body><x-dc></x-dc></body></html>')
+    writeFileSync(join(nested, 'canvas.json'), JSON.stringify({ version: 1, pages: [page([entry('A')])], ...EMPTY }))
+    writeFileSync(join(base, '.irsim.json'), JSON.stringify({ boardLanguage: 'en' }))
+    expect(rules(lintDesign(nested))).toEqual(['board-root-lang'])
+    writeFileSync(join(base, 'a', '.irsim.json'), JSON.stringify({ boardLanguage: 'ar' }))
+    expect(rules(lintDesign(nested))).toEqual([])
   })
 })
 

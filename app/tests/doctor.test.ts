@@ -141,6 +141,19 @@ describe('doctor', () => {
     })
   })
 
+  it('passes the board diff check only when a pattern covers the board suffix in use', async () => {
+    project()
+    write(join(base, 'design/Leads.html'), board('Leads'))
+    expect(find(await runDoctor({ cwd: base, env: env() }), 'collapse-board-diffs')?.status).toBe('warn')
+
+    write(join(base, '.gitattributes'), 'design/*.html linguist-generated=true\n')
+    expect(find(await runDoctor({ cwd: base, env: env() }), 'collapse-board-diffs')?.status).toBe('ok')
+
+    rmSync(join(base, 'design/Leads.html'))
+    write(join(base, '.gitattributes'), 'design/*.dc.html linguist-generated=true\n')
+    expect(find(await runDoctor({ cwd: base, env: env() }), 'collapse-board-diffs')?.status).toBe('ok')
+  })
+
   it('warns on a missing review setup and never fails on it', async () => {
     project()
     rmSync(join(base, '.coderabbit.yaml'))

@@ -267,7 +267,7 @@ const configChecks = (root, design, env) => {
   return checks
 }
 
-const ruleChecks = (root) => {
+const ruleChecks = (root, design) => {
   const checks = []
   const template = templateBlock()
   for (const name of ['AGENTS.md', 'CLAUDE.md']) {
@@ -292,13 +292,17 @@ const ruleChecks = (root) => {
   }
 
   const gitattributes = join(root, '.gitattributes')
+  const used = design !== null && existsSync(design) ? listBoards(design) : []
+  const covers = (pattern) =>
+    pattern === 'design/*.html' ||
+    (pattern === 'design/*.dc.html' && used.every((board) => board.legacy))
   const generated = existsSync(gitattributes)
     ? read(gitattributes)
         .split('\n')
         .map((line) => line.trim().split(/\s+/))
         .find(
           ([pattern, ...flags]) =>
-            (pattern === 'design/*.html' || pattern === 'design/*.dc.html') &&
+            covers(pattern) &&
             flags.some((flag) => flag.startsWith('linguist-generated') || flag === 'gitlab-generated'),
         )?.[0]
     : undefined
@@ -310,7 +314,7 @@ const ruleChecks = (root) => {
           'rules',
           'board diffs',
           'warn',
-          'neither design/*.html nor design/*.dc.html is marked generated, so reviews show the board markup',
+          'no design/*.html pattern covering the board files is marked generated, so reviews show the board markup',
           'see README, Review boards in pull requests',
         ),
   )
@@ -439,7 +443,7 @@ export const runDoctor = async ({ cwd = process.cwd(), env = process.env } = {})
   const design = designDirOf(root, env)
   const checks = [
     ...configChecks(root, design, env),
-    ...ruleChecks(root),
+    ...ruleChecks(root, design),
     ...gitChecks(root),
     ...(await runtimeChecks(root, env)),
   ]

@@ -42,13 +42,13 @@ canvas (browser)                 canvas server (:3200)              Claude Code 
  thread shows reply          ◄── POST /api/comments/<id>/reply  ◄── tool design_canvas {action: reply}
 ```
 
-- **Comment target.** `prepareSource` stamps every opening tag inside `<x-dc>` with `data-dc-at="<Board>:<line>"`, the line in `design/<Board>.dc.html`. A click in comment mode reads the nearest stamped ancestor, so an element inside an imported `Table` points at `Table.dc.html`, not the page board. The comment stores board, line, a short element path, its trimmed text (80 chars), its rect, and the page.
+- **Comment target.** `prepareSource` stamps every opening tag inside `<x-dc>` with `data-dc-at="<Board>:<line>"`, the line in `design/<Board>.html`. A click in comment mode reads the nearest stamped ancestor, so an element inside an imported `Table` points at `Table.html`, not the page board. The comment stores board, line, a short element path, its trimmed text (80 chars), its rect, and the page.
 - **One turn per send, not per click.** Comments are drafts until the reader presses Send, as in a Plannotator review. The turn lists each comment as `design/Table.dc.html:142 · <td> "خالد الشهري" · <comment text>`, so Claude reads `sed -n 130,155p` of one file instead of the board.
 - **Session targeting.** The mod registers its session id at `session.start` (`POST /api/sessions`). The canvas shows a session picker when more than one is registered, and remembers the choice per tab. A canvas opened by the mod carries `?session=<id>` and needs no pick.
 - **Opening the canvas from Claude.** The local plugin `design-canvas` (`plugins/design-canvas/`, see the contract below) registers the commands `/canvas [page|board]`, `/canvas-stop` and `/canvas-comments`, and a `design_canvas` tool (`open`, `page`, `comments`, `reply`, `resolve`). `/canvas` checks `GET /api/health`, starts `bun run canvas` with `nohup` when it is down (the server outlives the session and serves every session), and opens the browser at the page route with `?session=<id>`.
 - **Without the mod.** `bun run --cwd apps/design canvas:comments --wait` blocks until a send arrives and prints it as JSON, then marks it delivered. Any agent (OpenCode, Codex) can run it.
 - **Storage.** `apps/design/.data/comments.json`, gitignored. Comments are review traffic, not design data, so they stay out of `design/`.
-- **Hot reload.** The server watches `design/*.dc.html` and pushes `{board}` over `GET /api/events` (SSE). A frame reloads when the changed board is in its import closure, which the frame reports with `ready`. A publish that the canvas guard writes into `design/`, or a direct edit of `design/<Board>.dc.html`, shows up without a page reload. Boards stay unwritten by the canvas.
+- **Hot reload.** The server watches `design/*.html` and pushes `{board}` over `GET /api/events` (SSE). A frame reloads when the changed board is in its import closure, which the frame reports with `ready`. A publish that the canvas guard writes into `design/`, or a direct edit of `design/<Board>.html`, shows up without a page reload. Boards stay unwritten by the canvas.
 
 ## C · Performance
 
@@ -167,7 +167,7 @@ type Session = { id: string; label: string; cwd: string; lastSeen: string }  // 
 | `POST /api/comments/send` `{ sessionId, page? }` | Drafts (of the page, or all) → `queued` with one new `batch`; `{ batch, count }` |
 | `POST /api/comments/claim` `{ sessionId }` | Sets `lastSeen`; takes that session's `queued` comments → `delivered`; `{ batch, count, text, comments }`, `count` 0 when none |
 | `POST /api/comments/<id>/reply` `{ body, author }` | Appends a reply |
-| `GET /api/events` | SSE: `event: board` `{ board }` when `design/<board>.dc.html` changes; `event: comments` `{ ids }` on any comment write |
+| `GET /api/events` | SSE: `event: board` `{ board }` when `design/<board>.html` changes; `event: comments` `{ ids }` on any comment write |
 
 `text` from `claim`, the turn the session receives, written once on the server so the plugin and the CLI agree:
 

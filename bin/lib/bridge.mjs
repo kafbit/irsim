@@ -1,8 +1,9 @@
 import { execFileSync, spawn } from 'node:child_process'
-import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs'
 import { connect } from 'node:net'
 import { basename, dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { listBoards } from './board-file.mjs'
 
 const CONFIG_FILE = '.irsim.json'
 const PORT_MIN = 3200
@@ -487,6 +488,48 @@ const countLintReport = (root, session) => {
   } catch {}
 }
 
+const designFolder = (root) => {
+  const override = process.env.IRSIM_DESIGN_DIR || process.env.CANVAS_DESIGN_DIR
+  if (override) return resolve(root, override)
+  try {
+    const value = JSON.parse(readFileSync(join(root, CONFIG_FILE), 'utf8'))?.designDir
+    return resolve(root, typeof value === 'string' && value ? value : 'design')
+  } catch {
+    return join(root, 'design')
+  }
+}
+
+const newestDesignMtime = (root) => {
+  const dir = designFolder(root)
+  const files = [join(dir, 'canvas.json'), ...listBoards(dir).map((board) => join(dir, board.file))]
+  let newest = 0
+  for (const file of files) {
+    try {
+      newest = Math.max(newest, statSync(file).mtimeMs)
+    } catch {}
+  }
+  return newest
+}
+
+const startMarkFile = (root, session) => `${lintReportFile(root, session)}.mtime`
+
+const recordDesignStart = (root, session) => {
+  try {
+    const file = startMarkFile(root, session)
+    mkdirSync(dirname(file), { recursive: true })
+    writeFileSync(file, String(newestDesignMtime(root)))
+  } catch {}
+}
+
+const designChangedSinceStart = (root, session) => {
+  try {
+    const recorded = Number(readFileSync(startMarkFile(root, session), 'utf8'))
+    return Number.isFinite(recorded) && newestDesignMtime(root) > recorded
+  } catch {
+    return false
+  }
+}
+
 /**
  * Codex hook: register on start, deliver comments before a model request, on a user prompt and
  * when the agent stops. Every path prints one JSON object for Codex to read, or nothing.
@@ -506,7 +549,10 @@ const codexHook = async (event) => {
   const port = await canvasPort(root)
   if (!(await health(port))) return {}
   if (event === 'SessionStart') {
-    if (session) await register(port, { agent: 'codex', session, cwd }).catch(() => undefined)
+    if (session) {
+      await register(port, { agent: 'codex', session, cwd }).catch(() => undefined)
+      recordDesignStart(root, session)
+    }
     return { hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: SESSION_CONTEXT } }
   }
   if (!session) return {}
@@ -521,6 +567,7 @@ const codexHook = async (event) => {
   const result = await claim(port, session).catch(() => null)
   if (!result || !result.count || !result.text) {
     if (event !== 'Stop' || lintReportCount(root, session) >= LINT_REPORTS_PER_SESSION) return {}
+    if (!designChangedSinceStart(root, session)) return {}
     const lint = await readLint(port)
     if (!lint || !lint.problems.some((one) => one.severity === 'error')) return {}
     countLintReport(root, session)
