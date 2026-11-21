@@ -392,6 +392,7 @@ export function Sidebar({
   selected,
   selectedSection,
   askFocus,
+  variantsOpen,
   searchRef,
   onFocusBoard,
   onSelectBoards,
@@ -406,6 +407,7 @@ export function Sidebar({
   selected: string[];
   selectedSection: string | null;
   askFocus: number;
+  variantsOpen: number;
   searchRef: Ref<HTMLInputElement>;
   onFocusBoard: (name: string) => void;
   onSelectBoards: (names: string[]) => void;
@@ -528,7 +530,7 @@ export function Sidebar({
       </ul>
       <UpdateNotice />
       <div className="-mx-3 -mb-3 shrink-0 border-t border-border p-3">
-        <AgentComposer page={pageId} scope={scope} narrow focusSignal={askFocus} />
+        <AgentComposer page={pageId} scope={scope} narrow focusSignal={askFocus} optionsSignal={variantsOpen} />
       </div>
     </aside>
   );

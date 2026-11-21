@@ -161,6 +161,7 @@ export function PageCanvas({
   } | null>(null)
   const [pagePopover, setPagePopover] = useState<PagePopover | null>(null)
   const [askFocus, setAskFocus] = useState(0)
+  const [variantsOpen, setVariantsOpen] = useState(0)
   const [arrangeFor, setArrangeFor] = useState<string | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   const mounts = useMounts(boards)
@@ -833,10 +834,10 @@ export function PageCanvas({
     } else if (id === 'variants' && first) {
       dispatch({ type: 'select', name: first })
       setPanelOpen(false)
-      if (sidebarShown) setAskFocus((count) => count + 1)
+      if (sidebarShown) setVariantsOpen((count) => count + 1)
       else {
         setSidebarShown(true)
-        window.setTimeout(() => setAskFocus((count) => count + 1), 0)
+        window.setTimeout(() => setVariantsOpen((count) => count + 1), 0)
       }
     } else if (id === 'create-section') createSection(names, false)
     else if (id === 'create-sub-section') createSection(direct, true)
@@ -895,6 +896,7 @@ export function PageCanvas({
           selected={selection.names}
           selectedSection={sectionSelected}
           askFocus={askFocus}
+          variantsOpen={variantsOpen}
           searchRef={searchRef}
           onFocusBoard={focusBoard}
           onSelectBoards={selectBoards}

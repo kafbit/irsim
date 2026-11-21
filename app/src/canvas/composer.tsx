@@ -92,6 +92,8 @@ function OptionsMenu({
         )}
       </PopoverTrigger>
       <PopoverContent
+        dir="ltr"
+        lang="en"
         align="end"
         role="menu"
         aria-label="Options"
@@ -156,6 +158,7 @@ export function AgentComposer({
   size = 'hero',
   narrow = false,
   focusSignal = 0,
+  optionsSignal = 0,
   onSent,
 }: {
   page: string
@@ -163,6 +166,7 @@ export function AgentComposer({
   size?: 'hero' | 'slim'
   narrow?: boolean
   focusSignal?: number
+  optionsSignal?: number
   onSent?: () => void
 }) {
   const { loaded, sessionId } = useSession()
@@ -182,6 +186,13 @@ export function AgentComposer({
     focused.current = focusSignal
     field.current?.focus()
   }, [focusSignal])
+  const opened = useRef(optionsSignal)
+  useEffect(() => {
+    if (optionsSignal === opened.current) return
+    opened.current = optionsSignal
+    setVariants(true)
+    setMenuOpen(true)
+  }, [optionsSignal])
   const [wrapped, setWrapped] = useState(false)
   useLayoutEffect(() => {
     const node = field.current
