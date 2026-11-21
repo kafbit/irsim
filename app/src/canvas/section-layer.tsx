@@ -296,12 +296,12 @@ export const SectionLayer = memo(function SectionLayer({
                 >
                   <span
                     dir="auto"
-                    className="truncate text-[13px] font-semibold whitespace-nowrap"
+                    className="truncate text-[13px] in-data-zoomed-out:text-[11.7px] font-semibold whitespace-nowrap"
                     style={{ color: tone.text }}
                   >
                     {section.title}
                   </span>
-                  <span className="shrink-0 text-xs whitespace-nowrap text-muted-foreground">
+                  <span className="shrink-0 text-xs whitespace-nowrap text-muted-foreground in-data-zoomed-out:hidden">
                     {count}
                   </span>
                 </span>
