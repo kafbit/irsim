@@ -1,3 +1,4 @@
+import { startCanvasSync } from '../../../lib/canvas-sync'
 import { subscribe } from '../../../lib/events'
 
 export const dynamic = 'force-dynamic'
@@ -6,6 +7,7 @@ export const runtime = 'nodejs'
 const PING_MS = 15_000
 
 export async function GET(request: Request): Promise<Response> {
+  startCanvasSync()
   const encoder = new TextEncoder()
   let stop = () => {}
   const stream = new ReadableStream<Uint8Array>({

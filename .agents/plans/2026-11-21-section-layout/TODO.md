@@ -1,0 +1,7 @@
+- [x] `resolveLayout`: resolve per container, deepest first; sibling sections separate; tests
+- [x] `placeInSection` in `canvas-layout.ts`; tests
+- [x] `syncFromDisk(previous, next)`; tests, including the Arrange boards case
+- [x] Snapshot in `canvas-file.ts`, `canvas-sync.ts`, start from the events route, `editCanvas` syncs first
+- [x] Affected tests, typecheck, lint
+- [x] Live check: write `canvas.json` by hand on a running canvas, the file is rewritten and the screenshot shows no overlap
+- [x] Section units measured as drawn areas (`SECTION_PAD`, title bars); loose new boards move off what they cover; touches ranked page level first
