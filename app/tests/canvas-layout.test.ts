@@ -511,6 +511,43 @@ describe('syncFromDisk', () => {
     expect(out && at(out, 'c1')).toEqual({ x: 1400, y: 0 })
   })
 
+  it('leaves four boards an agent moved into a new section as a row 40 px apart', () => {
+    const loose = [rect('r1', 0, 0), rect('r2', 400, 0), rect('r3', 800, 0), rect('r4', 1200, 0), rect('z', 0, 2000)]
+    const row = [rect('r1', 0, 600, 'N'), rect('r2', 340, 600, 'N'), rect('r3', 680, 600, 'N'), rect('r4', 1020, 600, 'N'), rect('z', 0, 2000)]
+    const out = syncFromDisk(filed(loose, []), filed(row, [{ id: 'N', title: 'N' }]))
+    for (const board of row) expect(out ? at(out, board.name) : { x: board.x, y: board.y }).toEqual({ x: board.x, y: board.y })
+  })
+
+  it('leaves a renamed loose board 40 px from another where it is', () => {
+    const before = [rect('l1', 0, 0), rect('l2', 340, 0)]
+    const after = [rect('l1', 0, 0), rect('l3', 340, 0)]
+    const out = syncFromDisk(filed(before, []), filed(after, []))
+    expect(out).toBeNull()
+  })
+
+  it('leaves a renamed board inside a section where it is', () => {
+    const before = [rect('s1', 0, 0, 'A'), rect('s2', 340, 0, 'A')]
+    const after = [rect('s1', 0, 0, 'A'), rect('s3', 340, 0, 'A')]
+    const out = syncFromDisk(filed(before, sections), filed(after, sections))
+    expect(out).toBeNull()
+  })
+
+  it('separates a section whose new parent puts its area over a sibling', () => {
+    const tree = [
+      { id: 'A', title: 'A' },
+      { id: 'C', title: 'C' },
+    ]
+    const boards = [rect('a1', 0, 0, 'A'), rect('a2', 320, 0, 'A'), rect('c1', 640, 0, 'C')]
+    const out = syncFromDisk(filed(boards, tree), filed(boards, [tree[0], { ...tree[1], parent: 'A' }]))
+    expect(out).not.toBeNull()
+    if (!out) return
+    const a2 = at(out, 'a2') as { x: number; y: number }
+    const c1 = at(out, 'c1') as { x: number; y: number }
+    const apart =
+      a2.x + 300 <= c1.x - 64 || c1.x + 300 + 64 <= a2.x || a2.y + 200 <= c1.y - 24 - 64 || c1.y + 200 + 64 <= a2.y - 24
+    expect(apart).toBe(true)
+  })
+
   it('places a new board with no section and no position below everything', () => {
     const { x: _x, y: _y, ...bare } = rect('c1', 0, 0)
     const out = syncFromDisk(filed(base, sections), filed([...base, bare], sections))

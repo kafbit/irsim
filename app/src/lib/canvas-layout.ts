@@ -170,6 +170,16 @@ const hull = (items: Box[]): Box => {
 
 const close = (a: Box, b: Box): boolean => findOverlaps([{ name: 'a', ...a }, { name: 'b', ...b }], GAP).length > 0
 
+const drawnRect = (board: Box): Box => ({
+  x: board.x,
+  y: board.y - TITLE_BAR,
+  width: board.width,
+  height: board.height + TITLE_BAR,
+})
+
+const overlaps = (a: Box, b: Box): boolean =>
+  a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height
+
 const sectionIndex = (sections: AreaSection[]) => {
   const ids = new Set(sections.map((entry) => entry.id))
   const parentOf = new Map<string, string | null>(
@@ -407,8 +417,10 @@ const byLevel = (a: number[], b: number[]): number => {
 
 /**
  * The x and y for the board `name` inside its section: right of or below a board of the section or
- * of a section below it, clear of every board, touching the fewest other units, growing the section
- * least. `null` when the board has no known section or the section has no other board.
+ * of a section below it, touching the fewest other units, growing the section least. A spot is
+ * dropped when it is within `GAP` of a board of the section itself or of a board outside the
+ * top-level section of the section. When no spot remains, the board goes below the hull of the
+ * members. `null` when the board has no known section or the section has no other board.
  */
 export function placeInSection(
   boards: PlacedRect[],
@@ -447,19 +459,42 @@ export function placeInSection(
   return { x: base.x, y: base.y + base.height + GAP }
 }
 
+/** Whether the drawn rect of `board` overlaps another board or a section area the board does not sit in. */
+const collides = (index: SectionIndex, sections: AreaSection[], others: PlacedRect[], board: PlacedRect): boolean => {
+  const mine = drawnRect(board)
+  if (others.some((other) => overlaps(mine, drawnRect(other)))) return true
+  const own = index.known(board.section) ? index.chain(board.section) : []
+  const list = [...others, board]
+  return sections.some((entry) => {
+    if (own.includes(entry.id)) return false
+    const area = drawnArea(index, sections, entry.id, list)
+    return area !== null && overlaps(mine, area)
+  })
+}
+
+const AREA_KEYS = ['parent', 'x', 'y', 'width', 'height'] as const
+
 const finite = (value: unknown): value is number => typeof value === 'number' && Number.isFinite(value)
 
 /**
- * The canvas that `next` becomes after the layout rules ran on what an agent wrote to disk: boards
- * new on a page or moved to another section are placed inside their section, boards without x and
- * y get a spot, and `resolveLayout` pushes the neighbours of every new, moved or resized board.
- * Returns `null` when nothing moves. Neither input is mutated.
+ * The canvas that `next` becomes after the layout rules ran on what an agent wrote to disk. A board
+ * is placed or pushed only when it collides: its drawn rect, title bar included, overlaps the drawn
+ * rect of another board or the drawn area of a section it is not in. A board new on a page or moved
+ * to another section that collides is placed inside its section, a new board without a section that
+ * collides moves clear of the page units, and `placeAtEnd` covers boards without x and y for
+ * callers that pass them. `resolveLayout` then pushes the neighbours of the placed boards and of
+ * the new, moved or resized boards that still collide. A board written clear of every other board
+ * pushes nothing. A section that is new or whose parent or stored area changed, and whose drawn
+ * area overlaps another unit of its container, makes its boards count as edited. Returns `null`
+ * when nothing moves. Neither input is mutated.
  */
 export function syncFromDisk(previous: CanvasFile, next: CanvasFile): CanvasFile | null {
   let changedAny = false
   const pages = next.pages.map((page) => {
-    const prior = new Map((previous.pages.find((entry) => entry.id === page.id)?.boards ?? []).map((board) => [board.name, board]))
+    const before = previous.pages.find((entry) => entry.id === page.id)
+    const prior = new Map((before?.boards ?? []).map((board) => [board.name, board]))
     const sections = (page.sections ?? []) as SectionEntry[]
+    const index = sectionIndex(sections)
     const work = new Map<string, PlacedRect & { section?: unknown }>()
     for (const board of page.boards) work.set(board.name, board as unknown as PlacedRect)
     const usable = (board: PlacedRect) => finite(board.width) && finite(board.height)
@@ -473,34 +508,54 @@ export function syncFromDisk(previous: CanvasFile, next: CanvasFile): CanvasFile
       const added = !old
       const moved = typeof board.section === 'string' && (added || old.section !== board.section)
       const unplaced = !finite(board.x) || !finite(board.y)
-      if (added || GEOMETRY.some((key) => old[key] !== entry[key])) edited.add(entry.name)
+      const fresh = added || moved || GEOMETRY.some((key) => old[key] !== entry[key])
+      let placedBySync = false
       if (moved) {
-        edited.add(entry.name)
-        const index = sectionIndex(sections)
-        const others = positioned(entry.name)
-        const bad =
-          unplaced ||
-          others.some((other) => close(board, other)) ||
-          (index.known(board.section) && touchCounts(index, sections, others, board, board.section).some((count) => count > 0))
-        const spot = bad ? placeInSection([...others, board], sections, entry.name) : null
-        if (spot) work.set(entry.name, { ...board, ...spot })
+        const bad = unplaced || collides(index, sections, positioned(entry.name), board)
+        const spot = bad ? placeInSection([...positioned(entry.name), board], sections, entry.name) : null
+        if (spot) {
+          work.set(entry.name, { ...board, ...spot })
+          placedBySync = true
+        }
       }
-      if (added && !unplaced && !sectionIndex(sections).known(board.section)) {
-        const units = buildUnits(sectionIndex(sections), sections, null, positioned(entry.name)).map(
+      if (added && !unplaced && !index.known(board.section)) {
+        const units = buildUnits(index, sections, null, positioned(entry.name)).map(
           ({ name, x, y, width, height }) => ({ name, x, y, width, height }),
         )
-        const to = units.some((unit) => close(board, unit))
+        const mine = drawnRect(board)
+        const to = units.some((unit) => overlaps(mine, unit))
           ? resolveCollisions([...units, board], units.map((unit) => unit.name), GAP).get(entry.name)
           : undefined
-        if (to) work.set(entry.name, { ...board, ...to })
+        if (to) {
+          work.set(entry.name, { ...board, ...to })
+          placedBySync = true
+        }
       }
       const now = work.get(entry.name) as PlacedRect
       if (!finite(now.x) || !finite(now.y)) {
         const [spot] = placeAtEnd(positioned(entry.name), [now])
         work.set(entry.name, { ...now, ...spot })
         edited.add(entry.name)
-      } else if (unplaced) {
+      } else if (placedBySync) {
         edited.add(entry.name)
+      } else if (fresh && collides(index, sections, positioned(entry.name), now)) {
+        edited.add(entry.name)
+      }
+    }
+    const priorSections = new Map(((before?.sections ?? []) as SectionEntry[]).map((entry) => [entry.id, entry]))
+    const list = positioned('')
+    const regrouped = new Set<string>()
+    for (const entry of sections) {
+      const old = priorSections.get(entry.id)
+      const changed = !old || AREA_KEYS.some((key) => (old[key] ?? null) !== (entry[key] ?? null))
+      if (!changed || !index.parentOf.has(entry.id)) continue
+      const units = buildUnits(index, sections, index.parentOf.get(entry.id) ?? null, list)
+      const mine = units.find((unit) => unit.name === `section:${entry.id}`)
+      if (!mine || !units.some((unit) => unit !== mine && overlaps(mine, unit))) continue
+      for (const board of list) {
+        if (!index.known(board.section) || !index.chain(board.section).includes(entry.id)) continue
+        edited.add(board.name)
+        regrouped.add(board.name)
       }
     }
     if (edited.size === 0) return page
@@ -508,7 +563,12 @@ export function syncFromDisk(previous: CanvasFile, next: CanvasFile): CanvasFile
     const priorBoards = [...prior.values()].filter(
       (board) => usable(board as unknown as PlacedRect) && finite(board.x) && finite(board.y),
     ) as unknown as PlacedRect[]
-    const moves = resolveMoves(laid, sections, edited, priorBoards)
+    const moves = resolveMoves(
+      laid,
+      sections,
+      edited,
+      priorBoards.filter((board) => !regrouped.has(board.name)),
+    )
     const finalBoards = laid.map((board) => ({ ...board, ...moves.get(board.name) }))
     const shifted = shiftAreas(sections, priorBoards, finalBoards, new Set())
     const final = new Map(finalBoards.map((board) => [board.name, board]))

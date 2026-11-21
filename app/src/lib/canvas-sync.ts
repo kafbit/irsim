@@ -29,8 +29,10 @@ export const startCanvasSync = (): void => {
       const prev = canvasSnapshot()
       if (!prev) return setCanvasSnapshot(file)
       const next = syncFromDisk(prev, file)
-      if (next) await writeCanvas(next)
-      else setCanvasSnapshot(file)
+      if (!next) return setCanvasSnapshot(file)
+      const reread = await readValid()
+      if (!reread || JSON.stringify(reread) !== JSON.stringify(file)) return
+      await writeCanvas(next)
     }).catch(() => undefined)
   })
 }
