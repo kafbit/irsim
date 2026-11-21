@@ -1,6 +1,6 @@
 {
   "name": "irsim",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "license": "AGPL-3.0-only",
   "author": { "name": "Kafbit" },
   "description": "Opens the irsim design canvas and delivers its comments to the session."
