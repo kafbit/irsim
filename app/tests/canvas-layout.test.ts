@@ -553,4 +553,72 @@ describe('syncFromDisk', () => {
     const out = syncFromDisk(filed(base, sections), filed([...base, bare], sections))
     expect(out && at(out, 'c1')).toEqual({ x: 0, y: 280 })
   })
+  describe('defects', () => {
+    const box = (name: string, x: number, y: number, width: number, height: number, section?: string) => ({
+      name,
+      x,
+      y,
+      width,
+      height,
+      ...(section ? { section } : {}),
+    })
+    const drawn = (file: CanvasFile, name: string) => {
+      const board = file.pages[0].boards.find((entry) => entry.name === name) as unknown as {
+        x: number
+        y: number
+        width: number
+        height: number
+      }
+      return { x: board.x, y: board.y - 24, width: board.width, height: board.height + 24 }
+    }
+    const meets = (a: ReturnType<typeof drawn>, b: ReturnType<typeof drawn>) =>
+      a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height
+
+    it('places a new board where its drawn rect overlaps no board of a sibling sub-section', () => {
+      const tree = [
+        { id: 'R', title: 'R' },
+        { id: 'A', title: 'A', parent: 'R' },
+        { id: 'B', title: 'B', parent: 'R' },
+      ]
+      const boards = [box('a1', 0, 0, 300, 300, 'A'), box('a2', 380, 0, 300, 800, 'A'), box('b1', 0, 400, 300, 300, 'B')]
+      const out = syncFromDisk(filed(boards, tree), filed([...boards, box('n', 380, 0, 300, 300, 'A')], tree))
+      expect(out).not.toBeNull()
+      if (!out) return
+      const mine = drawn(out, 'n')
+      for (const other of ['a1', 'a2', 'b1']) expect(meets(mine, drawn(out, other))).toBe(false)
+    })
+
+    it('does not push a top-level section that was close by design when boards are regrouped', () => {
+      const prevSections = [
+        { id: 'P', title: 'P' },
+        { id: 'Y', title: 'Y' },
+      ]
+      const nextSections = [...prevSections, { id: 'S', title: 'S', parent: 'P' }]
+      const prevBoards = [
+        box('p1', 0, 0, 300, 300, 'P'),
+        box('p2', 340, 0, 300, 300, 'P'),
+        box('p3', 0, 360, 300, 300, 'P'),
+        box('y1', 808, 0, 300, 300, 'Y'),
+      ]
+      const nextBoards = prevBoards.map((b) => (b.name === 'p1' || b.name === 'p2' ? { ...b, section: 'S' } : b))
+      const out = syncFromDisk(filed(prevBoards, prevSections), filed(nextBoards, nextSections))
+      expect(out === null ? { x: 808, y: 0 } : at(out, 'y1')).toEqual({ x: 808, y: 0 })
+    })
+
+    it('keeps an area the agent moved with its boards when the sync pushes other boards', () => {
+      const area = { id: 'S', title: 'S', x: -100, y: -100, width: 1000, height: 600 }
+      const prevBoards = [
+        box('s1', 0, 0, 300, 300, 'S'),
+        box('s2', 380, 0, 300, 300, 'S'),
+        box('o1', 5000, 0, 300, 300),
+        box('o2', 6000, 0, 300, 300),
+      ]
+      const nextBoards = prevBoards.map((b) =>
+        b.section === 'S' ? { ...b, x: b.x + 2000 } : b.name === 'o2' ? { ...b, x: 5100 } : b,
+      )
+      const out = syncFromDisk(filed(prevBoards, [area]), filed(nextBoards, [{ ...area, x: 1900 }]))
+      expect(out).not.toBeNull()
+      expect((out?.pages[0].sections?.[0] as { x: number }).x).toBe(1900)
+    })
+  })
 })
