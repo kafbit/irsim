@@ -287,6 +287,7 @@ export function resolveLayout(
   sections: AreaSection[],
   edited: Iterable<string>,
   before: PlacedRect[] = boards,
+  regrouped: ReadonlySet<string> = new Set(),
 ): { boards: Map<string, { x: number; y: number }> } {
   const result = { boards: new Map<string, { x: number; y: number }>() }
   const index = sectionIndex(sections)
@@ -306,7 +307,9 @@ export function resolveLayout(
     const touched = new Set(units.filter((unit) => unit.members.some((member) => names.has(member.name))).map((unit) => unit.name))
     if (touched.size === 0) continue
     const wasClose = new Set(
-      findOverlaps(buildUnits(index, sections, container, previous), GAP).flatMap(([a, b]) => [`${a}|${b}`, `${b}|${a}`]),
+      findOverlaps(buildUnits(index, sections, container, previous), GAP)
+        .filter(([a, b]) => ![a, b].some((key) => key.startsWith('section:') && regrouped.has(key.slice('section:'.length))))
+        .flatMap(([a, b]) => [`${a}|${b}`, `${b}|${a}`]),
     )
     const hit = new Set<string>()
     for (const [a, b] of findOverlaps(units, GAP)) {
@@ -342,7 +345,8 @@ export const resolveMoves = (
   sections: AreaSection[],
   edited: Iterable<string>,
   before: PlacedRect[] = boards,
-): Map<string, { x: number; y: number }> => resolveLayout(boards, sections, edited, before).boards
+  regrouped: ReadonlySet<string> = new Set(),
+): Map<string, { x: number; y: number }> => resolveLayout(boards, sections, edited, before, regrouped).boards
 
 /** A stored section area shifts with its boards when every board in the section, or in a section below it, moved by the same distance. */
 function shiftAreas(
@@ -419,13 +423,15 @@ const byLevel = (a: number[], b: number[]): number => {
  * The x and y for the board `name` inside its section: right of or below a board of the section or
  * of a section below it, touching the fewest other units, growing the section least. A spot is
  * dropped when it is within `GAP` of a board of the section itself or of a board outside the
- * top-level section of the section. When no spot remains, the board goes below the hull of the
+ * top-level section of the section, or when its drawn rect overlaps a board that `resolveLayout`
+ * does not push away, because their units were already within `GAP` in `before`. When no spot remains, the board goes below the hull of the
  * members. `null` when the board has no known section or the section has no other board.
  */
 export function placeInSection(
   boards: PlacedRect[],
   sections: AreaSection[],
   name: string,
+  before: PlacedRect[] = boards,
 ): { x: number; y: number } | null {
   const self = boards.find((board) => board.name === name)
   if (!self) return null
@@ -438,13 +444,36 @@ export function placeInSection(
   const base = hull(members)
   const rootOf = (board: PlacedRect): string | null => (index.known(board.section) ? (index.chain(board.section).at(-1) ?? null) : null)
   const root = index.chain(id).at(-1) ?? null
+  const unfixable = (other: PlacedRect): boolean => {
+    if (members.includes(other) || !index.known(other.section) || rootOf(other) !== root) return true
+    const mine = index.chain(id)
+    const theirs = index.chain(other.section)
+    const common = mine.findIndex((candidate) => theirs.includes(candidate))
+    const mineKey = common === -1 ? mine.at(-1) : mine[common - 1]
+    const theirsAt = common === -1 ? theirs.length : theirs.indexOf(mine[common] as string)
+    const theirKey = theirsAt > 0 ? theirs[theirsAt - 1] : null
+    const was = before
+      .filter((board) => board.name !== name)
+      .map((board) => ({ ...board, section: boards.find((entry) => entry.name === board.name)?.section ?? board.section }))
+    const wasOther = was.find((board) => board.name === other.name)
+    const mineArea = mineKey === undefined ? null : drawnArea(index, sections, mineKey, was)
+    const theirArea = theirKey === null ? (wasOther ?? null) : drawnArea(index, sections, theirKey as string, was)
+    return mineArea !== null && theirArea !== null && close(mineArea, theirArea)
+  }
   const spots = members.flatMap((member) => [
     { x: member.x + member.width + GAP, y: member.y },
     { x: member.x, y: member.y + member.height + GAP },
   ])
   const scored = spots
     .map((spot) => ({ ...self, ...spot }))
-    .filter((placed) => !others.some((other) => close(placed, other) && (members.includes(other) || rootOf(other) !== root)))
+    .filter(
+      (placed) =>
+        !others.some(
+          (other) =>
+            (close(placed, other) && (members.includes(other) || rootOf(other) !== root)) ||
+            (overlaps(drawnRect(placed), drawnRect(other)) && unfixable(other)),
+        ),
+    )
     .map((placed) => {
       const grown = hull([...members, placed])
       return {
@@ -498,6 +527,9 @@ export function syncFromDisk(previous: CanvasFile, next: CanvasFile): CanvasFile
     const work = new Map<string, PlacedRect & { section?: unknown }>()
     for (const board of page.boards) work.set(board.name, board as unknown as PlacedRect)
     const usable = (board: PlacedRect) => finite(board.width) && finite(board.height)
+    const priorBoards = [...prior.values()].filter(
+      (board) => usable(board as unknown as PlacedRect) && finite(board.x) && finite(board.y),
+    ) as unknown as PlacedRect[]
     const positioned = (skip: string) =>
       [...work.values()].filter((board) => board.name !== skip && usable(board) && finite(board.x) && finite(board.y))
     const edited = new Set<string>()
@@ -512,7 +544,7 @@ export function syncFromDisk(previous: CanvasFile, next: CanvasFile): CanvasFile
       let placedBySync = false
       if (moved) {
         const bad = unplaced || collides(index, sections, positioned(entry.name), board)
-        const spot = bad ? placeInSection([...positioned(entry.name), board], sections, entry.name) : null
+        const spot = bad ? placeInSection([...positioned(entry.name), board], sections, entry.name, priorBoards) : null
         if (spot) {
           work.set(entry.name, { ...board, ...spot })
           placedBySync = true
@@ -545,9 +577,11 @@ export function syncFromDisk(previous: CanvasFile, next: CanvasFile): CanvasFile
     const priorSections = new Map(((before?.sections ?? []) as SectionEntry[]).map((entry) => [entry.id, entry]))
     const list = positioned('')
     const regrouped = new Set<string>()
+    const areaEdited = new Set<string>()
     for (const entry of sections) {
       const old = priorSections.get(entry.id)
       const changed = !old || AREA_KEYS.some((key) => (old[key] ?? null) !== (entry[key] ?? null))
+      if (changed) areaEdited.add(entry.id)
       if (!changed || !index.parentOf.has(entry.id)) continue
       const units = buildUnits(index, sections, index.parentOf.get(entry.id) ?? null, list)
       const mine = units.find((unit) => unit.name === `section:${entry.id}`)
@@ -555,22 +589,20 @@ export function syncFromDisk(previous: CanvasFile, next: CanvasFile): CanvasFile
       for (const board of list) {
         if (!index.known(board.section) || !index.chain(board.section).includes(entry.id)) continue
         edited.add(board.name)
-        regrouped.add(board.name)
       }
+      regrouped.add(entry.id)
     }
     if (edited.size === 0) return page
     const laid = [...work.values()].filter((board) => usable(board) && finite(board.x) && finite(board.y))
-    const priorBoards = [...prior.values()].filter(
-      (board) => usable(board as unknown as PlacedRect) && finite(board.x) && finite(board.y),
-    ) as unknown as PlacedRect[]
     const moves = resolveMoves(
       laid,
       sections,
       edited,
-      priorBoards.filter((board) => !regrouped.has(board.name)),
+      priorBoards,
+      regrouped,
     )
     const finalBoards = laid.map((board) => ({ ...board, ...moves.get(board.name) }))
-    const shifted = shiftAreas(sections, priorBoards, finalBoards, new Set())
+    const shifted = shiftAreas(sections, laid, finalBoards, areaEdited)
     const final = new Map(finalBoards.map((board) => [board.name, board]))
     let changed = shifted !== sections
     const boards = page.boards.map((entry) => {
