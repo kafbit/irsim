@@ -98,9 +98,10 @@ export function ReplySplit({
           title="Resolve"
           disabled={busy}
           onClick={onResolve}
-          className="grid size-8.5 shrink-0 cursor-pointer place-items-center rounded-[10px] bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50"
+          className="inline-flex h-7 shrink-0 cursor-pointer items-center gap-1 rounded-lg border-0 bg-transparent px-1.5 text-xs text-success-foreground hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50"
         >
-          <Check className="size-4" aria-hidden="true" />
+          Resolve
+          <Check className="size-3.5" aria-hidden="true" />
         </button>
         <div className="flex items-center">
           <Button

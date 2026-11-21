@@ -3,6 +3,7 @@
 import { IconButton } from '../../ui'
 import { ChevronDown, X } from '../../ui/icons'
 import { useEffect, useState } from 'react'
+import { AgentComposer } from '../composer'
 import { CommentCard } from './comment-card'
 import { groupComments, resolvedHeading } from './model'
 import { SendFooter } from './send-footer'
@@ -25,6 +26,8 @@ type Props = {
   onRetarget?: ((id: string, sessionId: string) => Promise<void>) | undefined
   onApproveAndBuild?: ((comment: Comment) => Promise<void>) | undefined
   viewport?: { width: number; height: number } | null
+  page?: string | undefined
+  pageTitle?: string | undefined
 }
 
 /** The end-side panel: the page's comments as Draft, Sent and Resolved, and the footer that sends the drafts. */
@@ -36,6 +39,8 @@ export function ThreadPanel({
   onClose,
   onLocate,
   viewport = null,
+  page,
+  pageTitle = '',
   ...actions
 }: Props) {
   const groups = groupComments(comments)
@@ -82,6 +87,11 @@ export function ThreadPanel({
     />
   )
 
+  const composer =
+    page === undefined ? null : (
+      <AgentComposer page={page} scope={{ kind: 'page', title: pageTitle }} narrow />
+    )
+
   // Scrolls the opened thread into view: the DOM scroll position is an external system.
   useEffect(() => {
     if (activeId) {
@@ -100,9 +110,12 @@ export function ThreadPanel({
       </header>
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
         {comments.length === 0 ? (
-          <p className="m-0 text-sm text-muted-foreground">
-            Press C, then click an element in a board to comment on it.
-          </p>
+          <>
+            <p className="m-0 text-sm text-muted-foreground">
+              Press C, then click an element in a board to comment on it.
+            </p>
+            {composer}
+          </>
         ) : null}
         {sections.map(([title, list]) =>
           list.length === 0 ? null : (
@@ -116,6 +129,7 @@ export function ThreadPanel({
             </section>
           ),
         )}
+        {comments.length > 0 ? composer : null}
         {resolvedTitle ? (
           <details
             open={resolvedOpen}
@@ -141,6 +155,7 @@ export function ThreadPanel({
         loaded={session.loaded}
         sessionId={session.sessionId}
         draftCount={groups.draft.length}
+        showSend={comments.length > 0}
         onPick={session.pick}
         onSend={actions.onSend}
       />

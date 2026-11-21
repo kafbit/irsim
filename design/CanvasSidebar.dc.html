@@ -17,7 +17,7 @@ body{margin:0}
 <div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="position: relative; display: flex; width: 100%; min-height: 100vh; background: var(--card); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
 <aside aria-label="Sidebar" style="display: flex; flex-direction: column; gap: 12px; width: 288px; flex-shrink: 0; box-sizing: border-box; min-height: 100vh; padding: 12px; background: var(--card); border-right: 1px solid var(--border);">
 <nav aria-label="Pages" style="position: relative; display: flex; flex-direction: column; flex-shrink: 0;">
-<div style="display: flex; align-items: center; justify-content: space-between; padding: 3px 4px 3px 8px; border-radius: 10px; color: var(--muted-foreground);"><span>All pages</span><button type="button" aria-label="New group" style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; flex-shrink: 0; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--muted-foreground); cursor: pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg></button></div>
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 3px 4px 3px 8px; border-radius: 10px; color: var(--muted-foreground);"><span>All pages</span></div>
 <sc-if value="{{showAdd}}" hint-placeholder-val="{{false}}">
 <div role="dialog" aria-label="New group" style="position: absolute; top: 100%; right: 0; margin-top: 4px; z-index: 10; box-sizing: border-box; width: 240px; padding: 8px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);"><div style="margin-bottom: 4px; font-size: 12px; color: var(--muted-foreground);">Group name</div><div style="display: flex; align-items: center; gap: 8px;"><div style="display: flex; align-items: center; flex: 1; min-width: 0; height: 32px; box-sizing: border-box; padding: 0 8px; border: 1px solid var(--input); border-radius: 8px; font-size: 13px; color: var(--foreground);">Archive</div><button type="button" style="height: 32px; padding: 0 12px; border: 1px solid var(--primary); border-radius: 8px; background: var(--primary); color: var(--primary-foreground); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Add</button></div></div>
 </sc-if>
@@ -60,6 +60,7 @@ body{margin:0}
 </div>
 </section>
 </sc-if>
+<div style="flex-shrink: 0; margin: 0 -12px -12px; padding: 12px; border-top: 1px solid var(--border); --cv-h: 0px; --cv-pad: 0px; --cv-bg: transparent;"><dc-import name="CanvasComposer" narrow="yes" scope="{{composerScope}}" target="{{selected}}" theme="{{theme}}" hint-size="288px,150px"></dc-import></div>
 </aside>
 </div>
 </x-dc>
@@ -176,6 +177,8 @@ class Component extends DCLogic {
       rows: rowsFor(shown, selected, grouped),
       empty: shown.length === 0,
       showUpdate: update === 'available',
+      composerScope: selected === 'none' ? 'page' : 'board',
+      theme: theme === 'dark' ? 'dark' : 'light',
     }
   }
 }

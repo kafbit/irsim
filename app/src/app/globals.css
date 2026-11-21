@@ -82,3 +82,52 @@ body {
   --sidebar-border: #2d2e33;
   --sidebar-ring: #ecece8;
 }
+
+@property --aura-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes aura-spin {
+  to {
+    --aura-angle: 360deg;
+  }
+}
+.aura {
+  position: absolute;
+  inset: -4px;
+  border-radius: 16px;
+  pointer-events: none;
+}
+.aura::before,
+.aura::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--aura-angle),
+    transparent 0deg,
+    var(--play, #2563eb) 100deg,
+    var(--highlight) 200deg,
+    transparent 300deg
+  );
+  animation: aura-spin 2.4s linear infinite;
+  padding: 3px;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+.aura::after {
+  padding: 4px;
+  filter: blur(10px);
+  opacity: 0.8;
+}
+@media (prefers-reduced-motion: reduce) {
+  .aura::before,
+  .aura::after {
+    animation: none;
+  }
+}

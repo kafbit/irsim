@@ -293,6 +293,9 @@ export const Frame = memo(function Frame({
           </div>
         ) : null}
       </div>
+      {notChanged ? (
+        <div className="aura" role="status" aria-label="The agent is generating this variant" />
+      ) : null}
       {commenting ? (
         <div
           aria-hidden="true"

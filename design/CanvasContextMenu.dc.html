@@ -18,13 +18,13 @@ body{margin:0}
 <sc-for list="{{groups}}" as="g">
 <sc-if value="{{g.sep}}" hint-placeholder-val="{{false}}"><div role="separator" style="height: 1px; margin: 6px 4px; background: var(--muted);"></div></sc-if>
 <sc-for list="{{g.items}}" as="it">
-<div role="menuitem" style="display: flex; align-items: center; gap: 10px; min-height: 38px; box-sizing: border-box; padding: 6px 10px; border-radius: 6px; font-size: 14px; color: {{it.color}}; background: {{it.bg}};"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{it.iconColor}};"><path d="{{it.d1}}"></path><path d="{{it.d2}}"></path><path d="{{it.d3}}"></path></svg><span style="flex: 1; white-space: nowrap;">{{it.label}}</span><sc-if value="{{it.key}}" hint-placeholder-val="{{false}}"><span style="font-size: 12px; color: var(--muted-foreground);">{{it.key}}</span></sc-if><sc-if value="{{it.sub}}" hint-placeholder-val="{{false}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: var(--muted-foreground);"><path d="m9 18 6-6-6-6"></path></svg></sc-if></div>
+<div role="menuitem" style="display: flex; align-items: center; gap: 10px; min-height: 38px; box-sizing: border-box; padding: 6px 10px; border-radius: 6px; font-size: 14px; color: {{it.color}}; background: {{it.bg}}; opacity: {{it.op}};"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{it.iconColor}};"><path d="{{it.d1}}"></path><path d="{{it.d2}}"></path><path d="{{it.d3}}"></path></svg><span style="flex: 1; white-space: nowrap;">{{it.label}}</span><sc-if value="{{it.key}}" hint-placeholder-val="{{false}}"><span style="font-size: 12px; color: var(--muted-foreground);">{{it.key}}</span></sc-if><sc-if value="{{it.sub}}" hint-placeholder-val="{{false}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: var(--muted-foreground);"><path d="m9 18 6-6-6-6"></path></svg></sc-if></div>
 </sc-for>
 </sc-for>
-<sc-if value="{{showSub}}" hint-placeholder-val="{{false}}"><div role="menu" aria-label="Tidy" style="position: absolute; left: 100%; top: {{subTop}}px; margin-left: 4px; display: flex; flex-direction: column; box-sizing: border-box; width: 300px; padding: 6px; border: 1px solid var(--border); border-radius: 12px; background: var(--popover); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);"><sc-for list="{{subItems}}" as="si"><div role="menuitem" style="display: flex; align-items: center; gap: 10px; min-height: 38px; box-sizing: border-box; padding: 6px 10px; border-radius: 6px; font-size: 14px; color: var(--foreground); background: {{si.bg}};"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: var(--muted-foreground);"><path d="{{si.d}}"></path></svg><span style="display: flex; flex-direction: column; flex: 1; min-width: 0;"><span style="white-space: nowrap;">{{si.label}}</span><sc-if value="{{si.note}}" hint-placeholder-val="{{false}}"><span style="font-size: 12px; color: var(--muted-foreground);">{{si.note}}</span></sc-if></span></div></sc-for></div></sc-if>
+<sc-if value="{{showSub}}" hint-placeholder-val="{{false}}"><div role="menu" aria-label="{{subLabel}}" style="position: absolute; left: 100%; top: {{subTop}}px; margin-left: 4px; display: flex; flex-direction: column; box-sizing: border-box; width: 240px; padding: 6px; border: 1px solid var(--border); border-radius: 12px; background: var(--popover); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);"><sc-for list="{{subItems}}" as="si"><div role="menuitem" style="display: flex; align-items: center; gap: 10px; min-height: 38px; box-sizing: border-box; padding: 6px 10px; border-radius: 6px; font-size: 14px; color: {{si.color}}; background: {{si.bg}}; opacity: {{si.op}};"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; color: {{si.iconColor}};"><path d="{{si.d1}}"></path><path d="{{si.d2}}"></path><path d="{{si.d3}}"></path></svg><span style="flex: 1; white-space: nowrap;">{{si.label}}</span><sc-if value="{{si.key}}" hint-placeholder-val="{{false}}"><span style="font-size: 12px; color: var(--muted-foreground);">{{si.key}}</span></sc-if></div></sc-for></div></sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"target":{"editor":"enum","default":"frame","options":["frame","frames","section","part","mixed","page","canvas"]},"submenu":{"editor":"enum","default":"none","options":["none","tidy"]},"sidebar":{"editor":"enum","default":"no","options":["no","yes"]},"count":{"editor":"number","default":2},"session":{"editor":"enum","default":"one","options":["one","none"]},"play":{"editor":"enum","default":"yes","options":["yes","no"]},"variant":{"editor":"enum","default":"no","options":["no","yes"]},"pending":{"editor":"number","default":1},"nestable":{"editor":"enum","default":"yes","options":["yes","no"]},"":{"width":240,"height":300}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"target":{"editor":"enum","default":"frame","options":["frame","frames","section","part","mixed","page","canvas"]},"submenu":{"editor":"enum","default":"none","options":["none","agent","section","copy","page","view"]},"sidebar":{"editor":"enum","default":"no","options":["no","yes"]},"count":{"editor":"number","default":2},"session":{"editor":"enum","default":"one","options":["one","none"]},"play":{"editor":"enum","default":"yes","options":["yes","no"]},"variant":{"editor":"enum","default":"no","options":["no","yes"]},"pending":{"editor":"number","default":1},"nestable":{"editor":"enum","default":"yes","options":["yes","no"]},"member":{"editor":"enum","default":"no","options":["no","yes"]},"":{"width":240,"height":300}}'>
 const ICONS = {
   copy: ['M10 8h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z', 'M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2', ''],
   play: ['M6 3l14 9-14 9z', '', ''],
@@ -56,83 +56,81 @@ const ICONS = {
 }
 class Component extends DCLogic {
   renderVals() {
-    const { theme, target, session, play, variant, nestable, sidebar, submenu } = this.props
+    const { theme, target, session, play, variant, nestable, sidebar, submenu, member } = this.props
     const count = Number(this.props.count)
-    const pending = Number(this.props.pending)
     const connected = session !== 'none'
     const single = target === 'frame'
+    const page = target === 'page' || target === 'canvas'
     const item = (icon, label, extra = {}) => {
       const found = ICONS[icon]
       const [d1, d2, d3] = Array.isArray(found) ? found : [found, '', '']
       const danger = extra.danger === true
-      return { d1, d2, d3, label, key: extra.key || '', sub: extra.sub === true, bg: 'transparent', color: danger ? 'var(--destructive)' : 'var(--foreground)', iconColor: danger ? 'var(--destructive)' : 'var(--muted-foreground)' }
+      return { id: extra.id || '', d1, d2, d3, label, key: extra.key || '', sub: extra.sub === true, bg: 'transparent', op: extra.off === true ? 0.5 : 1, color: danger ? 'var(--destructive)' : 'var(--foreground)', iconColor: danger ? 'var(--destructive)' : 'var(--muted-foreground)', flyout: extra.flyout || [], flyoutLabel: extra.flyoutLabel || '' }
     }
-    const page = target === 'page' || target === 'canvas'
-    const copy = item('copy', page ? 'Copy page name' : single ? 'Copy frame name' : `Copy ${count} frame names`)
-    const frameItems = single
-      ? [play === "yes" ? item("play", "Play") : null, item('comment', 'Comment')]
-      : []
-    const agentItems = connected
-      ? single
-        ? [variant === 'no' ? item('variants', 'Generate variants') : null, pending > 0 ? item('approve', 'Approve and build') : null]
-        : [pending > 0 ? item('approve', `Approve ${pending} and build`) : null]
-      : []
-    const sectionItems = {
-      frame: [],
-      frames: [item('section', 'Create section', { key: 'Shift+S' })],
-      section: [item('rename', 'Rename section'), nestable === 'yes' ? item('sub', 'Create sub-section') : null, item('out', 'Remove from section'), item('trash', 'Delete section', { danger: true })],
+    const frameNames = single ? 'Copy frame name' : `Copy ${count} frame names`
+    const sectionFlyout = {
+      frame: [member === 'yes' ? item('out', 'Remove from section') : item('section', 'Create section', { key: 'Shift+S' })],
+      frames: [member === 'yes' ? item('out', 'Remove from section') : item('section', 'Create section', { key: 'Shift+S' })],
       part: [nestable === 'yes' ? item('sub', 'Create sub-section') : null, item('out', 'Remove from section')],
       mixed: [item('section', 'Create section', { key: 'Shift+S' }), item('out', 'Remove from section')],
+      section: [nestable === 'yes' ? item('sub', 'Create sub-section') : null, item('rename', 'Rename section'), item('trash', 'Delete section', { danger: true })],
     }[target] || []
-    const pageGroups = target === 'page'
-      ? [
-          [item('open', 'Open'), item('external', 'Open in new tab')],
-          [copy, item('link', 'Copy page link')],
-          [item('rename', 'Rename page'), item('icon', 'Change icon…'), item('move', 'Move to group', { sub: true })],
-          connected ? [item('sparkles', 'Choose icon with agent')] : [],
-        ]
-      : target === 'canvas'
-        ? [
-            [copy, item('link', 'Copy page link')],
-            [item('select', 'Select all', { key: 'Ctrl+A' }), item('fit', 'Zoom to fit', { key: 'Shift+1' }), item('hundred', 'Zoom to 100%', { key: 'Shift+0' }), item('hide', 'Hide sidebar')],
-            [item('rename', 'Rename page'), item('icon', 'Change icon…')],
-            connected ? [item('grid', 'Reorganize frames with agent'), item('sparkles', 'Choose icon with agent')] : [],
-          ]
-        : null
+    const copyFlyout = [item('copy', target === 'section' ? 'Copy section name' : frameNames)]
+    const sectionParent = item('section', 'Section', { sub: true, id: 'section', flyout: sectionFlyout, flyoutLabel: 'Section' })
+    const copyParent = item('copy', 'Copy', { sub: true, id: 'copy', flyout: copyFlyout, flyoutLabel: 'Copy' })
+    const ask = item('sparkles', 'Ask the agent…', { off: !connected })
+    let pageGroups = null
+    if (page) {
+      const pageParent = item('rename', 'Page', { sub: true, id: 'page', flyout: [item('rename', 'Rename page'), item('icon', 'Change icon…'), item('copy', 'Copy page name'), item('link', 'Copy page link')], flyoutLabel: 'Page' })
+      const viewParent = item('fit', 'View', { sub: true, id: 'view', flyout: [item('select', 'Select all', { key: 'Ctrl+A' }), item('fit', 'Zoom to fit', { key: 'Shift+1' }), item('hundred', 'Zoom to 100%', { key: 'Shift+0' }), item('hide', 'Hide sidebar', { key: 'Ctrl+\\' })], flyoutLabel: 'View' })
+      pageGroups = [
+        [ask, item('grid', 'Reorganize frames with agent', { off: !connected }), item('sparkles', 'Choose icon with agent', { off: !connected })],
+        [pageParent, viewParent],
+      ]
+    }
     const locate = sidebar === 'yes' && (target === 'frame' || target === 'section') ? [item('locate', 'Show on canvas')] : []
-    const tidyGroup = target === 'section' ? [item('tidy', 'Tidy', { sub: true })] : []
-    const groups = (pageGroups || [locate, [copy], frameItems, agentItems, tidyGroup, sectionItems])
+    const body = {
+      frame: [
+        [ask, connected && variant === 'no' ? item('variants', 'Generate variants…') : null],
+        [play === 'yes' ? item('play', 'Play') : null, item('comment', 'Comment')],
+        [sectionParent, copyParent],
+      ],
+      frames: [[ask], [sectionParent, copyParent]],
+      part: [[ask], [sectionParent, copyParent]],
+      mixed: [[ask], [sectionParent, copyParent]],
+      section: [
+        [ask, item('grid', 'Reorganize with agent', { off: !connected })],
+        [item('tidy', 'Arrange…'), sectionParent, copyParent],
+      ],
+    }[target]
+    const groups = (pageGroups || [locate, ...body])
       .map((items) => items.filter(Boolean))
       .filter((items) => items.length > 0)
       .map((items, i) => ({ sep: i > 0, items }))
-    const showSub = target === 'section' && submenu === 'tidy'
+    let parent = null
     let subTop = 0
-    if (showSub) {
-      let y = 7
-      for (const g of groups) {
-        if (g.sep) y += 13
-        for (const it of g.items) {
-          if (it.label === 'Tidy') {
-            it.bg = 'var(--accent)'
-            subTop = y - 7
-          }
-          y += 38
+    let y = 7
+    for (const g of groups) {
+      if (g.sep) y += 13
+      for (const it of g.items) {
+        if (it.sub && it.id === submenu) {
+          parent = it
+          subTop = y - 7
         }
+        y += 38
       }
     }
-    if (!showSub) groups[0].items[0].bg = 'var(--accent)'
-    const subItems = [
-      { d: ICONS.row, label: 'In a row', note: '', bg: 'transparent' },
-      { d: ICONS.column, label: 'In a column', note: '', bg: 'transparent' },
-      { d: ICONS.wrap, label: 'Wrap', note: 'Reflows when the section is resized', bg: 'transparent' },
-      { d: ICONS.grid, label: 'Grid…', note: 'Opens the controls in the right sidebar', bg: 'transparent' },
-    ]
+    const showSub = parent !== null
+    if (showSub) parent.bg = 'var(--accent)'
+    else groups[0].items[0].bg = 'var(--accent)'
+    const subItems = showSub ? parent.flyout.filter(Boolean) : []
     return {
       themeClass: theme === 'dark' ? 'dark' : '',
       label: target === 'page' ? 'Page actions' : target === 'canvas' ? 'Canvas actions' : single ? 'Frame actions' : 'Selection actions',
       width: page ? 268 : 240,
       showSub,
       subTop,
+      subLabel: showSub ? parent.flyoutLabel : '',
       subItems,
       groups,
     }

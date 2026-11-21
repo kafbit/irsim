@@ -20,8 +20,47 @@ body{margin:0}
 <h2 style="margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; line-height: 24px; font-weight: 600;">{{title}}</h2>
 <p style="margin: 0; font-size: 14px; color: var(--muted-foreground);">{{subtitle}}</p>
 </header>
-<dl style="display: flex; flex-direction: column; gap: 12px; margin: 0;">
+<sc-if value="{{isMulti}}" hint-placeholder-val="{{false}}">
+<section aria-label="Section actions" style="position: relative; display: flex; align-items: center; gap: 8px;">
+<button type="button" aria-haspopup="menu" aria-expanded="{{menuOpen}}" style="display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--background); color: var(--foreground); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Section<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="m6 9 6 6 6-6"></path></svg></button>
+<button type="button" style="display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--background); color: var(--foreground); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Arrange...</button>
+<sc-if value="{{menuOpen}}" hint-placeholder-val="{{false}}">
+<div role="menu" aria-label="Section" style="position: absolute; left: 0; top: 100%; margin-top: 4px; z-index: 10; display: flex; flex-direction: column; gap: 2px; box-sizing: border-box; width: 240px; padding: 4px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); box-shadow: 0 8px 24px rgba(0,0,0,0.16);">
+<sc-if value="{{notShared}}" hint-placeholder-val="{{false}}"><button type="button" role="menuitem" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 32px; box-sizing: border-box; padding: 0 8px; border: 0; border-radius: 8px; background: transparent; color: var(--foreground); font: inherit; font-size: 13px; text-align: left; cursor: pointer;"><span>Create section</span><span style="padding: 1px 6px; border: 1px solid var(--border-strong); border-radius: 6px; font-size: 11px; color: var(--muted-foreground);">Shift+S</span></button></sc-if>
+<button type="button" role="menuitem" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 32px; box-sizing: border-box; padding: 0 8px; border: 0; border-radius: 8px; background: transparent; color: var(--foreground); font: inherit; font-size: 13px; text-align: left; cursor: pointer;">Remove from section</button>
+<sc-if value="{{showDelete}}" hint-placeholder-val="{{false}}">
+<button type="button" role="menuitem" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 32px; box-sizing: border-box; padding: 0 8px; border: 0; border-radius: 8px; background: transparent; color: var(--foreground); font: inherit; font-size: 13px; text-align: left; cursor: pointer;">Create sub-section</button>
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 32px; padding: 0 8px;"><span style="font-size: 13px;">Color</span><div style="display: flex; align-items: center; gap: 8px; padding: 2px;"><button type="button" aria-label="Gray" aria-pressed="true" style="width: 20px; height: 20px; box-sizing: border-box; margin: 0; padding: 0; border: 1px solid var(--border-strong); border-radius: 50%; background: var(--muted-foreground); outline: 2px solid var(--ring); outline-offset: 2px; cursor: pointer;"></button><button type="button" aria-label="Blue" aria-pressed="false" style="width: 20px; height: 20px; box-sizing: border-box; margin: 0; padding: 0; border: 1px solid var(--border-strong); border-radius: 50%; background: var(--info-foreground); cursor: pointer;"></button><button type="button" aria-label="Green" aria-pressed="false" style="width: 20px; height: 20px; box-sizing: border-box; margin: 0; padding: 0; border: 1px solid var(--border-strong); border-radius: 50%; background: var(--success-foreground); cursor: pointer;"></button><button type="button" aria-label="Amber" aria-pressed="false" style="width: 20px; height: 20px; box-sizing: border-box; margin: 0; padding: 0; border: 1px solid var(--border-strong); border-radius: 50%; background: var(--warning-foreground); cursor: pointer;"></button><button type="button" aria-label="Purple" aria-pressed="false" style="width: 20px; height: 20px; box-sizing: border-box; margin: 0; padding: 0; border: 1px solid var(--border-strong); border-radius: 50%; background: var(--rented-foreground); cursor: pointer;"></button><button type="button" aria-label="Red" aria-pressed="false" style="width: 20px; height: 20px; box-sizing: border-box; margin: 0; padding: 0; border: 1px solid var(--border-strong); border-radius: 50%; background: var(--destructive); cursor: pointer;"></button></div></div>
+<div role="separator" style="height: 1px; margin: 2px 0; background: var(--border);"></div>
+<button type="button" role="menuitem" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 32px; box-sizing: border-box; padding: 0 8px; border: 0; border-radius: 8px; background: transparent; color: var(--foreground); font: inherit; font-size: 13px; text-align: left; cursor: pointer; color: var(--destructive);">Delete section</button>
+</sc-if>
+</div>
+</sc-if>
+</section>
+</sc-if>
 <sc-if value="{{notMulti}}" hint-placeholder-val="{{true}}">
+<sc-if value="{{showApproval}}" hint-placeholder-val="{{true}}">
+<section aria-label="Approve" style="display: flex; flex-direction: column; gap: 8px;">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+<h3 style="margin: 0; font-size: 12px; font-weight: 400; color: var(--muted-foreground);">Approval</h3>
+<sc-if value="{{hasBadge}}" hint-placeholder-val="{{true}}">
+<span style="display: inline-flex; align-items: center; height: 20px; box-sizing: border-box; padding: 0 8px; border-radius: 9999px; background: {{badgeBg}}; color: {{badgeFg}}; font-size: 11px; font-weight: 600; white-space: nowrap;">{{badgeText}}</span>
+</sc-if>
+</div>
+<sc-if value="{{showApprovalForm}}" hint-placeholder-val="{{true}}">
+<div style="box-sizing: border-box; min-height: 64px; padding: 8px 10px; border: 1px solid var(--input); border-radius: 10px; font-size: 14px; color: var(--muted-foreground);">Note for the agent (optional)</div>
+<button type="button" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 12px 0 10px; border: 1px solid var(--primary); border-radius: 10px; background: var(--primary); color: var(--primary-foreground); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Approve and build</button>
+<sc-if value="{{queued}}" hint-placeholder-val="{{false}}">
+<p role="status" style="margin: 0; font-size: 12px; color: var(--muted-foreground);">Waiting for the agent to receive it.</p>
+</sc-if>
+</sc-if>
+</section>
+</sc-if>
+<div style="--cv-h: 0px; --cv-pad: 0px; --cv-bg: transparent;"><dc-import name="CanvasComposer" narrow="yes" scope="board" target="{{boardName}}" theme="{{theme}}" hint-size="288px,150px"></dc-import></div>
+<section aria-label="Details" style="display: flex; flex-direction: column; gap: 12px;">
+<button type="button" aria-expanded="{{detailsExpanded}}" style="display: flex; align-items: center; gap: 6px; height: 32px; margin: 0 -8px; padding: 0 8px; border: 0; border-radius: 8px; background: transparent; color: var(--foreground); font: inherit; font-size: 14px; font-weight: 500; text-align: left; cursor: pointer;"><sc-if value="{{detailsExpanded}}" hint-placeholder-val="{{false}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="m6 9 6 6 6-6"></path></svg></sc-if><sc-if value="{{detailsCollapsed}}" hint-placeholder-val="{{true}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="m9 18 6-6-6-6"></path></svg></sc-if>Details</button>
+<sc-if value="{{detailsExpanded}}" hint-placeholder-val="{{false}}">
+<dl style="display: flex; flex-direction: column; gap: 12px; margin: 0;">
 <div style="display: flex; flex-direction: column; gap: 4px;">
 <dt style="font-size: 12px; color: var(--muted-foreground);">Size</dt>
 <dd style="margin: 0; font-size: 14px; font-variant-numeric: tabular-nums;">480 × 320</dd>
@@ -46,26 +85,9 @@ body{margin:0}
 </sc-if>
 </dd>
 </div>
-</sc-if>
-<div style="display: flex; flex-direction: column; gap: 4px;">
-<dt style="font-size: 12px; color: var(--muted-foreground);">Section</dt>
-<dd style="margin: 0; font-size: 14px;"><span style="display: flex; align-items: center; justify-content: space-between; gap: 8px; height: 36px; box-sizing: border-box; padding: 0 10px; border: 1px solid var(--input); border-radius: 10px; color: {{sectionColor}};"><span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{sectionValue}}</span><span style="display: inline-flex; flex-shrink: 0; color: var(--muted-foreground);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></span></dd>
-</div>
 </dl>
-<sc-if value="{{showVariantForm}}" hint-placeholder-val="{{false}}">
-<section aria-label="Variants" style="display: flex; flex-direction: column; gap: 8px;">
-<h3 style="margin: 0; font-size: 12px; font-weight: 400; color: var(--muted-foreground);">Variants</h3>
-<div style="display: flex; flex-wrap: wrap; gap: 6px;">
-<sc-for list="{{presets}}" as="chip"><span style="display: inline-flex; align-items: center; height: 26px; box-sizing: border-box; padding: 0 10px; border: 1px solid {{chip.border}}; border-radius: 9999px; background: {{chip.bg}}; color: {{chip.fg}}; font-size: 12px; font-weight: 500; white-space: nowrap;">{{chip.label}}</span></sc-for>
-</div>
-<div style="box-sizing: border-box; min-height: 56px; padding: 8px 10px; border: 1px solid var(--input); border-radius: 10px; font-size: 14px; color: var(--muted-foreground);">Note for the agent (optional)</div>
-<div style="--cv-h: 0px; --cv-pad: 0px; --cv-bg: transparent;"><dc-import name="CanvasSession" theme="{{theme}}" state="one" hint-size="256px,52px"></dc-import></div>
-<button type="button" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 12px 0 10px; border: 1px solid var(--primary); border-radius: 10px; background: var(--primary); color: var(--primary-foreground); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3"></path><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"></path><path d="M12 2v20"></path></svg>Generate 2 variants</button>
-<sc-if value="{{showExisting}}" hint-placeholder-val="{{false}}">
-<span style="display: inline-flex; align-items: center; justify-content: center; align-self: flex-start; gap: 8px; height: 34px; box-sizing: border-box; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--background); color: var(--foreground); font-size: 13px; font-weight: 500; white-space: nowrap;">Compare 2 variants</span>
 </sc-if>
 </section>
-</sc-if>
 <sc-if value="{{showVariantBoard}}" hint-placeholder-val="{{false}}">
 <section aria-label="Variants" style="display: flex; flex-direction: column; gap: 8px;">
 <h3 style="margin: 0; font-size: 12px; font-weight: 400; color: var(--muted-foreground);">Variants</h3>
@@ -84,67 +106,18 @@ body{margin:0}
 <button type="button" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid transparent; border-radius: 10px; background: transparent; color: var(--foreground); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Generate more</button>
 </section>
 </sc-if>
-<sc-if value="{{isMulti}}" hint-placeholder-val="{{false}}">
-<section aria-label="Section actions" style="display: flex; flex-direction: column; gap: 8px;">
-<button type="button" style="display: flex; align-items: center; justify-content: space-between; gap: 6px; height: 34px; padding: 0 10px 0 12px; border: 1px solid var(--primary); border-radius: 10px; background: var(--primary); color: var(--primary-foreground); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;"><span>Create section</span><span style="padding: 1px 6px; border: 1px solid color-mix(in srgb, var(--primary-foreground) 40%, transparent); border-radius: 6px; font-size: 11px; font-weight: 500;">Shift+S</span></button>
-<button type="button" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--background); color: var(--foreground); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Remove from section</button>
-<sc-if value="{{showDelete}}" hint-placeholder-val="{{false}}">
-<div style="display: flex; flex-direction: column; gap: 8px;"><h3 style="margin: 0; font-size: 12px; font-weight: 400; color: var(--muted-foreground);">Color</h3><div style="display: flex; align-items: center; gap: 8px; padding: 2px;"><button type="button" aria-label="Gray" aria-pressed="true" style="width: 20px; height: 20px; box-sizing: border-box; margin: 0; padding: 0; border: 1px solid var(--border-strong); border-radius: 50%; background: var(--muted-foreground); outline: 2px solid var(--ring); outline-offset: 2px; cursor: pointer;"></button><button type="button" aria-label="Blue" aria-pressed="false" style="width: 20px; height: 20px; box-sizing: border-box; margin: 0; padding: 0; border: 1px solid var(--border-strong); border-radius: 50%; background: var(--info-foreground); cursor: pointer;"></button><button type="button" aria-label="Green" aria-pressed="false" style="width: 20px; height: 20px; box-sizing: border-box; margin: 0; padding: 0; border: 1px solid var(--border-strong); border-radius: 50%; background: var(--success-foreground); cursor: pointer;"></button><button type="button" aria-label="Amber" aria-pressed="false" style="width: 20px; height: 20px; box-sizing: border-box; margin: 0; padding: 0; border: 1px solid var(--border-strong); border-radius: 50%; background: var(--warning-foreground); cursor: pointer;"></button><button type="button" aria-label="Purple" aria-pressed="false" style="width: 20px; height: 20px; box-sizing: border-box; margin: 0; padding: 0; border: 1px solid var(--border-strong); border-radius: 50%; background: var(--rented-foreground); cursor: pointer;"></button><button type="button" aria-label="Red" aria-pressed="false" style="width: 20px; height: 20px; box-sizing: border-box; margin: 0; padding: 0; border: 1px solid var(--border-strong); border-radius: 50%; background: var(--destructive); cursor: pointer;"></button></div></div>
-<button type="button" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--background); color: var(--foreground); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Create sub-section</button>
-<sc-if value="{{showTidy}}" hint-placeholder-val="{{false}}">
-<div role="group" aria-label="Tidy" style="display: flex; flex-direction: column; gap: 8px;"><h3 style="margin: 0; font-size: 12px; font-weight: 400; color: var(--muted-foreground);">Tidy</h3><div role="radiogroup" aria-label="Layout" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: 10px; background: var(--secondary);"><sc-for list="{{tidyOptions}}" as="opt"><button type="button" role="radio" aria-checked="{{opt.on}}" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; height: 48px; min-width: 0; padding: 0; border: 1px solid {{opt.border}}; border-radius: 8px; background: {{opt.bg}}; color: var(--foreground); font: inherit; font-size: 11px; font-weight: 500; cursor: pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{opt.d}}"></path></svg>{{opt.label}}</button></sc-for></div><div style="display: flex; flex-direction: column; flex: 1; gap: 4px; min-width: 0;"><span style="font-size: 12px; color: var(--muted-foreground);">Gap</span><div style="display: flex; align-items: center; height: 34px; box-sizing: border-box; padding: 0 10px; border: 1px solid var(--input); border-radius: 10px; font-size: 14px; color: var(--foreground);">40</div></div><sc-if value="{{tidyGrid}}" hint-placeholder-val="{{false}}"><div style="display: flex; align-items: flex-end; gap: 8px;"><div style="display: flex; flex-direction: column; flex: 1; gap: 4px; min-width: 0;"><span style="font-size: 12px; color: var(--muted-foreground);">Columns</span><div style="display: flex; align-items: center; height: 34px; box-sizing: border-box; padding: 0 10px; border: 1px solid var(--input); border-radius: 10px; font-size: 14px; color: var(--foreground);">3</div></div><span style="padding-bottom: 8px; font-size: 14px; color: var(--muted-foreground);">×</span><div style="display: flex; flex-direction: column; flex: 1; gap: 4px; min-width: 0;"><span style="font-size: 12px; color: var(--muted-foreground);">Rows</span><div style="display: flex; align-items: center; height: 34px; box-sizing: border-box; padding: 0 10px; border: 1px solid var(--input); border-radius: 10px; font-size: 14px; color: var(--foreground);">2</div></div></div></sc-if><sc-if value="{{tidyWrap}}" hint-placeholder-val="{{false}}"><p style="margin: 0; font-size: 12px; line-height: 16px; color: var(--muted-foreground);">Frames reflow when you resize the section</p></sc-if><button type="button" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--primary); border-radius: 10px; background: var(--primary); color: var(--primary-foreground); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;">Tidy</button></div>
-</sc-if>
-<button type="button" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--background); color: var(--foreground); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Delete section</button>
-</sc-if>
-</section>
-</sc-if>
-<sc-if value="{{notMulti}}" hint-placeholder-val="{{true}}">
-<section aria-label="Approve" style="display: flex; flex-direction: column; gap: 8px;">
-<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-<h3 style="margin: 0; font-size: 12px; font-weight: 400; color: var(--muted-foreground);">Approval</h3>
-<sc-if value="{{hasBadge}}" hint-placeholder-val="{{true}}">
-<span style="display: inline-flex; align-items: center; height: 20px; box-sizing: border-box; padding: 0 8px; border-radius: 9999px; background: {{badgeBg}}; color: {{badgeFg}}; font-size: 11px; font-weight: 600; white-space: nowrap;">{{badgeText}}</span>
-</sc-if>
-</div>
-<sc-if value="{{showApprovalForm}}" hint-placeholder-val="{{true}}">
-<div style="box-sizing: border-box; min-height: 64px; padding: 8px 10px; border: 1px solid var(--input); border-radius: 10px; font-size: 14px; color: var(--muted-foreground);">Note for the agent (optional)</div>
-<div style="--cv-h: 0px; --cv-pad: 0px; --cv-bg: transparent;"><dc-import name="CanvasSession" theme="{{theme}}" state="one" hint-size="256px,52px"></dc-import></div>
-<button type="button" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 12px 0 10px; border: 1px solid var(--primary); border-radius: 10px; background: var(--primary); color: var(--primary-foreground); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Approve and build</button>
-<sc-if value="{{queued}}" hint-placeholder-val="{{false}}">
-<p role="status" style="margin: 0; font-size: 12px; color: var(--muted-foreground);">Waiting for the agent to receive it.</p>
-</sc-if>
-</sc-if>
-</section>
 <button type="button" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--background); color: var(--foreground); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"/></svg>Play</button>
 </sc-if>
 </aside>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"approval":{"editor":"enum","default":"none","options":["none","new","approved","changed","queued"]},"imports":{"editor":"enum","default":"3","options":["3","0","10","10-expanded"]},"existing":{"editor":"enum","default":"no","options":["no","yes"]},"unchanged":{"editor":"enum","default":"yes","options":["yes","no"]},"shared":{"editor":"enum","default":"no","options":["no","yes"]},"tidy":{"editor":"enum","default":"none","options":["none","row","column","wrap","grid"]},"mode":{"editor":"enum","default":"single","options":["single","multi","variants","variant-sent","variant"]},"$preview":{"width":288,"height":820}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"approval":{"editor":"enum","default":"none","options":["none","new","approved","changed","queued"]},"imports":{"editor":"enum","default":"3","options":["3","0","10","10-expanded"]},"unchanged":{"editor":"enum","default":"yes","options":["yes","no"]},"shared":{"editor":"enum","default":"no","options":["no","yes"]},"menu":{"editor":"enum","default":"none","options":["none","open"]},"mode":{"editor":"enum","default":"default","options":["default","imports","multi","variant-sent","variant"]},"$preview":{"width":288,"height":820}}'>
 class Component extends DCLogic {
   renderVals() {
     const { approval, imports, theme, mode } = this.props
     const multi = mode === 'multi'
     const sharedSection = multi && this.props.shared === 'yes'
-    const tidy = ['row', 'column', 'wrap', 'grid'].includes(this.props.tidy) ? this.props.tidy : 'none'
-    const tidyIcons = { row: 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2zM9 3v18M15 3v18', column: 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2zM21 9H3M21 15H3', wrap: 'M16 16l-3 3 3 3M3 12h14.5a1 1 0 0 1 0 7H13M3 19h6M3 5h18', grid: 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2zM3 9h18M3 15h18M9 3v18M15 3v18' }
-    const tidyOptions = ['row', 'column', 'wrap', 'grid'].map((key) => ({
-      label: key[0].toUpperCase() + key.slice(1),
-      d: tidyIcons[key],
-      on: key === tidy,
-      bg: key === tidy ? 'var(--accent)' : 'transparent',
-      border: key === tidy ? 'var(--border-strong)' : 'transparent',
-    }))
-    const chosen = ['Simpler', 'Clearer']
-    const presets = ['Better', 'Clearer', 'Simpler', 'Responsive', 'UI/UX pass', 'Research'].map((label) => {
-      const on = chosen.includes(label)
-      return {
-        label,
-        bg: on ? 'var(--primary)' : 'transparent',
-        fg: on ? 'var(--primary-foreground)' : 'var(--foreground)',
-        border: on ? 'var(--primary)' : 'var(--border-strong)',
-      }
-    })
+    const detailsOpen = mode === 'imports'
     const allNames = String(imports) === '0' ? [] : String(imports).startsWith('10') ? ['CanvasSidebar', 'CanvasFrame', 'CanvasToolbar', 'CanvasFocusBar', 'CanvasToast', 'CanvasZoomBar', 'CanvasInspector', 'CanvasThread', 'CanvasSearch', 'CanvasSettings'] : ['Button', 'Icons', 'Badge']
     const expanded = String(imports) === '10-expanded'
     const names = expanded ? allNames : allNames.slice(0, 3)
@@ -161,20 +134,17 @@ class Component extends DCLogic {
       subtitle: multi ? 'Button, Dialog, Table' : 'Confirmation dialog',
       isMulti: multi,
       showDelete: sharedSection,
-      showTidy: sharedSection && tidy !== 'none',
-      tidyOptions,
-      tidyGrid: tidy === 'grid',
-      tidyWrap: tidy === 'wrap',
+      notShared: !sharedSection,
+      menuOpen: multi && this.props.menu === 'open',
+      boardName: mode === 'variant' ? 'DialogVariantSimpler' : 'Dialog',
+      showApproval: ['new', 'changed', 'queued', 'approved'].includes(approval),
+      detailsExpanded: detailsOpen,
+      detailsCollapsed: !detailsOpen,
       notMulti: !multi,
-      sectionValue: mode === 'variant-sent' || mode === 'variant' ? 'Dialog variants' : multi ? (sharedSection ? 'Checkout flow' : 'Mixed') : 'None',
-      sectionColor: mode === 'variant-sent' || mode === 'variant' || multi ? 'var(--foreground)' : 'var(--muted-foreground)',
-      showVariantForm: mode === 'variants',
       showVariantSent: mode === 'variant-sent',
       showVariantBoard: mode === 'variant',
-      showExisting: this.props.existing === 'yes',
       showUnchanged: this.props.unchanged !== 'no',
       filePath: mode === 'variant' ? 'design/DialogVariantSimpler.dc.html' : 'design/Dialog.dc.html',
-      presets,
       importsLabel: `Imports (${allNames.length})`,
       imports: names,
       hasImports: names.length > 0,

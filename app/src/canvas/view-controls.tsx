@@ -50,7 +50,6 @@ export function ViewControls({
   onFitSelection,
   minimap,
   onToggleMinimap,
-  onOpenSettings,
 }: {
   camera: Camera
   layout: Layout
@@ -61,7 +60,6 @@ export function ViewControls({
   onFitSelection: () => void
   minimap: boolean
   onToggleMinimap: () => void
-  onOpenSettings?: () => void
 }) {
   const { theme, toggle: toggleTheme } = useTheme()
   return (
@@ -110,7 +108,6 @@ export function ViewControls({
             <Item onSelect={toggleTheme}>
               {theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
             </Item>
-            {onOpenSettings ? <Item onSelect={onOpenSettings}>Settings…</Item> : null}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

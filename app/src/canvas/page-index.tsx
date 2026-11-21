@@ -13,7 +13,7 @@ import type { PageSummary } from './types'
 import { GlobalSearch } from './global-search'
 import { SettingsDialog } from './settings-dialog'
 import { PageMenu, usePagesRefresh } from './page-menu'
-import { GroupMenu, GroupTitle, NewGroupButton } from './page-group-controls'
+import { GroupMenu, GroupTitle } from './page-group-controls'
 import type { PageGroup } from './page-groups'
 import {
   GroupSortable,
@@ -23,6 +23,9 @@ import {
   useLooseHeader,
   usePageItem,
 } from './page-groups-dnd'
+import { AgentComposer } from './composer'
+import { SessionRow } from './comments/session-row'
+import { useSession } from './comments/use-session'
 import { UpdateNotice } from './update-notice'
 import { useApi } from './use-api'
 import { usePageGroups } from './use-page-groups'
@@ -203,20 +206,45 @@ function Groups({ pages, onOpenSettings }: { pages: PageSummary[]; onOpenSetting
   const store = usePageGroups(pages.map((page) => page.id))
   const { state } = store
   const grouped = state.groups.length > 0
+  const session = useSession()
+  const empty = pages.length === 0
 
   return (
     <main className="mx-auto max-w-6xl p-8">
       <div className="mb-6 flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <h1 className="m-0 text-2xl font-semibold">Pages</h1>
-          <NewGroupButton onAdd={store.add} align="start" />
-        </div>
+        <h1 className="m-0 text-2xl font-semibold">Pages</h1>
         <div className="flex-1" />
+        <div className="w-65 shrink-0">
+          <SessionRow
+            compact
+            sessions={session.sessions}
+            loaded={session.loaded}
+            sessionId={session.sessionId}
+            onPick={session.pick}
+          />
+        </div>
         <Button variant="secondary" size="sm" onClick={onOpenSettings} className="h-8.5 px-3 text-[13px]">
           Settings
         </Button>
       </div>
-      <UpdateNotice className="mb-6 max-w-sm" />
+      {empty ? (
+        <section aria-label="Start designing" className="mx-auto mt-24 flex max-w-160 flex-col gap-4">
+          <div className="flex flex-col gap-1 text-center">
+            <h2 className="m-0 text-xl font-semibold">What do you want to design?</h2>
+            <p className="m-0 text-[13px] text-muted-foreground">
+              Your agent session draws the boards and adds them to a new page.
+            </p>
+          </div>
+          <AgentComposer page="" scope={{ kind: 'none' }} />
+        </section>
+      ) : (
+        <>
+          <div className="mb-6">
+            <AgentComposer page="" scope={{ kind: 'none' }} size="slim" />
+          </div>
+          <UpdateNotice className="mb-6 max-w-sm" />
+        </>
+      )}
       <PageGroupsDnd store={store}>
         <GroupSortable groups={state.groups.map((group) => group.id)}>
           {state.groups.map((group) => (

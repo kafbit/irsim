@@ -11,6 +11,7 @@ import type {
   Session,
   PageRequest,
   PageRequestKind,
+  AskScopeKind,
   VariantRequest,
   VariantPick,
   VariantRequestEntry,
@@ -447,9 +448,19 @@ export const createVariantRequest = (
     return request
   })
 
-/** Queues a page request (reorganize or icon) for a live session; its next claim delivers it. */
+/** Queues a page request (reorganize, icon or ask) for a live session; its next claim delivers it. */
 export const createPageRequest = (
-  input: { page: string; kind: PageRequestKind; sessionId: string },
+  input: {
+    page: string
+    kind: PageRequestKind
+    sessionId: string
+    prompt?: string
+    scope?: AskScopeKind
+    board?: string
+    boards?: string[]
+    section?: string
+    images?: string[]
+  },
   now = Date.now(),
 ): Promise<PageRequest | 'no_session'> =>
   enqueue(async () => {
@@ -527,7 +538,12 @@ export const claim = (sessionId: string, now = Date.now()): Promise<Claim> =>
     if (pages.length > 0) {
       const titles: Record<string, string> = {}
       for (const page of await readCanvasPages().catch(() => [])) titles[page.id] = page.title
-      pageText = buildPageRequestText(pages, titles, designFolderName())
+      const pagePaths: Record<string, string> = {}
+      for (const image of pages.flatMap((request) => request.images ?? [])) {
+        const path = await imagePath(image)
+        if (path) pagePaths[image] = path
+      }
+      pageText = buildPageRequestText(pages, titles, designFolderName(), pagePaths)
     }
     const deliverPages = async (): Promise<void> => {
       if (pages.length === 0) return

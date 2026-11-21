@@ -13,6 +13,7 @@ export function SendFooter({
   loaded,
   sessionId,
   draftCount,
+  showSend = true,
   onPick,
   onSend,
 }: {
@@ -20,6 +21,7 @@ export function SendFooter({
   loaded: boolean
   sessionId: string | null
   draftCount: number
+  showSend?: boolean
   onPick: (id: string) => void
   onSend: (sessionId: string) => Promise<void>
 }) {
@@ -34,6 +36,7 @@ export function SendFooter({
   return (
     <footer className="flex flex-col gap-2 border-t border-border p-4">
       <SessionRow sessions={sessions} loaded={loaded} sessionId={sessionId} onPick={onPick} />
+      {showSend ? (
       <Button
         icon={<Send className="size-4" />}
         disabled={!sessionId || draftCount === 0}
@@ -42,6 +45,7 @@ export function SendFooter({
       >
         {sendLabel(draftCount)}
       </Button>
+      ) : null}
     </footer>
   )
 }

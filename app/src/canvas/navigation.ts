@@ -2,6 +2,7 @@ import type { PlacedBoard, Rect, Size, View } from './geometry'
 
 export const ZOOM_STEPS = [0.02, 0.05, 0.1, 0.25, 0.5, 1, 2]
 export const LABELS_MIN_SCALE = 0.05
+export const SECTION_COUNT_MIN_SCALE = 0.33
 export const GRID_FADE_FROM = 0.1
 const GRID_BASE = 24
 const GRID_MIN_SCREEN = 12

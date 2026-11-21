@@ -39,6 +39,20 @@ describe('page requests route', () => {
     expect((await post(POST, { sessionId: 's1', page: 'missing', kind: 'icon' })).status).toBe(400)
   })
 
+  it('validates and queues an ask', async () => {
+    await upsertSession({ id: 's1', label: 's', cwd: '/s' })
+    const ask = { sessionId: 's1', page: 'sales', kind: 'ask', prompt: 'Hi', scope: 'page' }
+    expect((await post(POST, { ...ask, prompt: ' ' })).status).toBe(400)
+    expect((await post(POST, { ...ask, prompt: 'x'.repeat(8001) })).status).toBe(400)
+    expect((await post(POST, { ...ask, scope: 'all' })).status).toBe(400)
+    expect((await post(POST, { ...ask, scope: 'board' })).status).toBe(400)
+    expect((await post(POST, { ...ask, scope: 'boards', boards: [] })).status).toBe(400)
+    expect((await post(POST, { ...ask, scope: 'section' })).status).toBe(400)
+    expect((await post(POST, { ...ask, images: ['nope'] })).status).toBe(400)
+    expect((await post(POST, { ...ask, page: 'missing' })).status).toBe(400)
+    expect((await post(POST, { ...ask, scope: 'board', board: 'Leads' })).status).toBe(200)
+  })
+
   it('answers 409 when the session is not live', async () => {
     const response = await post(POST, { sessionId: 's1', page: 'sales', kind: 'icon' })
     expect(response.status).toBe(409)

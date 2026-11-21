@@ -1,5 +1,12 @@
 import type { Size, View } from './geometry'
-import { easeInOutCubic, gridOf, LABELS_MIN_SCALE, lerpView, sameView } from './navigation'
+import {
+  easeInOutCubic,
+  gridOf,
+  LABELS_MIN_SCALE,
+  lerpView,
+  sameView,
+  SECTION_COUNT_MIN_SCALE,
+} from './navigation'
 
 const SETTLE_MS = 100
 const COOL_MS = 150
@@ -30,6 +37,7 @@ export class Camera {
   private labels = true
   private gridLayer: HTMLElement | null = null
   private written = new Map<string, string>()
+  private zoomedOut = false
 
   constructor(onSettle: (view: View, size: Size) => void) {
     this.onSettle = onSettle
@@ -46,6 +54,7 @@ export class Camera {
     this.world = element
     this.labels = true
     this.written.clear()
+    this.zoomedOut = false
     this.draw()
   }
 
@@ -193,6 +202,11 @@ export class Camera {
       if (labels !== this.labels) {
         this.labels = labels
         this.world.toggleAttribute('data-labels-off', !labels)
+      }
+      const zoomedOut = k < SECTION_COUNT_MIN_SCALE
+      if (zoomedOut !== this.zoomedOut) {
+        this.zoomedOut = zoomedOut
+        this.world.toggleAttribute('data-zoomed-out', zoomedOut)
       }
     }
     if (this.viewport) {

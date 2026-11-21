@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<title>Canvas composer</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+body{margin:0}
+.cv-root{--pick:#14161a;--background:#ffffff;--foreground:#14161a;--card:#ffffff;--secondary:#f4f4f2;--muted:#efefeb;--muted-foreground:#5a606b;--accent:#f4f4f2;--border:#e4e4e0;--border-strong:#d6d7d2;--primary:#14161a;--primary-foreground:#ffffff;--destructive:#9a2a1a;--destructive-tint:#fbe9e6;--success:#e3f1e8;--success-foreground:#1b6b3a;--warning:#fdf0e2;--warning-foreground:#8a4a0b;--info:#e8f0fb;--info-foreground:#1e4e8c;--highlight:#f2a33a;--shell:#efefed;--surface:#fafaf8;--input:#8a8f98;--ring:#14161a;--play:#2563eb;--mock-bg:#f6f6f3;--mock-ink:#14161a;--mock-card:#ffffff;--mock-line:#e4e4e0;--mock-bar:#d6d7d2}
+</style>
+</helmet>
+<div dir="ltr" lang="en" class="cv-root {{themeClass}}" style="box-sizing: border-box; width: 100%; min-height: var(--cv-h, 100vh); padding: var(--cv-pad, 24px); background: var(--cv-bg, var(--surface)); font-family: system-ui, sans-serif; color: var(--foreground); font-size: 14px;">
+<div style="position: relative; display: flex; flex-direction: column; gap: 6px;">
+<div style="display: flex; align-items: center; gap: 8px; box-sizing: border-box; min-height: 44px; padding: 6px 6px 6px 12px; border: 1px solid var(--border-strong); border-radius: {{pillRadius}}; background: var(--card);">
+<span style="display: inline-flex; align-self: {{iconAlign}}; margin-top: {{iconTop}}; color: var(--foreground);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path></svg></span>
+<div role="textbox" aria-multiline="true" aria-label="Message to the agent" style="flex: 1; min-width: 0; font-size: 14px; line-height: 20px; color: {{textColor}}; {{textClamp}}">{{text}}</div>
+<sc-if value="{{compact}}" hint-placeholder-val="{{false}}"><button type="button" aria-label="Attach images" style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 9999px; background: transparent; color: var(--muted-foreground); cursor: pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg></button><button type="button" aria-haspopup="menu" aria-label="Options" style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 9999px; background: transparent; color: var(--muted-foreground); cursor: pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="m6 9 6 6 6-6"></path></svg></button></sc-if>
+<button type="button" aria-label="{{sendLabel}}" style="display: inline-flex; align-items: center; justify-content: center; align-self: flex-end; gap: 6px; flex-shrink: 0; height: 32px; min-width: 32px; padding: {{sendPad}}; border: 0; border-radius: 9999px; background: var(--primary); color: var(--primary-foreground); font: inherit; font-size: 13px; font-weight: 500; opacity: {{sendOpacity}}; cursor: {{sendCursor}};"><sc-if value="{{sendWide}}" hint-placeholder-val="{{false}}"><span>{{sendLabel}}</span></sc-if><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="m5 12 7-7 7 7"></path><path d="M12 19V5"></path></svg></button>
+</div>
+<sc-if value="{{hasImages}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; gap: 8px; padding: 0 4px;"><sc-for list="{{images}}" as="img"><span style="position: relative; display: block; width: 56px; height: 56px; border: 1px solid var(--border); border-radius: 8px; background: var(--muted);"><span aria-hidden="true" style="position: absolute; top: -6px; right: -6px; display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border: 1px solid var(--border-strong); border-radius: 9999px; background: var(--card); color: var(--muted-foreground);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></span></span></sc-for></div>
+</sc-if>
+<sc-if value="{{regular}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; align-items: center; gap: 12px; padding: 0 8px; font-size: 12px; color: var(--muted-foreground);">
+<sc-if value="{{hasScope}}" hint-placeholder-val="{{false}}"><span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">About {{scopeLabel}}</span></sc-if>
+<sc-if value="{{hasHint}}" hint-placeholder-val="{{true}}"><span style="min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{hint}}</span></sc-if>
+<span style="flex: 1;"></span>
+<span style="text-decoration: underline; cursor: pointer;">Attach</span>
+<span aria-haspopup="menu" aria-expanded="{{options}}" style="text-decoration: underline; cursor: pointer; color: {{optionsColor}};">Options</span>
+</div>
+</sc-if>
+<sc-if value="{{options}}" hint-placeholder-val="{{false}}">
+<div role="menu" aria-label="Options" style="position: absolute; right: 0; top: 100%; margin-top: 4px; z-index: 10; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; width: 260px; max-width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--popover); box-shadow: 0 8px 24px rgba(0,0,0,0.16);">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;"><span style="font-size: 13px; font-weight: 500;">Generate variants</span><span role="switch" aria-checked="true" style="position: relative; display: block; width: 32px; height: 18px; border-radius: 9999px; background: var(--primary);"><span style="position: absolute; top: 2px; right: 2px; width: 14px; height: 14px; border-radius: 9999px; background: var(--primary-foreground);"></span></span></div>
+<p style="margin: 0; font-size: 12px; color: var(--muted-foreground);">The agent edits copies of the board and you compare them.</p>
+<div style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 12px; color: var(--muted-foreground);">Copies</span><span style="display: inline-flex; gap: 4px;"><span style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 28px; border: 1px solid var(--border-strong); border-radius: 8px; font-size: 13px;">2</span><span style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 28px; border: 1px solid var(--primary); border-radius: 8px; background: var(--primary); color: var(--primary-foreground); font-size: 13px; font-weight: 500;">3</span></span></div>
+</div>
+</sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"state":{"editor":"enum","default":"empty","options":["empty","typed","options","images","nosession"]},"size":{"editor":"enum","default":"regular","options":["regular","compact"]},"scope":{"editor":"enum","default":"none","options":["none","page","board","boards"]},"target":{"editor":"text","default":"Dialog"},"narrow":{"editor":"enum","default":"no","options":["no","yes"]},"$preview":{"width":640,"height":300}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const { theme, state, size, scope, narrow, target } = this.props
+    const tight = narrow === 'yes'
+    const compact = size === 'compact'
+    const typed = state === 'typed' || state === 'options' || state === 'images'
+    const noSession = state === 'nosession'
+    const canSend = typed
+    const scopes = { page: 'Checkout page', board: target || 'Dialog', boards: '3 boards selected' }
+    const wide = state === 'options'
+    const long = typed || noSession
+    return {
+      themeClass: theme === 'dark' ? 'dark' : '',
+      regular: !compact,
+      compact,
+      hasScope: scope !== 'none' && !compact,
+      scopeLabel: scopes[scope] || '',
+      text: long ? 'A checkout flow with a cart, a payment step and an order summary' : 'Ask the agent...',
+      textColor: noSession ? 'var(--muted-foreground)' : 'var(--foreground)',
+      textClamp: long && !compact ? '' : 'overflow: hidden; text-overflow: ellipsis; white-space: nowrap;',
+      pillRadius: long && !compact ? '22px' : '9999px',
+      iconAlign: long && !compact ? 'flex-start' : 'center',
+      iconTop: long && !compact ? '6px' : '0',
+      hasHint: !tight && !scope,
+      hasImages: state === 'images',
+      images: [{}, {}],
+      options: state === 'options',
+      optionsColor: state === 'options' ? 'var(--foreground)' : 'var(--muted-foreground)',
+      hint: noSession ? 'No agent session listening. Run /irsim in your coding agent.' : 'Enter sends, Shift+Enter adds a line',
+      sendLabel: wide ? 'Generate 3 variants' : 'Send',
+      sendWide: wide,
+      sendPad: wide ? '0 12px' : '0',
+      sendOpacity: canSend && !noSession ? 1 : noSession ? 0.5 : 1,
+      sendCursor: noSession ? 'not-allowed' : 'pointer',
+    }
+  }
+}
+</script>
+</body>
+</html>

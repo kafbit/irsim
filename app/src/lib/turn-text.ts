@@ -160,14 +160,40 @@ export const buildVariantText = (
   return [...lines, REPLY_RULE].join('\n')
 }
 
+const scopeText = (request: PageRequest, title: string): string => {
+  if (request.scope === 'board') return `the board ${request.board}`
+  if (request.scope === 'boards') return `the boards ${(request.boards ?? []).join(', ')}`
+  if (request.scope === 'section') return `the section ${request.section} of the page ${title}`
+  return `the page ${title}`
+}
+
+const askLines = (
+  request: PageRequest,
+  title: string,
+  designFolder: string,
+  imagePaths: Record<string, string>,
+): string[] => [
+  request.page === ''
+    ? 'Design canvas: the user wrote to you from the pages index, so no page is open. Add the boards to a new page or to the page that fits.'
+    : `Design canvas: the user wrote to you from the canvas app. Scope: ${scopeText(request, title)} (page id ${request.page}).`,
+  indent(request.prompt ?? ''),
+  ...(request.images ?? []).flatMap((id) => {
+    const path = imagePaths[id]
+    return path ? [`   image: ${path}`] : []
+  }),
+  `   You may create or change boards and pages yourself, because the app has no manual page or board creation. Place every new board in ${designFolder}/canvas.json on the right page and section. Then run design_canvas {action: "check"} on the page you changed.`,
+]
+
 /** The turn for page requests: an icon for the page, or a tidy layout of its boards, both edits of canvas.json. */
 export const buildPageRequestText = (
   requests: PageRequest[],
   titles: Record<string, string> = {},
   designFolder = 'design',
+  imagePaths: Record<string, string> = {},
 ): string => {
   const lines = requests.flatMap((request) => {
     const title = titles[request.page] ?? request.page
+    if (request.kind === 'ask') return askLines(request, title, designFolder, imagePaths)
     return request.kind === 'icon'
       ? [
           `Design canvas: the user asked for an icon for page ${title} (${request.page}).`,

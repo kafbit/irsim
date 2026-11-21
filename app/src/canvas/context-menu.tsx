@@ -12,13 +12,10 @@ import {
 } from '../ui'
 import {
   BoxSelect,
-  Check,
   ChevronRight,
-  Columns3,
   CopyIcon,
   DeleteIcon,
   EditIcon,
-  Grid3x3,
   LayoutDashboard,
   LayoutGrid,
   LinkIcon,
@@ -29,12 +26,10 @@ import {
   PanelLeft,
   PanelTop,
   Play,
-  Rows3,
   Scan,
   SmilePlus,
   Sparkles,
   SquareSquare,
-  WrapText,
 } from '../ui/icons'
 import { SplitIcon } from '../ui/icons-custom'
 import { useSession } from './comments/use-session'
@@ -44,22 +39,22 @@ import { itemClass, stop, surfaceClass } from './page-menu'
 const ICON = 'size-4'
 
 const ICONS: Record<MenuItemId, React.ReactNode> = {
+  'ask-agent': <Sparkles className={ICON} />,
   copy: <CopyIcon className={ICON} />,
+  'copy-name': <CopyIcon className={ICON} />,
   play: <Play className={ICON} />,
   comment: <MessageSquare className={ICON} />,
   variants: <SplitIcon size={16} className={ICON} />,
-  approve: <Check className={ICON} />,
+  section: <PanelTop className={ICON} />,
   'create-section': <PanelTop className={ICON} />,
   'create-sub-section': <SquareSquare className={ICON} />,
   'remove-from-section': <LogOut className={ICON} />,
   'rename-section': <EditIcon className={ICON} />,
   'delete-section': <DeleteIcon className={ICON} />,
   'show-on-canvas': <LocateFixed className={ICON} />,
-  tidy: <LayoutDashboard className={ICON} />,
-  'tidy-row': <Columns3 className={ICON} />,
-  'tidy-column': <Rows3 className={ICON} />,
-  'tidy-wrap': <WrapText className={ICON} />,
-  'tidy-grid': <Grid3x3 className={ICON} />,
+  arrange: <LayoutDashboard className={ICON} />,
+  page: <EditIcon className={ICON} />,
+  view: <Maximize className={ICON} />,
   'copy-page-name': <CopyIcon className={ICON} />,
   'copy-page-link': <LinkIcon className={ICON} />,
   'select-all': <BoxSelect className={ICON} />,
@@ -116,22 +111,21 @@ export function ContextMenu({
                       lang="en"
                       sideOffset={4}
                       aria-label={item.label}
-                      className={cn(surfaceClass, 'w-75')}
+                      className={cn(surfaceClass, 'w-60')}
                       {...stop}
                     >
                       {item.children.map((child) => (
                         <Radix.Item
                           key={child.id}
+                          disabled={child.disabled}
                           onSelect={() => onSelect(child.id, sessionId)}
-                          className={cn(itemClass, child.note && 'items-start')}
+                          className={cn(itemClass, child.danger && 'text-destructive')}
                         >
                           {ICONS[child.id]}
-                          <span className="flex flex-col">
-                            {child.label}
-                            {child.note ? (
-                              <span className="text-xs text-muted-foreground">{child.note}</span>
-                            ) : null}
-                          </span>
+                          <span className="flex-1">{child.label}</span>
+                          {child.shortcut ? (
+                            <span className="ms-auto text-xs text-muted-foreground">{child.shortcut}</span>
+                          ) : null}
                         </Radix.Item>
                       ))}
                     </Radix.SubContent>
@@ -141,6 +135,7 @@ export function ContextMenu({
                 <DropdownMenuItem
                   key={item.id}
                   variant={item.danger ? 'destructive' : 'default'}
+                  disabled={item.disabled}
                   onSelect={() => onSelect(item.id, sessionId)}
                 >
                   {ICONS[item.id]}
