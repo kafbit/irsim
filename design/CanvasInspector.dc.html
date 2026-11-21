@@ -98,20 +98,12 @@ body{margin:0}
 <span style="display: inline-flex; align-items: center; justify-content: center; align-self: flex-start; gap: 8px; height: 34px; box-sizing: border-box; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--background); color: var(--foreground); font-size: 13px; font-weight: 500; white-space: nowrap;">Compare</span>
 </section>
 </sc-if>
-<sc-if value="{{showVariantSent}}" hint-placeholder-val="{{false}}">
-<section aria-label="Variants" style="display: flex; flex-direction: column; gap: 8px;">
-<h3 style="margin: 0; font-size: 12px; font-weight: 400; color: var(--muted-foreground);">Variants</h3>
-<p role="status" style="margin: 0; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--secondary); font-size: 13px; line-height: 20px; color: var(--foreground);">Sent to Claude Code session. 2 variants are on the canvas.</p>
-<span style="display: inline-flex; align-items: center; justify-content: center; align-self: flex-start; gap: 8px; height: 34px; box-sizing: border-box; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--background); color: var(--foreground); font-size: 13px; font-weight: 500; white-space: nowrap;">Compare variants</span>
-<button type="button" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid transparent; border-radius: 10px; background: transparent; color: var(--foreground); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;">Generate more</button>
-</section>
-</sc-if>
 <button type="button" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--background); color: var(--foreground); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"/></svg>Play</button>
 </sc-if>
 </aside>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"approval":{"editor":"enum","default":"none","options":["none","new","approved","changed","queued"]},"imports":{"editor":"enum","default":"3","options":["3","0","10","10-expanded"]},"unchanged":{"editor":"enum","default":"yes","options":["yes","no"]},"shared":{"editor":"enum","default":"no","options":["no","yes"]},"menu":{"editor":"enum","default":"none","options":["none","open"]},"mode":{"editor":"enum","default":"default","options":["default","imports","multi","variant-sent","variant"]},"$preview":{"width":288,"height":820}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","default":"light","options":["light","dark"]},"approval":{"editor":"enum","default":"none","options":["none","new","approved","changed","queued"]},"imports":{"editor":"enum","default":"3","options":["3","0","10","10-expanded"]},"unchanged":{"editor":"enum","default":"yes","options":["yes","no"]},"shared":{"editor":"enum","default":"no","options":["no","yes"]},"menu":{"editor":"enum","default":"none","options":["none","open"]},"mode":{"editor":"enum","default":"default","options":["default","imports","multi","variant"]},"$preview":{"width":288,"height":820}}'>
 class Component extends DCLogic {
   renderVals() {
     const { approval, imports, theme, mode } = this.props
@@ -141,7 +133,6 @@ class Component extends DCLogic {
       detailsExpanded: detailsOpen,
       detailsCollapsed: !detailsOpen,
       notMulti: !multi,
-      showVariantSent: mode === 'variant-sent',
       showVariantBoard: mode === 'variant',
       showUnchanged: this.props.unchanged !== 'no',
       filePath: mode === 'variant' ? 'design/DialogVariantSimpler.dc.html' : 'design/Dialog.dc.html',
