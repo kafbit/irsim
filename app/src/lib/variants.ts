@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs'
 import { readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { BOARD_SUFFIX, boardFileName, LEGACY_SUFFIX } from './board-file.mjs'
 import { editCanvas } from './canvas-file'
 import type { CanvasFile } from './canvas-layout'
 import { type CanvasBoard, type CanvasPage, type CanvasSection, readCanvasPages } from './canvas-pages'
@@ -30,7 +31,8 @@ export const variantName = (base: string, preset: Preset, existing: Set<string>)
   return `${stem}${n}`
 }
 
-const fileOf = (name: string): string => join(designDir(), `${name}.dc.html`)
+const fileOf = (name: string, suffix: string = BOARD_SUFFIX): string =>
+  join(designDir(), boardFileName(designDir(), name) ?? `${name}${suffix}`)
 
 const pageOf = async (id: string): Promise<CanvasPage | Failure> => {
   const page = (await readCanvasPages()).find((candidate) => candidate.id === id)
@@ -124,11 +126,12 @@ export const createVariants = async (input: {
     },
   }))
 
+  const suffix = boardFileName(designDir(), base.name)?.endsWith(LEGACY_SUFFIX) ? LEGACY_SUFFIX : BOARD_SUFFIX
   const written: string[] = []
   const cleanup = () => Promise.all(written.map((file) => rm(file, { force: true })))
   try {
     for (const variant of created) {
-      const file = fileOf(variant.name)
+      const file = fileOf(variant.name, suffix)
       await writeFile(file, withTitle(source, variant.board.title), { flag: 'wx' })
       written.push(file)
     }

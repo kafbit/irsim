@@ -141,6 +141,42 @@ describe('doctor', () => {
     })
   })
 
+  it('passes the board diff check only when a pattern covers the board suffix in use', async () => {
+    project()
+    write(join(base, 'design/Leads.html'), board('Leads'))
+    expect(find(await runDoctor({ cwd: base, env: env() }), 'collapse-board-diffs')?.status).toBe('warn')
+
+    write(join(base, '.gitattributes'), 'design/*.html linguist-generated=true\n')
+    expect(find(await runDoctor({ cwd: base, env: env() }), 'collapse-board-diffs')?.status).toBe('ok')
+
+    rmSync(join(base, 'design/Leads.html'))
+    write(join(base, '.gitattributes'), 'design/*.dc.html linguist-generated=true\n')
+    expect(find(await runDoctor({ cwd: base, env: env() }), 'collapse-board-diffs')?.status).toBe('ok')
+  })
+
+  it('accepts a root wildcard pattern, and a legacy one only while every board is legacy', async () => {
+    project()
+    const status = async () => find(await runDoctor({ cwd: base, env: env() }), 'collapse-board-diffs')?.status
+    write(join(base, '.gitattributes'), '*.dc.html linguist-generated=true\n')
+    expect(await status()).toBe('ok')
+    write(join(base, 'design/Leads.html'), board('Leads'))
+    expect(await status()).toBe('warn')
+    write(join(base, '.gitattributes'), '**/*.html linguist-generated=true\n')
+    expect(await status()).toBe('ok')
+  })
+
+  it('builds the expected pattern from a custom designDir', async () => {
+    project()
+    write(join(base, '.irsim.json'), '{"designDir":"boards"}\n')
+    write(join(base, 'boards/CanvasApp.html'), board('CanvasApp'))
+    write(join(base, 'boards/canvas.json'), JSON.stringify({ version: 1, pages: [{ id: 'p', title: 'P', boards: [{ name: 'CanvasApp' }] }] }))
+    const status = async () => find(await runDoctor({ cwd: base, env: env() }), 'collapse-board-diffs')?.status
+    write(join(base, '.gitattributes'), 'design/*.html linguist-generated=true\n')
+    expect(await status()).toBe('warn')
+    write(join(base, '.gitattributes'), 'boards/*.html linguist-generated=true\n')
+    expect(await status()).toBe('ok')
+  })
+
   it('warns on a missing review setup and never fails on it', async () => {
     project()
     rmSync(join(base, '.coderabbit.yaml'))

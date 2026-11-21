@@ -22,7 +22,7 @@ const tagEnd = (source, from) => {
 
 /**
  * Mark every opening tag inside `<x-dc>` with the board and line it came from, so a click in
- * comment mode can name `design/<Board>.dc.html:<line>`. Control tags, `<helmet>`, `<script>` and
+ * comment mode can name `design/<Board>.html:<line>`. Control tags, `<helmet>`, `<script>` and
  * `<style>` (and what they hold) are left alone. Lines are counted in the untouched source.
  *
  * @param {string} source

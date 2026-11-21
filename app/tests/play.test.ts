@@ -17,13 +17,15 @@ describe('boardOfHref', () => {
   it('ignores other links', () => {
     expect(boardOfHref('#section')).toBeNull()
     expect(boardOfHref('https://example.com')).toBeNull()
-    expect(boardOfHref('Cart.html')).toBeNull()
+    expect(boardOfHref('Cart.html')).toBe('Cart')
+    expect(boardOfHref('cart.txt')).toBeNull()
     expect(boardOfHref('1Cart.dc.html')).toBeNull()
   })
 
   it('never reads a board from another site', () => {
     expect(boardOfHref('https://other.com/docs/Cart.dc.html')).toBeNull()
     expect(boardOfHref('//other.com/Cart.dc.html')).toBeNull()
+    expect(boardOfHref('https://other.com/Cart.html')).toBeNull()
     expect(isExternalHref('https://other.com/docs/Cart.dc.html')).toBe(true)
   })
 })
@@ -43,6 +45,8 @@ describe('looksInteractive', () => {
     expect(looksInteractive('<button onClick="{{ pick }}">x</button>')).toBe(true)
     expect(looksInteractive('<input onChange="{{set}}">')).toBe(true)
     expect(looksInteractive('<a class="b" href="Cart.dc.html">Cart</a>')).toBe(true)
+    expect(looksInteractive('<a class="b" href="Cart.html">Cart</a>')).toBe(true)
+    expect(looksInteractive('<a href="my-page.html">x</a>')).toBe(false)
   })
 
   it('is false for a static board', () => {

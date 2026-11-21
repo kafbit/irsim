@@ -36,6 +36,15 @@ export type CheckResult = {
   warnings: string[]
   screenshot?: string
 }
+export type LintProblem = {
+  severity: 'error' | 'warning'
+  file: string
+  path: string
+  rule: string
+  message: string
+  fix?: string
+}
+export type LintReport = { ok: boolean; problems: LintProblem[] }
 type ClaimedReply = { at: string }
 export type Claim = {
   count: number
@@ -223,6 +232,42 @@ export function doctorLines(report: DoctorReport): string {
   if (skip > 0) parts.push(`${skip} skipped`)
   lines.push(parts.join(', '))
   return lines.join('\n')
+}
+
+/** One line per problem, then the count, or the pass line. */
+export function lintLines(report: LintReport): string {
+  const problems = report.problems ?? []
+  if (problems.length === 0) return 'The design folder passes the lint.'
+  const lines = problems.map((one) =>
+    oneLine(
+      `${one.severity} ${one.file} ${one.path} ${one.rule}: ${one.message}${one.fix ? ` (fix: ${one.fix})` : ''}`,
+    ),
+  )
+  const errors = problems.filter((one) => one.severity === 'error').length
+  const warnings = problems.length - errors
+  lines.push(`${errors} ${errors === 1 ? 'error' : 'errors'}, ${warnings} ${warnings === 1 ? 'warning' : 'warnings'}`)
+  return lines.join('\n')
+}
+
+export const boardNameOf = (value: string): string => value.replace(/\.dc\.html$/, '').replace(/\.html$/, '')
+
+const problemLine = (one: LintProblem): string =>
+  oneLine(
+    `${one.severity} ${one.file} ${one.path} ${one.rule}: ${one.message}${one.fix ? ` (fix: ${one.fix})` : ''}`,
+  )
+
+/** The lint errors, the warnings of the checked boards and a count of the other warnings, or `''` when there is nothing to print. */
+export function checkLintLines(report: LintReport, checked: string[]): string {
+  const names = new Set(checked)
+  const shown: string[] = []
+  let other = 0
+  for (const one of report.problems ?? []) {
+    if (one.severity === 'error') shown.push(problemLine(one))
+    else if (names.has(boardNameOf(one.file.split('/').pop() ?? ''))) shown.push(problemLine(one))
+    else other += 1
+  }
+  if (other > 0) shown.push(`${other} other ${other === 1 ? 'warning' : 'warnings'}, run design_canvas lint to list them`)
+  return shown.join('\n')
 }
 
 export async function runDoctor($: Engine): Promise<DoctorReport> {

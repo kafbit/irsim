@@ -1,5 +1,7 @@
 import { readCanvasPages } from '../../../../lib/canvas-pages'
+import { boardFileName } from '../../../../lib/board-file.mjs'
 import { closureOf } from '../../../../lib/closure'
+import { designDir } from '../../../../lib/design-dir'
 import { isInteractive } from '../../../../lib/interactive'
 import { fillsWindow } from '../../../../lib/page-fill'
 
@@ -33,6 +35,7 @@ export async function GET(
       const { boards, render } = await closureOf(name)
       return {
         name,
+        file: boardFileName(designDir(), name) ?? `${name}.html`,
         title,
         x,
         y,

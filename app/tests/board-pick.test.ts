@@ -5,7 +5,7 @@ describe('boardPick', () => {
   it('picks the whole frame as a board element on line 0', () => {
     expect(boardPick({ name: 'Leads', title: 'Leads table', width: 1280, height: 720 })).toEqual({
       board: 'Leads',
-      file: 'design/Leads.dc.html',
+      file: 'design/Leads.html',
       line: 0,
       element: { tag: 'board', path: '', text: 'Leads table' },
       rect: { x: 0, y: 0, width: 1280, height: 720 },

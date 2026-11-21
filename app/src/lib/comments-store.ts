@@ -17,7 +17,8 @@ import type {
   VariantRequestEntry,
 } from './comments-types'
 import { dataDir } from './data-dir'
-import { designFolderName } from './design-dir'
+import { boardFileName } from './board-file.mjs'
+import { designDir, designFolderName } from './design-dir'
 import { emit } from './events'
 import { closureOf } from './closure'
 import { readCanvasPages } from './canvas-pages'
@@ -28,6 +29,8 @@ import {
   buildVariantText,
   unseenUserReplies,
 } from './turn-text'
+
+const fileOf = (board: string): string => boardFileName(designDir(), board) ?? `${board}.html`
 
 export type NewComment = Pick<
   Comment,
@@ -497,7 +500,7 @@ export const claim = (sessionId: string, now = Date.now()): Promise<Claim> =>
       current[approval.id] = (await closureOf(approval.board)).content === approval.hash
     }
     const approvalText =
-      approvals.length > 0 ? buildApprovalText(approvals, current, designFolderName()) : ''
+      approvals.length > 0 ? buildApprovalText(approvals, current, designFolderName(), fileOf) : ''
     const deliverApprovals = async (): Promise<void> => {
       if (approvals.length === 0) return
       const ids = new Set(approvals.map((approval) => approval.id))
@@ -519,7 +522,7 @@ export const claim = (sessionId: string, now = Date.now()): Promise<Claim> =>
       if (path) variantPaths[image] = path
     }
     const variantText =
-      variants.length > 0 ? buildVariantText(variants, designFolderName(), variantPaths) : ''
+      variants.length > 0 ? buildVariantText(variants, designFolderName(), variantPaths, fileOf) : ''
     const deliverVariants = async (): Promise<void> => {
       if (variants.length === 0) return
       const ids = new Set(variants.map((request) => request.id))
@@ -611,7 +614,7 @@ export const claim = (sessionId: string, now = Date.now()): Promise<Claim> =>
           newReplies,
         }
       })
-    const commentText = buildTurnText(taken, paths, designFolderName())
+    const commentText = buildTurnText(taken, paths, designFolderName(), fileOf)
     await deliverApprovals()
     await deliverVariants()
     await deliverPages()

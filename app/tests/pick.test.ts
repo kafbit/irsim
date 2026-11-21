@@ -183,7 +183,7 @@ describe('comment mode click', () => {
     expect(post).toHaveBeenCalledWith(
       'pick',
       expect.objectContaining({
-        file: 'design/Table.dc.html',
+        file: 'design/Table.html',
         line: 142,
         rect: { x: 22, y: 1220, width: 100, height: 40 },
         scroll: { x: 12, y: 1200 },

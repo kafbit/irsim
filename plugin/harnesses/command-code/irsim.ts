@@ -9,6 +9,7 @@
 
 import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { ModApi } from '@commandcode/harness'
 
@@ -21,6 +22,19 @@ const bridgeBin = (): string => {
   return typeof value === 'string' && value.trim() !== '' ? value.trim() : 'irsim'
 }
 
+const SESSION_CONTEXT =
+  'This project keeps its screens as irsim boards. Load the `irsim-design` skill before you create or edit a board file or design/canvas.json, and the `irsim-workflow` skill before you change what a screen shows. Run `irsim lint` and design_canvas check before you say you are done.'
+
+const hasIrsimConfig = (from: string): boolean => {
+  let dir = from
+  for (;;) {
+    if (existsSync(join(dir, '.irsim.json'))) return true
+    const parent = dirname(dir)
+    if (parent === dir) return false
+    dir = parent
+  }
+}
+
 const flag = (args: string[], name: string, value: unknown): void => {
   if (typeof value === 'string' && value !== '') args.push(`--${name}`, value)
 }
@@ -30,13 +44,15 @@ export default function (cmd: ModApi): void {
   let cwd = process.cwd()
   let polling: Disposable | null = null
 
-  try {
-    const skill = ['../../skills/irsim-workflow', '../../../plugin/skills/irsim-workflow']
-      .map((path) => fileURLToPath(new URL(path, import.meta.url)))
-      .find((path) => existsSync(path))
-    if (skill) cmd.addSkillsPath(skill)
-  } catch {
-    /* the host may reject an extra skills path */
+  for (const name of ['irsim-workflow', 'irsim-design']) {
+    try {
+      const skill = [`../../skills/${name}`, `../../../plugin/skills/${name}`]
+        .map((path) => fileURLToPath(new URL(path, import.meta.url)))
+        .find((path) => existsSync(path))
+      if (skill) cmd.addSkillsPath(skill)
+    } catch {
+      /* the host may reject an extra skills path */
+    }
   }
 
   cmd.on('run_start', (event) => {
@@ -100,13 +116,13 @@ export default function (cmd: ModApi): void {
     schema: {
       name: 'design_canvas',
       description:
-        'Reads and answers design canvas comments, checks boards, and checks the project. Actions: open, page, comments, reply, resolve, check, doctor. check renders a board (or every board of a page) in headless Chromium and returns errors, warnings and a screenshot path to look at. doctor checks the project rules, git setup and config. Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.',
+        'Reads and answers design canvas comments, checks boards, lints the design folder, and checks the project. Actions: open, page, comments, reply, resolve, check, lint, doctor. check renders a board (or every board of a page) in headless Chromium and returns errors, warnings and a screenshot path to look at, after the format problems of the design folder. lint lists the format problems of the board files and design/canvas.json. doctor checks the project rules, git setup and config. Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.',
       input_schema: {
         type: 'object',
         properties: {
           action: {
             type: 'string',
-            enum: ['open', 'page', 'comments', 'reply', 'resolve', 'check', 'doctor'],
+            enum: ['open', 'page', 'comments', 'reply', 'resolve', 'check', 'lint', 'doctor'],
           },
           page: { type: 'string', description: 'Page id, for open, page, comments and check.' },
           board: { type: 'string', description: 'Board name, for open and check.' },
@@ -186,6 +202,7 @@ export default function (cmd: ModApi): void {
   })
 
   cmd.hooks({
+    appendSystemPrompt: () => (hasIrsimConfig(cwd) ? SESSION_CONTEXT : undefined),
     onSessionStart: () => {
       cwd = process.cwd()
     },

@@ -1,4 +1,7 @@
 import { execFile, spawnSync } from 'node:child_process'
+import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 
@@ -16,6 +19,12 @@ describe('bridge', () => {
   let port = 0
   const received: Received[] = []
   const claimText = 'Design canvas: 1 comment on page canvas-app (batch b1).'
+  let claimed = true
+  let lintReport: unknown = { ok: true, problems: [] }
+  const lintProblems = [
+    { severity: 'error', file: 'design/canvas.json', path: 'pages[0].boards[0]', rule: 'board-title', message: 'the board has no title', fix: 'irsim lint --fix' },
+    { severity: 'warning', file: 'design/Leads.html', path: 'title', rule: 'title-empty', message: 'the title is empty', fix: '' },
+  ]
 
   beforeAll(async () => {
     server = createServer((request, response) => {
@@ -34,7 +43,15 @@ describe('bridge', () => {
           return json({ id: (body as { id: string }).id })
         }
         if (request.url === '/api/comments/claim' && request.method === 'POST') {
-          return json({ count: 1, text: claimText, comments: [], approvals: [] })
+          return json(
+            claimed
+              ? { count: 1, text: claimText, comments: [], approvals: [] }
+              : { count: 0, comments: [], approvals: [] },
+          )
+        }
+        if (request.url === '/api/lint') return json(lintReport)
+        if (request.url === '/api/boards/Leads/check' && request.method === 'POST') {
+          return json([{ board: 'Leads', ok: true, ms: 5, errors: [], warnings: [] }])
         }
         if (request.url === '/api/comments/release' && request.method === 'POST') {
           return json({ ok: true })
@@ -57,6 +74,8 @@ describe('bridge', () => {
 
   beforeEach(() => {
     received.length = 0
+    claimed = true
+    lintReport = { ok: true, problems: [] }
   })
 
   const env = () => ({ ...process.env, IRSIM_PORT: String(port) })
@@ -152,6 +171,135 @@ describe('bridge', () => {
     expect(JSON.parse(out)).toEqual({})
   })
 
+  it('lists the lint problems as one line each with a count', async () => {
+    lintReport = { ok: false, problems: lintProblems }
+    const out = (await bridge(['tool', 'lint', '--cwd', ROOT])).trim().split('\n')
+    expect(out).toEqual([
+      'error design/canvas.json pages[0].boards[0] board-title: the board has no title (fix: irsim lint --fix)',
+      'warning design/Leads.html title title-empty: the title is empty',
+      '1 error, 1 warning',
+    ])
+  })
+
+  it('says the design folder passes the lint when there are no problems', async () => {
+    expect((await bridge(['tool', 'lint', '--cwd', ROOT])).trim()).toBe('The design folder passes the lint.')
+  })
+
+  it('puts the lint problems before the check output', async () => {
+    lintReport = { ok: false, problems: lintProblems }
+    const out = (await bridge(['tool', 'check', '--board', 'Leads', '--cwd', ROOT])).trim()
+    expect(out).toBe(
+      [
+        'Format problems:',
+        'error design/canvas.json pages[0].boards[0] board-title: the board has no title (fix: irsim lint --fix)',
+        'warning design/Leads.html title title-empty: the title is empty',
+        'Leads ok 5 ms · no screenshot',
+      ].join('\n'),
+    )
+    expect(received.map(({ path }) => path)).toContain('/api/lint')
+  })
+
+  it('counts the warnings of boards that were not checked', async () => {
+    lintReport = {
+      ok: true,
+      problems: [{ severity: 'warning', file: 'design/Other.html', path: '', rule: 'board-preview', message: 'no preview', fix: '' }],
+    }
+    const out = (await bridge(['tool', 'check', '--board', 'Leads', '--cwd', ROOT])).trim()
+    expect(out).toBe(
+      ['Format problems:', '1 other warning, run design_canvas lint to list them', 'Leads ok 5 ms · no screenshot'].join('\n'),
+    )
+  })
+
+  it('adds the irsim skills to a Codex session start', async () => {
+    const out = JSON.parse(
+      await bridge(['hook', 'codex', 'SessionStart'], JSON.stringify({ session_id: 'abc123def', cwd: ROOT })),
+    )
+    expect(out.hookSpecificOutput.hookEventName).toBe('SessionStart')
+    expect(out.hookSpecificOutput.additionalContext).toContain('`irsim-design` skill')
+    expect(out.hookSpecificOutput.additionalContext).toContain('`irsim-workflow` skill')
+    expect(out.hookSpecificOutput.additionalContext).toContain('irsim lint')
+  })
+
+  describe('Codex stop with lint errors', () => {
+    const session = `lint-stop-${process.pid}`
+    let project = ''
+    const canvas = () => join(project, 'design', 'canvas.json')
+    const touch = (seconds: number) => utimesSync(canvas(), seconds, seconds)
+    beforeEach(() => {
+      project = mkdtempSync(join(tmpdir(), 'irsim-stop-'))
+      mkdirSync(join(project, 'design'))
+      writeFileSync(join(project, '.irsim.json'), '{}')
+      writeFileSync(canvas(), '{}')
+      touch(1_000)
+    })
+    afterAll(() => rmSync(project, { recursive: true, force: true }))
+    const start = () =>
+      bridge(['hook', 'codex', 'SessionStart'], JSON.stringify({ session_id: session, cwd: project }))
+    const stop = async (extra = {}) =>
+      JSON.parse(await bridge(['hook', 'codex', 'Stop'], JSON.stringify({ session_id: session, cwd: project, ...extra })))
+
+    it('blocks the stop with the problems, at most twice per session', async () => {
+      claimed = false
+      lintReport = { ok: false, problems: lintProblems }
+      await start()
+      touch(2_000)
+      const first = await stop()
+      expect(first.decision).toBe('block')
+      expect(first.reason).toContain('error design/canvas.json')
+      expect(first.reason.endsWith('Fix these, then stop.')).toBe(true)
+      expect((await stop()).decision).toBe('block')
+      expect(await stop()).toEqual({})
+    })
+
+    it('records the start mark and returns the context when the canvas is down', async () => {
+      claimed = false
+      lintReport = { ok: false, problems: lintProblems }
+      const out = JSON.parse(
+        await bridge(['hook', 'codex', 'SessionStart'], JSON.stringify({ session_id: session, cwd: project }), { IRSIM_PORT: '1' }),
+      )
+      expect(out.hookSpecificOutput.additionalContext).toContain('`irsim-design` skill')
+      expect(received.some(({ path }) => path === '/api/sessions')).toBe(false)
+      touch(2_000)
+      expect((await stop()).decision).toBe('block')
+    })
+
+    it('returns nothing on a session start in a folder without an irsim project', async () => {
+      const bare = mkdtempSync(join(tmpdir(), 'irsim-bare-'))
+      try {
+        const out = await bridge(['hook', 'codex', 'SessionStart'], JSON.stringify({ session_id: session, cwd: bare }), { IRSIM_PORT: '1' })
+        expect(JSON.parse(out)).toEqual({})
+      } finally {
+        rmSync(bare, { recursive: true, force: true })
+      }
+    })
+
+    it('does not block when the design folder is unchanged since the session start', async () => {
+      claimed = false
+      lintReport = { ok: false, problems: lintProblems }
+      await start()
+      expect(await stop()).toEqual({})
+    })
+
+    it('does not block a session that has no start record', async () => {
+      claimed = false
+      lintReport = { ok: false, problems: lintProblems }
+      touch(2_000)
+      expect(await stop()).toEqual({})
+    })
+
+    it('keeps the comments first and ignores a lint with only warnings', async () => {
+      lintReport = { ok: false, problems: lintProblems }
+      await start()
+      touch(2_000)
+      expect(await stop()).toEqual({ decision: 'block', reason: claimText })
+      claimed = false
+      lintReport = { ok: true, problems: [lintProblems[1]] }
+      expect(await stop()).toEqual({})
+      lintReport = { ok: false, problems: lintProblems }
+      expect(await stop({ stop_hook_active: true })).toEqual({})
+    })
+  })
+
   it('serves design_canvas over MCP', () => {
     const out = spawnSync(process.execPath, [CLI, 'bridge', 'mcp'], {
       encoding: 'utf8',
@@ -167,6 +315,7 @@ describe('bridge', () => {
     expect(lines[0].result.serverInfo.name).toBe('irsim')
     expect(lines[1].result.tools[0].name).toBe('design_canvas')
     expect(lines[1].result.tools[0].inputSchema.properties.action.enum).toContain('check')
+    expect(lines[1].result.tools[0].inputSchema.properties.action.enum).toContain('lint')
   })
 })
 

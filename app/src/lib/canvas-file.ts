@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs'
 import { readFile, rename, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import type { CanvasFile } from './canvas-layout'
+import { type CanvasFile, syncFromDisk } from './canvas-layout'
 import { designDir } from './design-dir'
 import { emit } from './events'
 
@@ -79,7 +79,19 @@ export const readCanvas = async (): Promise<unknown | null> => {
   return JSON.parse(await readFile(file, 'utf8'))
 }
 
+type SnapshotHolder = { __irsimCanvasSnapshot?: CanvasFile | null }
+
+/** The last canvas this process read or wrote, or `null` before the first one. */
+export const canvasSnapshot = (): CanvasFile | null =>
+  (globalThis as unknown as SnapshotHolder).__irsimCanvasSnapshot ?? null
+
+/** Sets the last canvas this process read or wrote. */
+export const setCanvasSnapshot = (canvas: CanvasFile): void => {
+  ;(globalThis as unknown as SnapshotHolder).__irsimCanvasSnapshot = canvas
+}
+
 export const writeCanvas = async (canvas: unknown): Promise<void> => {
+  setCanvasSnapshot(canvas as CanvasFile)
   const file = canvasFile()
   const temp = `${file}.${process.pid}.tmp`
   await writeFile(temp, `${JSON.stringify(canvas, null, 2)}\n`)
@@ -110,7 +122,10 @@ export const editCanvas = (apply: (canvas: CanvasFile) => EditResult): Promise<E
     if (current === null) return { error: 'canvas.json not found', status: 404 }
     const stored = invalid(current)
     if (stored) return { error: `canvas.json is invalid: ${stored}`, status: 500 }
-    const result = apply(current as CanvasFile)
+    const snapshot = canvasSnapshot()
+    const synced = snapshot ? syncFromDisk(snapshot, current as CanvasFile) : null
+    const base = synced ?? (current as CanvasFile)
+    const result = apply(base)
     if ('error' in result) return result
     const problem = invalid(result.canvas)
     if (problem) return { error: problem, status: 400 }

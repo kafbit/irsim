@@ -8,7 +8,7 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ board: string }> },
 ): Promise<Response> {
-  const name = (await params).board.replace(/\.dc\.html$/, '')
+  const name = (await params).board.replace(/\.dc\.html$/, '').replace(/\.html$/, '')
   const page = (await readCanvasPages()).find((candidate) =>
     candidate.boards.some((board) => board.name === name),
   )

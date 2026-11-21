@@ -1,5 +1,6 @@
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { boardFileName, listBoards } from './board-file.mjs'
 
 const GAP = 80
 const ROW_WIDTH = 12000
@@ -25,7 +26,6 @@ const placeAtEnd = (existing, sizes) => {
 
 const DEFAULT_SIZE = { width: 1440, height: 900 }
 const UNSORTED = { id: 'unsorted', title: 'Unsorted' }
-const SUFFIX = '.dc.html'
 
 const decode = (text) =>
   text
@@ -48,9 +48,7 @@ export const readBoard = (source) => {
 }
 
 export const boardsOnDisk = (designDir) =>
-  readdirSync(designDir)
-    .filter((file) => file.endsWith(SUFFIX))
-    .map((file) => file.slice(0, -SUFFIX.length))
+  listBoards(designDir).map((board) => board.name)
 
 const readPrevious = (file) => {
   if (!existsSync(file)) return {}
@@ -118,7 +116,7 @@ export const buildCanvas = (designDir) => {
   const pages = layout.map((page) => {
     const sized = page.boards
       .filter((name) => known.has(name))
-      .map((name) => ({ name, ...readBoard(readFileSync(join(designDir, `${name}${SUFFIX}`), 'utf8')) }))
+      .map((name) => ({ name, ...readBoard(readFileSync(join(designDir, boardFileName(designDir, name) ?? `${name}.html`), 'utf8')) }))
     const sectionIds = new Set((page.sections ?? []).map((entry) => entry.id))
     const boards = []
     const placedOf = (board) => {

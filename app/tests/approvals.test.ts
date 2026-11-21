@@ -33,7 +33,7 @@ describe('buildApprovalText', () => {
       [
         'Design canvas: the user approved board Leads (page sales). This is the confirmation to build it.',
         '   Keep the old filter.',
-        '   Read design/Leads.dc.html again first, because the user may have edited it, then build the app from it and compare the board and the screen with screenshots.',
+        '   Read design/Leads.html again first, because the user may have edited it, then build the app from it and compare the board and the screen with screenshots.',
       ].join('\n'),
     )
   })

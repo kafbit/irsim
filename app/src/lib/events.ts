@@ -19,7 +19,7 @@ type State = {
 
 const DEBOUNCE_MS = 100
 const CANVAS_FILE = 'canvas.json'
-const BOARD_FILE = /^([A-Za-z][A-Za-z0-9]*)\.dc\.html$/
+const BOARD_FILE = /^([A-Za-z][A-Za-z0-9]*)(?:\.dc)?\.html$/
 
 const holder = globalThis as typeof globalThis & { __canvasEvents?: State }
 const state = (holder.__canvasEvents ??= { listeners: new Set(), timers: new Map(), watcher: null })

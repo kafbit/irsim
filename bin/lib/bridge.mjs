@@ -1,8 +1,9 @@
 import { execFileSync, spawn } from 'node:child_process'
-import { existsSync, readFileSync, realpathSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs'
 import { connect } from 'node:net'
 import { basename, dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { boardNameOf, listBoards } from './board-file.mjs'
 
 const CONFIG_FILE = '.irsim.json'
 const PORT_MIN = 3200
@@ -317,6 +318,41 @@ const doctorLines = (report) => {
   return lines.join('\n')
 }
 
+const lintLines = (report) => {
+  const problems = Array.isArray(report?.problems) ? report.problems : []
+  if (problems.length === 0) return 'The design folder passes the lint.'
+  const lines = problems.map((one) =>
+    oneLine(
+      `${one.severity} ${one.file} ${one.path} ${one.rule}: ${one.message}${one.fix ? ` (fix: ${one.fix})` : ''}`,
+    ),
+  )
+  const errors = problems.filter((one) => one.severity === 'error').length
+  const warnings = problems.length - errors
+  lines.push(`${errors} ${errors === 1 ? 'error' : 'errors'}, ${warnings} ${warnings === 1 ? 'warning' : 'warnings'}`)
+  return lines.join('\n')
+}
+
+const problemLine = (one) =>
+  oneLine(`${one.severity} ${one.file} ${one.path} ${one.rule}: ${one.message}${one.fix ? ` (fix: ${one.fix})` : ''}`)
+
+const checkLintLines = (report, checked) => {
+  const names = new Set(checked)
+  const shown = []
+  let other = 0
+  for (const one of report.problems) {
+    if (one.severity === 'error') shown.push(problemLine(one))
+    else if (names.has(boardNameOf(basename(String(one.file))))) shown.push(problemLine(one))
+    else other += 1
+  }
+  if (other > 0) shown.push(`${other} other ${other === 1 ? 'warning' : 'warnings'}, run design_canvas lint to list them`)
+  return shown.join('\n')
+}
+
+const readLint = async (port) => {
+  const report = await request(port, '/api/lint').catch(() => null)
+  return report && Array.isArray(report.problems) ? report : null
+}
+
 export const runDoctor = async (cwd = process.cwd()) => {
   const { runDoctor: report } = await import(
     pathToFileURL(join(dirname(new URL(import.meta.url).pathname), 'doctor.mjs')).href
@@ -346,7 +382,7 @@ const resolveTarget = async (port, wanted) => {
   throw new Error(`no page or board named "${name}", pages: ${ids}`)
 }
 
-const TOOL_ACTIONS = ['open', 'page', 'comments', 'reply', 'resolve', 'check', 'doctor']
+const TOOL_ACTIONS = ['open', 'page', 'comments', 'reply', 'resolve', 'check', 'lint', 'doctor']
 
 const runTool = async ({ action, ...args }) => {
   if (!TOOL_ACTIONS.includes(action)) {
@@ -415,7 +451,16 @@ const runTool = async ({ action, ...args }) => {
       const path = args.board
         ? `/api/boards/${encodeURIComponent(args.board)}/check`
         : `/api/pages/${encodeURIComponent(args.page)}/check`
-      return checkLines(await request(port, path, { method: 'POST', timeout: 120_000 }))
+      const lint = await readLint(port)
+      const checked = await request(port, path, { method: 'POST', timeout: 120_000 })
+      const results = checkLines(checked)
+      if (!lint) return results
+      const problems = checkLintLines(lint, checked.map((one) => boardNameOf(one.board)))
+      return problems === '' ? results : `Format problems:\n${problems}\n${results}`
+    }
+    case 'lint': {
+      const report = await request(port, '/api/lint')
+      return lintLines(report)
     }
   }
   throw new Error(`unknown action ${action}`)
@@ -436,6 +481,72 @@ const parseHookInput = async () => {
   }
 }
 
+const SESSION_CONTEXT =
+  'This project keeps its screens as irsim boards. Load the `irsim-design` skill before you create or edit a board file or design/canvas.json, and the `irsim-workflow` skill before you change what a screen shows. Run `irsim lint` and design_canvas check before you say you are done.'
+
+const LINT_REPORTS_PER_SESSION = 2
+
+const lintReportFile = (root, session) =>
+  join(root, '.irsim', 'lint-reports', String(session).replace(/[^A-Za-z0-9_-]/g, '_'))
+
+const lintReportCount = (root, session) => {
+  try {
+    return Number(readFileSync(lintReportFile(root, session), 'utf8')) || 0
+  } catch {
+    return 0
+  }
+}
+
+const countLintReport = (root, session) => {
+  try {
+    const file = lintReportFile(root, session)
+    mkdirSync(dirname(file), { recursive: true })
+    writeFileSync(file, String(lintReportCount(root, session) + 1))
+  } catch {}
+}
+
+const designFolder = (root) => {
+  const override = process.env.IRSIM_DESIGN_DIR || process.env.CANVAS_DESIGN_DIR
+  if (override) return resolve(root, override)
+  try {
+    const value = JSON.parse(readFileSync(join(root, CONFIG_FILE), 'utf8'))?.designDir
+    return resolve(root, typeof value === 'string' && value ? value : 'design')
+  } catch {
+    return join(root, 'design')
+  }
+}
+
+const newestDesignMtime = (root) => {
+  const dir = designFolder(root)
+  const files = [join(dir, 'canvas.json'), ...listBoards(dir).map((board) => join(dir, board.file))]
+  let newest = 0
+  for (const file of files) {
+    try {
+      newest = Math.max(newest, statSync(file).mtimeMs)
+    } catch {}
+  }
+  return newest
+}
+
+const startMarkFile = (root, session) => `${lintReportFile(root, session)}.mtime`
+
+const recordDesignStart = (root, session) => {
+  try {
+    const file = startMarkFile(root, session)
+    mkdirSync(dirname(file), { recursive: true })
+    writeFileSync(file, String(newestDesignMtime(root)))
+  } catch {}
+}
+
+const designChangedSinceStart = (root, session) => {
+  try {
+    const recorded = Number(readFileSync(startMarkFile(root, session), 'utf8'))
+    return Number.isFinite(recorded) && newestDesignMtime(root) > recorded
+  } catch {
+    return false
+  }
+}
+
 /**
  * Codex hook: register on start, deliver comments before a model request, on a user prompt and
  * when the agent stops. Every path prints one JSON object for Codex to read, or nothing.
@@ -453,11 +564,16 @@ const codexHook = async (event) => {
     process.env.IRSIM_SESSION
   const root = projectRoot(cwd)
   const port = await canvasPort(root)
-  if (!(await health(port))) return {}
+  const healthy = await health(port)
   if (event === 'SessionStart') {
-    if (session) await register(port, { agent: 'codex', session, cwd }).catch(() => undefined)
-    return {}
+    if (!existsSync(join(root, CONFIG_FILE)) && !existsSync(join(designFolder(root), 'canvas.json'))) return {}
+    if (session) {
+      if (healthy) await register(port, { agent: 'codex', session, cwd }).catch(() => undefined)
+      recordDesignStart(root, session)
+    }
+    return { hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: SESSION_CONTEXT } }
   }
+  if (!healthy) return {}
   if (!session) return {}
   if (event === 'SessionEnd') {
     await leave(port, session).catch(() => undefined)
@@ -468,7 +584,14 @@ const codexHook = async (event) => {
   await register(port, { agent: 'codex', session, cwd }).catch(() => undefined)
   if (event === 'Stop' && payload.stop_hook_active === true) return {}
   const result = await claim(port, session).catch(() => null)
-  if (!result || !result.count || !result.text) return {}
+  if (!result || !result.count || !result.text) {
+    if (event !== 'Stop' || lintReportCount(root, session) >= LINT_REPORTS_PER_SESSION) return {}
+    if (!designChangedSinceStart(root, session)) return {}
+    const lint = await readLint(port)
+    if (!lint || !lint.problems.some((one) => one.severity === 'error')) return {}
+    countLintReport(root, session)
+    return { decision: 'block', reason: `${lintLines(lint)}\nFix these, then stop.` }
+  }
   const text = result.text
   if (event === 'Stop') {
     return { decision: 'block', reason: text }
@@ -484,13 +607,13 @@ const codexHook = async (event) => {
 const MCP_TOOL = {
   name: 'design_canvas',
   description:
-    'Reads and answers design canvas comments, checks boards, and checks the project. Actions: open, page, comments, reply, resolve, check, doctor. check renders a board (or every board of a page) in headless Chromium and returns errors, warnings and a screenshot path to look at. doctor checks the project rules, git setup and config. Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.',
+    'Reads and answers design canvas comments, checks boards, lints the design folder, and checks the project. Actions: open, page, comments, reply, resolve, check, lint, doctor. check renders a board (or every board of a page) in headless Chromium and returns errors, warnings and a screenshot path to look at, after the format problems of the design folder. lint lists the format problems of the board files and design/canvas.json. doctor checks the project rules, git setup and config. Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.',
   inputSchema: {
     type: 'object',
     properties: {
       action: {
         type: 'string',
-        enum: ['open', 'page', 'comments', 'reply', 'resolve', 'check', 'doctor'],
+        enum: ['open', 'page', 'comments', 'reply', 'resolve', 'check', 'lint', 'doctor'],
       },
       page: { type: 'string', description: 'Page id, for open, page, comments and check.' },
       board: { type: 'string', description: 'Board name, for open and check.' },
@@ -667,7 +790,7 @@ export const runBridge = async (args) => {
           '  claim --session <id> [--json]                          claim queued comments',
           '  release --session <id> --claim <json>                  put a claim that was not delivered back',
           '  leave --session <id>                                   unregister a session',
-          '  tool --action <name> [--page] [--board] [--id] [--body] run a design_canvas action',
+          '  tool --action <name> [--page] [--board] [--id] [--body] run a design_canvas action (open, page, comments, reply, resolve, check, lint, doctor)',
           '  hook codex <Event>                                     serve one Codex hook (stdin JSON)',
           '  mcp                                                    serve design_canvas over MCP (stdio)',
           '  doctor                                                 print the doctor report',

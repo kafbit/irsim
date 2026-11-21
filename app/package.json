@@ -6,7 +6,7 @@
     "dev": "next dev --port $(bun scripts/canvas-port.ts)",
     "build": "next build",
     "typecheck": "tsc --noEmit",
-    "lint": "oxlint src/ public/runtime/ && (cd .. && oxlint bin/lib/export-site.mjs bin/lib/preview/)",
+    "lint": "oxlint src/ public/runtime/ && (cd .. && oxlint bin/lib/export-site.mjs bin/lib/lint-design.mjs bin/lib/preview/)",
     "test": "bun test --isolate",
     "canvas:build": "node ../bin/irsim build",
     "canvas:thumbs": "bun scripts/thumbs.ts",

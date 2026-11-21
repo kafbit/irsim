@@ -30,6 +30,8 @@ export type CanvasSection = {
  * page, so full screen play gives it the whole window.
  */
 export type ManifestBoard = CanvasBoard & {
+  /** The file in the design folder, `Name.html` or the legacy `Name.dc.html`. */
+  file?: string | undefined
   hash: string
   closure: string[]
   interactive: boolean

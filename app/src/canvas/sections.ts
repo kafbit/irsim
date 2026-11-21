@@ -1,8 +1,8 @@
-import { type CanvasEdit, MAX_SECTION_DEPTH } from '../lib/canvas-layout'
+import { type CanvasEdit, MAX_SECTION_DEPTH, SECTION_PAD } from '../lib/canvas-layout'
 import { boardRegion, boundsOf, type Rect } from './geometry'
 import type { CanvasSection } from './types'
 
-export const SECTION_PAD = 64
+export { SECTION_PAD }
 /** The label pill is 26 screen pixels high and sits outside the area, above its top left corner. */
 export const SECTION_LABEL = 26
 

@@ -40,6 +40,15 @@ describe('closureOf on a copy', () => {
     expect(missing).toEqual(['Gone'])
   })
 
+  it('reads an .html board and a legacy .dc.html board in one closure', async () => {
+    writeFileSync(join(dir, 'Modern.html'), '<x-dc><dc-import name="Leaf"></x-dc>')
+    const modern = await closureOf('Modern')
+    expect(Object.keys(modern.boards)).toEqual(['Modern', 'Leaf'])
+    expect(modern.missing).toEqual([])
+    const legacy = await closureOf('Root')
+    expect(Object.keys(legacy.boards)).toEqual(['Root', 'Leaf'])
+  })
+
   it('the hash is stable across two calls', async () => {
     const first = await closureOf('Root')
     const second = await closureOf('Root')

@@ -258,7 +258,7 @@ export function Inspector({
 }) {
   const [copied, setCopied] = useState(false)
   const [details, setDetails] = useState(false)
-  const path = `design/${board.name}.dc.html`
+  const path = `design/${board.file ?? `${board.name}.html`}`
   const imports = board.closure.filter((name) => name !== board.name)
   const ownerOf = (name: string) => pages.find((page) => page.boards.includes(name))?.id
 

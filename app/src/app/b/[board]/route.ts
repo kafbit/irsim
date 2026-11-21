@@ -1,5 +1,7 @@
 import { BOARD_NAME, boardNameOf } from '../../../lib/board-name'
+import { boardFileName } from '../../../lib/board-file.mjs'
 import { closureOf } from '../../../lib/closure'
+import { designDir } from '../../../lib/design-dir'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -7,6 +9,8 @@ export const runtime = 'nodejs'
 /** Injected as `window.__CANVAS_ENV__`; the runtime in `public/runtime/` reads it. */
 type CanvasEnv = {
   board: string
+  file: string
+  files: Record<string, string>
   locale: 'ar' | 'en'
   rev: number
   tokens: Record<string, unknown>
@@ -14,8 +18,12 @@ type CanvasEnv = {
   values: Record<string, Record<string, string>>
 }
 
-const envFor = (board: string): CanvasEnv => ({
+const fileOf = (name: string): string => boardFileName(designDir(), name) ?? `${name}.html`
+
+const envFor = (board: string, names: string[]): CanvasEnv => ({
   board,
+  file: fileOf(board),
+  files: Object.fromEntries(names.map((name) => [name, fileOf(name)])),
   locale: 'ar',
   rev: 0,
   tokens: {},
@@ -25,7 +33,7 @@ const envFor = (board: string): CanvasEnv => ({
 
 // Bump when the frame document's shape changes: the closure hash covers the boards, not this
 // route, and a stale 304 hands the new runtime a document it cannot read.
-const FORMAT = 'f4'
+const FORMAT = 'f5'
 
 const ZOOM_GUARD =
   "addEventListener('wheel',function(e){if(!(e.ctrlKey||e.metaKey))return;e.preventDefault();" +
@@ -51,7 +59,7 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ board: string }> },
 ): Promise<Response> {
-  // Boards link to each other as `X.dc.html`, and a click loads that URL into the frame.
+  // Boards link to each other as `X.html` (or the legacy `X.dc.html`), and a click loads that URL into the frame.
   const board = boardNameOf((await params).board)
   if (!BOARD_NAME.test(board)) {
     return new Response('invalid board name', { status: 400 })
@@ -93,7 +101,7 @@ export async function GET(
       '</head>',
       () =>
         (head ? '' : style) +
-        `<script>window.__CANVAS_ENV__=${escape(envFor(board))}</script>` +
+        `<script>window.__CANVAS_ENV__=${escape(envFor(board, Object.keys(boards)))}</script>` +
         `<script>${ZOOM_GUARD}</script>` +
         `<script type="application/json" id="dc-bundle">${bundle}</script>` +
         `<template id="dc-root">${source.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</template></head>`,

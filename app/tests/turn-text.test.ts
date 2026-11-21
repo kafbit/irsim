@@ -6,7 +6,7 @@ const comment = (overrides: Partial<Comment>): Comment => ({
   id: 'c_1',
   page: 'sales',
   board: 'Leads',
-  file: 'design/Leads.dc.html',
+  file: 'design/Leads.html',
   line: 57,
   element: { tag: 'button', path: 'button', text: 'عميل جديد' },
   rect: { x: 0, y: 0, width: 1, height: 1 },
@@ -25,7 +25,7 @@ describe('buildTurnText', () => {
     const text = buildTurnText([
       comment({
         id: 'c_a',
-        file: 'design/Table.dc.html',
+        file: 'design/Table.html',
         line: 142,
         element: { tag: 'span', path: 'td.bt-row > span', text: 'خالد الشهري' },
         body: 'Make the name column wider.',
@@ -35,9 +35,9 @@ describe('buildTurnText', () => {
     expect(text).toBe(
       [
         'Design canvas: 2 comments on page sales (batch b_1). Read only the lines named. Boards live in design/.',
-        '1. design/Table.dc.html:142 · td.bt-row > span "خالد الشهري" · on board Leads',
+        '1. design/Table.html:142 · td.bt-row > span "خالد الشهري" · on board Leads',
         '   Make the name column wider.',
-        '2. design/Leads.dc.html:57 · button "عميل جديد"',
+        '2. design/Leads.html:57 · button "عميل جديد"',
         '   Use the primary button.',
         'Reply to each with design_canvas {action: "reply", id, body}; resolve with {action: "resolve", id}.',
         REPLY_RULE,
@@ -49,12 +49,12 @@ describe('buildTurnText', () => {
   it('names a whole-board comment by its file and the word board, without a line', () => {
     const text = buildTurnText([
       comment({
-        file: 'design/Leads.dc.html',
+        file: 'design/Leads.html',
         line: 0,
         element: { tag: 'board', path: '', text: 'Leads table' },
       }),
     ])
-    expect(text.split('\n')[1]).toBe('1. design/Leads.dc.html · board "Leads table"')
+    expect(text.split('\n')[1]).toBe('1. design/Leads.html · board "Leads table"')
     expect(text).not.toContain(':0')
   })
 
@@ -64,13 +64,13 @@ describe('buildTurnText', () => {
       element: { tag: 'board', path: '', text: 'Leads table' },
     })
     const text = buildTurnText([whole], {}, 'ui-boards')
-    expect(text.split('\n')[1]).toBe('1. ui-boards/Leads.dc.html · board "Leads table"')
-    expect(text).not.toContain('design/Leads.dc.html')
+    expect(text.split('\n')[1]).toBe('1. ui-boards/Leads.html · board "Leads table"')
+    expect(text).not.toContain('design/Leads.html')
   })
 
   it('keeps the file of an element comment as stored', () => {
     expect(buildTurnText([comment({})], {}, 'ui-boards')).toContain(
-      '1. design/Leads.dc.html:57 · button',
+      '1. design/Leads.html:57 · button',
     )
   })
 
@@ -85,7 +85,7 @@ describe('buildTurnText', () => {
 
   it('leaves out the quoted text of an element with no text', () => {
     const text = buildTurnText([comment({ element: { tag: 'img', path: 'div > img', text: '' } })])
-    expect(text.split('\n')[1]).toBe('1. design/Leads.dc.html:57 · div > img')
+    expect(text.split('\n')[1]).toBe('1. design/Leads.html:57 · div > img')
   })
 
   it('decides a whole-board comment by the line, not by the tag', () => {
@@ -93,8 +93,8 @@ describe('buildTurnText', () => {
       comment({ line: 0, element: { tag: 'div', path: 'div', text: 'Title' } }),
       comment({ id: 'c_2', line: 57, element: { tag: 'board', path: 'board', text: 'Title' } }),
     ])
-    expect(text).toContain('1. design/Leads.dc.html · board "Title"')
-    expect(text).toContain('2. design/Leads.dc.html:57 · board "Title"')
+    expect(text).toContain('1. design/Leads.html · board "Title"')
+    expect(text).toContain('2. design/Leads.html:57 · board "Title"')
   })
 
   it('tells the agent to keep replies to three short sentences', () => {
@@ -171,7 +171,7 @@ describe('buildTurnText', () => {
       expect(text).toBe(
         [
           'Design canvas: 1 comment (0 new, 1 follow-up) on page sales (batch b_1). Read only the lines named. Boards live in design/.',
-          '1. design/Leads.dc.html:57 · button "عميل جديد" · follow-up',
+          '1. design/Leads.html:57 · button "عميل جديد" · follow-up',
           '   Use the primary button.',
           '   You: First ask',
           '   Claude: Done',
@@ -251,11 +251,11 @@ describe('buildVariantText', () => {
     ])
     expect(text).toBe(
       [
-        'Design canvas: the user asked for 2 variants of board Leads (page sales). Each file below is a copy of design/Leads.dc.html; edit only that file.',
-        '   design/LeadsVariantBetter.dc.html: Better. Improve it.',
-        '   design/LeadsVariantSimpler.dc.html: Simpler. Cut it.',
+        'Design canvas: the user asked for 2 variants of board Leads (page sales). Each file below is a copy of design/Leads.html; edit only that file.',
+        '   design/LeadsVariantBetter.html: Better. Improve it.',
+        '   design/LeadsVariantSimpler.html: Simpler. Cut it.',
         '   Keep the filter.',
-        `   Keep each board's size and the board conventions. Run design_canvas {action: "check", board} on each and look at the screenshot. Do not edit Leads.dc.html; the user compares the variants and chooses one in irsim.`,
+        `   Keep each board's size and the board conventions. Run design_canvas {action: "check", board} on each and look at the screenshot. Do not edit Leads.html; the user compares the variants and chooses one in irsim.`,
         REPLY_RULE,
       ].join('\n'),
     )
@@ -272,7 +272,7 @@ describe('buildVariantText', () => {
           { name: 'LeadsVariantOption2', label: 'Option 2', direction: 'Option 2 of 2: a take.' },
         ],
         note: 'Calmer header.',
-        pick: { file: 'design/Leads.dc.html', line: 7, element: { tag: 'h1', path: 'h1', text: 'Leads' } },
+        pick: { file: 'design/Leads.html', line: 7, element: { tag: 'h1', path: 'h1', text: 'Leads' } },
         sessionId: 's1',
         status: 'queued',
         createdAt: '2026-11-14T00:00:00.000Z',
@@ -280,11 +280,11 @@ describe('buildVariantText', () => {
     ])
     expect(text).toBe(
       [
-        'Design canvas: the user asked for 2 variants of board Leads (page sales) from a comment on design/Leads.dc.html:7 · h1 "Leads". Each file below is a copy of design/Leads.dc.html; edit only that file.',
+        'Design canvas: the user asked for 2 variants of board Leads (page sales) from a comment on design/Leads.html:7 · h1 "Leads". Each file below is a copy of design/Leads.html; edit only that file.',
         '   Calmer header.',
-        '   design/LeadsVariantOption1.dc.html: Option 1. Option 1 of 2: a take.',
-        '   design/LeadsVariantOption2.dc.html: Option 2. Option 2 of 2: a take.',
-        `   Keep each board's size and the board conventions. Run design_canvas {action: "check", board} on each and look at the screenshot. Do not edit Leads.dc.html; the user compares the variants and chooses one in irsim.`,
+        '   design/LeadsVariantOption1.html: Option 1. Option 1 of 2: a take.',
+        '   design/LeadsVariantOption2.html: Option 2. Option 2 of 2: a take.',
+        `   Keep each board's size and the board conventions. Run design_canvas {action: "check", board} on each and look at the screenshot. Do not edit Leads.html; the user compares the variants and chooses one in irsim.`,
         REPLY_RULE,
       ].join('\n'),
     )
@@ -351,5 +351,18 @@ describe('buildPageRequestText', () => {
     expect(text).toContain('left to right in flow order')
     expect(text).toContain('Edit only design/canvas.json')
     expect(text).toContain('design_canvas {action: "check", page: "sales"}')
+  })
+})
+
+describe('the board file name', () => {
+  it('uses the resolver for a legacy board', () => {
+    const text = buildVariantText(
+      [{ id: 'v_1', page: 'sales', base: 'Leads', variants: [{ name: 'LeadsVariantA', label: 'A', direction: 'Go.' }] } as never],
+      'design',
+      {},
+      (board) => `${board}.dc.html`,
+    )
+    expect(text).toContain('a copy of design/Leads.dc.html')
+    expect(text).toContain('design/LeadsVariantA.dc.html: A. Go.')
   })
 })

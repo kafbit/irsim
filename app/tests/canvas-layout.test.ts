@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { applyEdit, type CanvasFile, placeBoard } from '../src/lib/canvas-layout'
+import {
+  applyEdit,
+  type CanvasFile,
+  placeBoard,
+  placeInSection,
+  resolveLayout,
+  syncFromDisk,
+} from '../src/lib/canvas-layout'
 
 const canvas = (): CanvasFile => ({
   version: 1,
@@ -383,5 +390,235 @@ describe('applyEdit collisions', () => {
     expect(m1?.x).toBeGreaterThan(2000)
     expect((m2?.x as number) - (m1?.x as number)).toBe(480)
     expect(m1?.y).toBe(0)
+  })
+})
+
+const rect = (name: string, x: number, y: number, section?: string) => ({
+  name,
+  x,
+  y,
+  width: 300,
+  height: 200,
+  ...(section ? { section } : {}),
+})
+
+const filed = (boards: Record<string, unknown>[], sections: Record<string, unknown>[]): CanvasFile =>
+  ({
+    version: 1,
+    pages: [{ id: 'p', title: 'P', sections, boards: boards.map((b) => ({ title: String(b.name), ...b })) }],
+    overrides: { colors: {}, radius: {}, type: {} },
+    bindings: {},
+  }) as unknown as CanvasFile
+
+const at = (file: CanvasFile, name: string) => {
+  const board = file.pages[0].boards.find((entry) => entry.name === name)
+  return { x: board?.x, y: board?.y }
+}
+
+describe('resolveLayout by container', () => {
+  const sections = [
+    { id: 'P', title: 'P' },
+    { id: 'A', title: 'A', parent: 'P' },
+    { id: 'B', title: 'B', parent: 'P' },
+    { id: 'Q', title: 'Q' },
+  ]
+
+  it('pushes a sibling section as a block, then the neighbour of the grown parent', () => {
+    const before = [rect('a1', 0, 0, 'A'), rect('a2', 0, 280, 'A'), rect('b1', 600, 0, 'B'), rect('b2', 600, 280, 'B'), rect('q1', 1200, 0, 'Q')]
+    const after = before.map((board) => (board.name === 'a1' ? { ...board, width: 500 } : board))
+    const moves = resolveLayout(after, sections, ['a1'], before).boards
+    expect(moves.get('b1')).toEqual({ x: 708, y: 0 })
+    expect(moves.get('b2')).toEqual({ x: 708, y: 280 })
+    expect(moves.get('q1')).toEqual({ x: 1280, y: 0 })
+    expect(moves.has('a2')).toBe(false)
+  })
+})
+
+describe('placeInSection', () => {
+  const sections = [
+    { id: 'S', title: 'S' },
+    { id: 'N', title: 'N' },
+  ]
+
+  it('goes below a row when the right side meets a neighbouring section', () => {
+    const boards = [rect('m1', 0, 0, 'S'), rect('m2', 380, 0, 'S'), rect('n1', 840, 0, 'N'), rect('new', 0, 0, 'S')]
+    expect(placeInSection(boards, sections, 'new')).toEqual({ x: 0, y: 280 })
+  })
+
+  it('goes right of the last member when the section is alone', () => {
+    const boards = [rect('m1', 0, 0, 'S'), rect('new', 0, 0, 'S')]
+    expect(placeInSection(boards, sections, 'new')).toEqual({ x: 380, y: 0 })
+  })
+
+  it('returns null without a section or without members', () => {
+    expect(placeInSection([rect('new', 0, 0)], sections, 'new')).toBeNull()
+    expect(placeInSection([rect('new', 0, 0, 'S')], sections, 'new')).toBeNull()
+  })
+})
+
+describe('syncFromDisk', () => {
+  const sections = [
+    { id: 'A', title: 'A' },
+    { id: 'B', title: 'B' },
+  ]
+  const base = [rect('a1', 0, 0, 'A'), rect('b1', 1000, 0, 'B')]
+
+  it('returns null for an unchanged file', () => {
+    expect(syncFromDisk(filed(base, sections), filed(base, sections))).toBeNull()
+  })
+
+  it('moves a new board next to its section and leaves the other section', () => {
+    const next = filed([...base, rect('a2', 1100, 100, 'A')], sections)
+    const out = syncFromDisk(filed(base, sections), next)
+    expect(out && at(out, 'a2')).toEqual({ x: 380, y: 0 })
+    expect(out && at(out, 'b1')).toEqual({ x: 1000, y: 0 })
+    expect(at(next, 'a2')).toEqual({ x: 1100, y: 100 })
+  })
+
+  it('pushes the neighbour of a board an agent moved into it', () => {
+    const next = filed([rect('a1', 800, 0, 'A'), base[1]], sections)
+    const out = syncFromDisk(filed(base, sections), next)
+    expect(out && at(out, 'b1')).toEqual({ x: 1308, y: 0 })
+    expect(out && at(out, 'a1')).toEqual({ x: 800, y: 0 })
+  })
+
+  it('places a new board with a section and no position beside its section', () => {
+    const { x: _x, y: _y, ...bare } = rect('a2', 0, 0, 'A')
+    const out = syncFromDisk(filed(base, sections), filed([...base, bare], sections))
+    expect(out && at(out, 'a2')).toEqual({ x: 380, y: 0 })
+  })
+
+  it('moves a new board with no section off the boards it covers and pushes nothing', () => {
+    const out = syncFromDisk(filed(base, sections), filed([...base, rect('c1', 50, 50)], sections))
+    expect(out && at(out, 'c1')).not.toEqual({ x: 50, y: 50 })
+    expect(out && at(out, 'a1')).toEqual({ x: 0, y: 0 })
+    expect(out && at(out, 'b1')).toEqual({ x: 1000, y: 0 })
+  })
+
+  it('fills a nested section below its row and pushes the sibling section, not the top level neighbour', () => {
+    const nested = [
+      { id: 'I', title: 'I' },
+      { id: 'S', title: 'S', parent: 'I' },
+      { id: 'V', title: 'V', parent: 'I' },
+      { id: 'C', title: 'C' },
+    ]
+    const wide = (name: string, x: number, y: number, section: string) => ({ ...rect(name, x, y, section), width: 400, height: 300 })
+    const start = [wide('s1', 0, 0, 'S'), wide('s2', 480, 0, 'S'), wide('v1', 0, 700, 'V'), wide('v2', 480, 700, 'V'), wide('c1', 1400, 0, 'C'), wide('c3', 1400, 460, 'C')]
+    const out = syncFromDisk(filed(start, nested), filed([...start, wide('g', 1450, 800, 'S'), wide('w', 1000, 300, 'S')], nested))
+    expect(out && at(out, 'g')).toEqual({ x: 0, y: 380 })
+    expect(out && at(out, 'w')).toEqual({ x: 480, y: 380 })
+    expect(out && at(out, 'v1')).toEqual({ x: 0, y: 936 })
+    expect(out && at(out, 'c1')).toEqual({ x: 1400, y: 0 })
+  })
+
+  it('leaves four boards an agent moved into a new section as a row 40 px apart', () => {
+    const loose = [rect('r1', 0, 0), rect('r2', 400, 0), rect('r3', 800, 0), rect('r4', 1200, 0), rect('z', 0, 2000)]
+    const row = [rect('r1', 0, 600, 'N'), rect('r2', 340, 600, 'N'), rect('r3', 680, 600, 'N'), rect('r4', 1020, 600, 'N'), rect('z', 0, 2000)]
+    const out = syncFromDisk(filed(loose, []), filed(row, [{ id: 'N', title: 'N' }]))
+    for (const board of row) expect(out ? at(out, board.name) : { x: board.x, y: board.y }).toEqual({ x: board.x, y: board.y })
+  })
+
+  it('leaves a renamed loose board 40 px from another where it is', () => {
+    const before = [rect('l1', 0, 0), rect('l2', 340, 0)]
+    const after = [rect('l1', 0, 0), rect('l3', 340, 0)]
+    const out = syncFromDisk(filed(before, []), filed(after, []))
+    expect(out).toBeNull()
+  })
+
+  it('leaves a renamed board inside a section where it is', () => {
+    const before = [rect('s1', 0, 0, 'A'), rect('s2', 340, 0, 'A')]
+    const after = [rect('s1', 0, 0, 'A'), rect('s3', 340, 0, 'A')]
+    const out = syncFromDisk(filed(before, sections), filed(after, sections))
+    expect(out).toBeNull()
+  })
+
+  it('separates a section whose new parent puts its area over a sibling', () => {
+    const tree = [
+      { id: 'A', title: 'A' },
+      { id: 'C', title: 'C' },
+    ]
+    const boards = [rect('a1', 0, 0, 'A'), rect('a2', 320, 0, 'A'), rect('c1', 640, 0, 'C')]
+    const out = syncFromDisk(filed(boards, tree), filed(boards, [tree[0], { ...tree[1], parent: 'A' }]))
+    expect(out).not.toBeNull()
+    if (!out) return
+    const a2 = at(out, 'a2') as { x: number; y: number }
+    const c1 = at(out, 'c1') as { x: number; y: number }
+    const apart =
+      a2.x + 300 <= c1.x - 64 || c1.x + 300 + 64 <= a2.x || a2.y + 200 <= c1.y - 24 - 64 || c1.y + 200 + 64 <= a2.y - 24
+    expect(apart).toBe(true)
+  })
+
+  it('places a new board with no section and no position below everything', () => {
+    const { x: _x, y: _y, ...bare } = rect('c1', 0, 0)
+    const out = syncFromDisk(filed(base, sections), filed([...base, bare], sections))
+    expect(out && at(out, 'c1')).toEqual({ x: 0, y: 280 })
+  })
+  describe('defects', () => {
+    const box = (name: string, x: number, y: number, width: number, height: number, section?: string) => ({
+      name,
+      x,
+      y,
+      width,
+      height,
+      ...(section ? { section } : {}),
+    })
+    const drawn = (file: CanvasFile, name: string) => {
+      const board = file.pages[0].boards.find((entry) => entry.name === name) as unknown as {
+        x: number
+        y: number
+        width: number
+        height: number
+      }
+      return { x: board.x, y: board.y - 24, width: board.width, height: board.height + 24 }
+    }
+    const meets = (a: ReturnType<typeof drawn>, b: ReturnType<typeof drawn>) =>
+      a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height
+
+    it('places a new board where its drawn rect overlaps no board of a sibling sub-section', () => {
+      const tree = [
+        { id: 'R', title: 'R' },
+        { id: 'A', title: 'A', parent: 'R' },
+        { id: 'B', title: 'B', parent: 'R' },
+      ]
+      const boards = [box('a1', 0, 0, 300, 300, 'A'), box('a2', 380, 0, 300, 800, 'A'), box('b1', 0, 400, 300, 300, 'B')]
+      const out = syncFromDisk(filed(boards, tree), filed([...boards, box('n', 380, 0, 300, 300, 'A')], tree))
+      expect(out).not.toBeNull()
+      if (!out) return
+      const mine = drawn(out, 'n')
+      for (const other of ['a1', 'a2', 'b1']) expect(meets(mine, drawn(out, other))).toBe(false)
+    })
+
+    it('does not push a top-level section that was close by design when boards are regrouped', () => {
+      const prevSections = [
+        { id: 'P', title: 'P' },
+        { id: 'Y', title: 'Y' },
+      ]
+      const nextSections = [...prevSections, { id: 'S', title: 'S', parent: 'P' }]
+      const prevBoards = [
+        box('p1', 0, 0, 300, 300, 'P'),
+        box('p2', 340, 0, 300, 300, 'P'),
+        box('p3', 0, 360, 300, 300, 'P'),
+        box('y1', 808, 0, 300, 300, 'Y'),
+      ]
+      const nextBoards = prevBoards.map((b) => (b.name === 'p1' || b.name === 'p2' ? { ...b, section: 'S' } : b))
+      const out = syncFromDisk(filed(prevBoards, prevSections), filed(nextBoards, nextSections))
+      expect(out === null ? { x: 808, y: 0 } : at(out, 'y1')).toEqual({ x: 808, y: 0 })
+    })
+
+    it('keeps an area the agent moved with its boards when the sync pushes other boards', () => {
+      const area = { id: 'S', title: 'S', x: -100, y: -100, width: 1000, height: 600 }
+      const prevBoards = [
+        box('s1', 0, 0, 300, 300, 'S'),
+        box('s2', 380, 0, 300, 300, 'S'),
+        box('o1', 5000, 0, 300, 300),
+        box('o2', 6000, 0, 300, 300),
+      ]
+      const nextBoards = prevBoards.map((b) =>
+        b.section === 'S' ? { ...b, x: b.x + 2000 } : b.name === 'o2' ? { ...b, x: 5100 } : b,
+      )
+      const out = syncFromDisk(filed(prevBoards, [area]), filed(nextBoards, [{ ...area, x: 1900 }]))
+      expect(out).not.toBeNull()
+      expect((out?.pages[0].sections?.[0] as { x: number }).x).toBe(1900)
+    })
   })
 })

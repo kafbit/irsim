@@ -48,10 +48,10 @@ dotted lookup is the whole language.
 | --- | --- |
 | `sc-if value="{{x}}"` | Renders children when `x` is truthy. No `else`. 767 uses |
 | `sc-for list="{{xs}}" as="a"` | Renders children per item, `a` in scope; also `{{$index}}`. 442 uses |
-| `dc-import name="Sidebar" …` | Mounts `design/Sidebar.dc.html` as a child component. Every other attribute is a prop; `hint-size` and `hint-placeholder-*` are canvas hints and are dropped. 640 uses, always a paired tag, always empty content |
+| `dc-import name="Sidebar" …` | Mounts `design/Sidebar.html` as a child component. Every other attribute is a prop; `hint-size` and `hint-placeholder-*` are canvas hints and are dropped. 640 uses, always a paired tag, always empty content |
 
-`dc-import` resolves a sibling file: `name` → `<name>.dc.html`, whatever the importer. The
-import graph has a maximum depth of 18 (`UIKit`). A missing target renders a visible marker
+`dc-import` resolves a sibling file: `name` → `<name>.html`, whatever the importer. The legacy name
+`<name>.dc.html` is still read when no `<name>.html` board exists. The import graph has a maximum depth of 18 (`UIKit`). A missing target renders a visible marker
 and reports the board and the name.
 
 ## Props of an imported component
@@ -151,8 +151,8 @@ its size and scrolls when it is larger than the window. `"expand": "fill"` on th
 page, and any other `expand` value does not. Without `expand`, a board at least 1024 px wide whose
 root element (the first one after `<helmet>`) has no `width: <n>px` in its inline style is a page.
 
-Inside a played board, `<a href="Cart.dc.html">` (relative, or from the root as
-`/sub/Cart.dc.html`) moves Play to `Cart`: in place on the canvas, or in the full screen view. A
+Inside a played board, `<a href="Cart.html">` (relative, or from the root as
+`/sub/Cart.html`) moves Play to `Cart`: in place on the canvas, or in the full screen view. A
 board on another page opens on that page. `href="#id"` scrolls inside the board, and an `https:`,
 `mailto:` or `tel:` link opens a new tab. Each board keeps its own `state`. Esc, Stop or "Back to
 canvas" ends Play.

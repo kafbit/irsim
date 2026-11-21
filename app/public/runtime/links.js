@@ -1,18 +1,18 @@
 // @ts-check
 /**
- * Links inside a board. `<a href="Cart.dc.html">` moves Play to the board `Cart`, and an `https:`
+ * Links inside a board. `<a href="Cart.html">` (or the legacy `Cart.dc.html`) moves Play to the board `Cart`, and an `https:`
  * link opens a new tab, so the frame never loads another page. `#id` links keep their default:
  * they scroll inside the board. The canvas decides what a move means (see `use-play-links.ts`).
  */
 
-const BOARD_LINK = /(?:^|\/)([A-Za-z][A-Za-z0-9]*)\.dc\.html$/
+const BOARD_LINK = /(?:^|\/)([A-Za-z][A-Za-z0-9]*)(?:\.dc)?\.html$/
 const EXTERNAL = /^(?:https?:|mailto:|tel:)/i
-// `https://site/Cart.dc.html` or `//site/Cart.dc.html` is another site, not a board.
+// `https://site/Cart.html` or `//site/Cart.dc.html` is another site, not a board.
 const OTHER_ORIGIN = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i
 
 /**
  * The board an `href` points at, or `null`. The href is relative to the board or starts at the
- * canvas root (`/sub/Cart.dc.html`); only the file name picks the board, because irsim keeps every
+ * canvas root (`/sub/Cart.html`); only the file name picks the board, because irsim keeps every
  * board in one folder.
  * @param {string} href
  * @returns {string | null}
