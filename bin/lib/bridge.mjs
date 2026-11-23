@@ -862,6 +862,28 @@ const mcpServer = async (agent = 'codex') => {
     const found = readAntigravitySession(rootOf(args.cwd ?? process.cwd()))
     return { session: process.env.IRSIM_SESSION || found.session, root: found.root }
   }
+  // Antigravity has no session end hook. Its MCP server lives as long as the agy process, so
+  // stdin closing or a stop signal means agy exited: take the session off the canvas.
+  let leaving
+  const leaveOnExit = () => {
+    leaving ??= (async () => {
+      if (agent !== 'antigravity') return
+      const { session, root } = readAntigravitySession(rootOf(process.cwd()))
+      if (session) {
+        const port = await canvasPort(root)
+        if (await health(port)) await leave(port, session).catch(() => undefined)
+      }
+      forgetAntigravitySession()
+    })()
+    return leaving
+  }
+  if (agent === 'antigravity') {
+    for (const signal of ['SIGTERM', 'SIGINT', 'SIGHUP']) {
+      process.once(signal, () => {
+        leaveOnExit().finally(() => process.exit(0))
+      })
+    }
+  }
   let buffer = ''
   process.stdin.setEncoding('utf8')
   for await (const chunk of process.stdin) {
@@ -917,16 +939,7 @@ const mcpServer = async (agent = 'codex') => {
       }
     }
   }
-  // Antigravity has no session end hook. Its MCP server lives as long as the agy process, so
-  // stdin closing means agy exited: take the session off the canvas.
-  if (agent === 'antigravity') {
-    const { session, root } = readAntigravitySession(rootOf(process.cwd()))
-    if (session) {
-      const port = await canvasPort(root)
-      if (await health(port)) await leave(port, session).catch(() => undefined)
-    }
-    forgetAntigravitySession()
-  }
+  await leaveOnExit()
 }
 
 const parse = (args) => {

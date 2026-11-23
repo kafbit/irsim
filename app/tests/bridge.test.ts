@@ -342,6 +342,22 @@ describe('bridge', () => {
     expect(received.some(({ method }) => method === 'DELETE')).toBe(false)
   })
 
+  it('takes the Antigravity session off the canvas when agy stops the MCP server with a signal', async () => {
+    const child = spawn(process.execPath, [CLI, 'bridge', 'mcp', '--agent', 'antigravity'], {
+      cwd: ROOT,
+      env: { ...env(), ANTIGRAVITY_CONVERSATION_ID: 'agy-signal-1' },
+    })
+    // Wait for the first answer, so the server is up, then stop it while stdin is still open.
+    await new Promise<void>((ready) => {
+      child.stdout.once('data', () => ready())
+      child.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'ping' })}\n`)
+    })
+    const closed = new Promise((done) => child.on('close', done))
+    child.kill('SIGTERM')
+    await closed
+    expect(received.some((one) => one.method === 'DELETE' && one.path === '/api/sessions/agy-signal-1')).toBe(true)
+  })
+
   it('lists stop only for Antigravity', async () => {
     const list = [{ jsonrpc: '2.0', id: 1, method: 'tools/list' }]
     const actions = async (agent: string) =>
