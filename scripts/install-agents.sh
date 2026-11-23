@@ -81,7 +81,15 @@ if [ "$uninstall" = 1 ]; then
   echo
   echo "The Codex plugin is removed with: codex plugin remove irsim-codex"
   echo "Its marketplace is removed with: codex plugin marketplace remove kafbit"
-  echo "The Antigravity plugin is removed with: agy plugin uninstall irsim"
+  if [ "$antigravity" = 1 ]; then
+    if ! command -v agy >/dev/null 2>&1; then
+      echo "install-agents: agy is not on PATH" >&2
+      exit 1
+    fi
+    agy plugin uninstall irsim
+  else
+    echo "The Antigravity plugin is removed with: agy plugin uninstall irsim"
+  fi
   exit 0
 fi
 

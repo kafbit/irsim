@@ -61,7 +61,7 @@ By hand:
 | Pi | `pi install npm:@kafbit/irsim-connectors` | Pi shows an update notice at startup, then `pi update --extensions` | `plugin/harnesses/pi/irsim.ts`, one extension, plus the skill |
 | OpenCode | `opencode plugin add @kafbit/irsim-connectors`, then link `plugin/skills/irsim-workflow` into `~/.config/opencode/skills/` | OpenCode checks at startup, then `opencode plugin update` | `plugin/harnesses/opencode/irsim.js`, one v2 plugin |
 | Command Code | `commandcode mods add @kafbit/irsim-connectors` | no update notice, run `commandcode mods update` | `plugin/harnesses/command-code/irsim.ts`, one mod, plus the skill |
-| Antigravity CLI (`agy`) | `agy plugin install ~/.local/share/irsim/current/plugin/harnesses/antigravity` (or `./plugin/harnesses/antigravity` from a checkout) | `irsim update` then re-run `agy plugin install` | `plugin/harnesses/antigravity` (hooks, MCP server, `/irsim*` commands, skills) |
+| Antigravity CLI (`agy`) | `agy plugin install ~/.local/share/irsim/current/plugin/harnesses/antigravity` (or `./plugin/harnesses/antigravity` from a checkout) | `irsim update` reinstalls it | `plugin/harnesses/antigravity` (hooks, MCP server, `/irsim*` commands, skills) |
 
 The Pi, OpenCode and Command Code connectors are one npm package, `@kafbit/irsim-connectors`, versioned with each irsim release. To work on a checkout instead, use `scripts/install-agents.sh` above.
 

@@ -632,6 +632,24 @@ const downloadAsset = (prefix, tag, asset, work, total) =>
     })
   })
 
+const updateAntigravityPlugin = (prefix) => {
+  const path = join(prefix, 'current', 'plugin', 'harnesses', 'antigravity')
+  if (!existsSync(path)) return
+  const manual = `agy plugin install ${path}`
+  try {
+    const list = spawnSync('agy', ['plugin', 'list', '--json'], { encoding: 'utf8' })
+    if (list.error || list.status !== 0) return
+    const parsed = JSON.parse(String(list.stdout))
+    const plugins = Array.isArray(parsed) ? parsed : (parsed?.plugins ?? [])
+    if (!plugins.some((entry) => entry === 'irsim' || entry?.name === 'irsim')) return
+    const install = spawnSync('agy', ['plugin', 'install', path], { encoding: 'utf8' })
+    if (install.error || install.status !== 0) throw new Error('install failed')
+    console.log('updated the Antigravity plugin')
+  } catch {
+    console.log(`could not update the Antigravity plugin, run: ${manual}`)
+  }
+}
+
 const update = async (args) => {
   const opts = parse(args, { '--check': 'bool' })
   const installed = installedVersion()
@@ -713,6 +731,7 @@ const update = async (args) => {
   } finally {
     release()
   }
+  updateAntigravityPlugin(prefix)
   const project = findConfigDir(process.cwd())
   if (project) {
     spawnSync(join(prefix, 'current', 'bin', 'irsim'), ['init', '--refresh-block'], {

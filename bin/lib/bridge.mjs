@@ -991,7 +991,7 @@ export const runBridge = async (args) => {
     throw new Error(`no hook adapter for ${agent}`)
   }
   if (command === 'mcp') {
-    await mcpServer(typeof flags.agent === 'string' ? flags.agent : 'codex')
+    await mcpServer(typeof flags.agent === 'string' ? normalizeAgent(flags.agent) : 'codex')
     return
   }
   if (command === 'doctor') {
