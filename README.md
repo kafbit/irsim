@@ -43,11 +43,12 @@ claude plugin marketplace add kafbit/irsim && claude plugin install irsim@kafbit
 
 ## Other agents
 
-Codex, OpenCode, Pi and Command Code get the same canvas: the `design_canvas` tool, the comments delivered to the session, and the `irsim-workflow` and `irsim-design` skills. The connectors call `irsim bridge`; the installer points `irsim` at this checkout, so the command exists even when the installed release predates it. `--uninstall` restores the previous `irsim` link.
+Codex, OpenCode, Pi, Command Code and Antigravity CLI get the same canvas: the `design_canvas` tool, the comments delivered to the session, and the `irsim-workflow` and `irsim-design` skills. The connectors call `irsim bridge`; the installer points `irsim` at this checkout, so the command exists even when the installed release predates it. `--uninstall` restores the previous `irsim` link.
 
 ```bash
-scripts/install-agents.sh            # point irsim here, link OpenCode, Pi and Command Code
-scripts/install-agents.sh --codex    # also add the Codex plugin marketplace and plugin
+scripts/install-agents.sh                # point irsim here, link OpenCode, Pi and Command Code
+scripts/install-agents.sh --codex        # also add the Codex plugin marketplace and plugin
+scripts/install-agents.sh --antigravity  # also install the Antigravity CLI plugin
 scripts/install-agents.sh --uninstall
 ```
 
@@ -60,50 +61,29 @@ By hand:
 | Pi | `pi install npm:@kafbit/irsim-connectors` | Pi shows an update notice at startup, then `pi update --extensions` | `plugin/harnesses/pi/irsim.ts`, one extension, plus the skill |
 | OpenCode | `opencode plugin add @kafbit/irsim-connectors`, then link `plugin/skills/irsim-workflow` into `~/.config/opencode/skills/` | OpenCode checks at startup, then `opencode plugin update` | `plugin/harnesses/opencode/irsim.js`, one v2 plugin |
 | Command Code | `commandcode mods add @kafbit/irsim-connectors` | no update notice, run `commandcode mods update` | `plugin/harnesses/command-code/irsim.ts`, one mod, plus the skill |
-| Antigravity CLI (`agy`) | `agy mcp add irsim irsim bridge mcp` and download the skills or run `agy plugin import claude` / `agy plugin install ./plugin` | `irsim update` (and re-run the download or `agy plugin` install) | `irsim bridge mcp` (MCP server) + skills |
+| Antigravity CLI (`agy`) | `agy plugin install ~/.local/share/irsim/current/plugin/harnesses/antigravity` (or `./plugin/harnesses/antigravity` from a checkout) | `irsim update` then re-run `agy plugin install` | `plugin/harnesses/antigravity` (hooks, MCP server, `/irsim*` commands, skills) |
 
 The Pi, OpenCode and Command Code connectors are one npm package, `@kafbit/irsim-connectors`, versioned with each irsim release. To work on a checkout instead, use `scripts/install-agents.sh` above.
 
-Codex registers on `SessionStart`, receives comments as context before a model request and on a user prompt, and the `Stop` hook keeps it going while comments are queued. Its `/irsim` comes from `~/.codex/prompts/irsim.md`, which the installer links; the plugin also ships the same prompt. The other connectors poll while listening. In OpenCode, Pi and Command Code, `/irsim [page or board]` opens the canvas and starts listening, `/irsim-stop` stops, and `/irsim-comments [page]` counts the open comments. The canvas labels each session with its agent.
+Codex registers on `SessionStart`, receives comments as context before a model request and on a user prompt, and the `Stop` hook keeps it going while comments are queued. Its `/irsim` comes from `~/.codex/prompts/irsim.md`, which the installer links; the plugin also ships the same prompt. Antigravity CLI uses the same hook lifecycle (`SessionStart`, `PreInvocation`, `Stop`) through `plugin/harnesses/antigravity` and ships `/irsim`, `/irsim-stop`, `/irsim-doctor`, `/irsim-comments`, `irsim-workflow` and `irsim-design` as plugin skills plus `design_canvas` over MCP. The other connectors poll while listening. In OpenCode, Pi and Command Code, `/irsim [page or board]` opens the canvas and starts listening, `/irsim-stop` stops, and `/irsim-comments [page]` counts the open comments. The canvas labels each session with its agent.
 
 ### Antigravity CLI (`agy`)
 
-Antigravity CLI connects to irsim through the stdio MCP server (`irsim bridge mcp`), the `irsim-workflow` and `irsim-design` skills, and the project's `AGENTS.md` rules:
+Install the bundled Antigravity plugin (includes the `design_canvas` MCP server, `SessionStart` / `PreInvocation` / `Stop` hooks, and the `/irsim`, `/irsim-stop`, `/irsim-doctor`, `/irsim-comments`, `irsim-workflow` and `irsim-design` skills):
 
-1. Make sure `irsim` is on `PATH` and includes `irsim bridge` (via `install.sh` or `scripts/install-agents.sh` from a checkout).
-2. Add the `irsim` MCP server (writes to `~/.gemini/config/mcp_config.json`):
+1. Install `irsim` (via `install.sh` above, or `scripts/install-agents.sh --antigravity` from a checkout).
+2. Install the plugin into Antigravity CLI:
 
    ```bash
-   agy mcp add irsim irsim bridge mcp
+   # From an installed irsim release:
+   agy plugin install ~/.local/share/irsim/current/plugin/harnesses/antigravity
+
+   # Or from a local checkout of this repository:
+   agy plugin install ./plugin/harnesses/antigravity
    ```
 
-3. Download or import the plugin skills (`irsim-workflow` and `irsim-design`):
-
-   - **Download directly** (no checkout required, installs globally into `~/.gemini/config/skills/`):
-
-     ```bash
-     mkdir -p ~/.gemini/config/skills/irsim-workflow ~/.gemini/config/skills/irsim-design
-     curl -fsSL https://raw.githubusercontent.com/kafbit/irsim/main/plugin/skills/irsim-workflow/SKILL.md \
-       -o ~/.gemini/config/skills/irsim-workflow/SKILL.md
-     curl -fsSL https://raw.githubusercontent.com/kafbit/irsim/main/plugin/skills/irsim-design/SKILL.md \
-       -o ~/.gemini/config/skills/irsim-design/SKILL.md
-     ```
-
-   - **Import from Claude Code** (when `irsim@kafbit` is already installed in Claude Code):
-
-     ```bash
-     agy plugin import claude
-     ```
-
-   - **Install from a local `irsim` checkout** (converts `plugin/.claude-plugin/plugin.json` and installs the skills; or symlink `plugin/skills/*` into `.agents/skills/` for a single repository):
-
-     ```bash
-     agy plugin install ./plugin
-     ```
-
-4. Run `irsim init` in your project so `AGENTS.md` includes the managed irsim rules block (`agy` loads `AGENTS.md` automatically), and verify with `agy mcp list` (and `agy plugin list` if installed as a plugin).
-
-This gives `agy` the `design_canvas` tool (`open`, `page`, `comments`, `reply`, `resolve`, `check`, `lint`, `doctor`) and both skills. Automatic comment delivery hooks are not yet implemented for Antigravity CLI, so read and reply to canvas comments with `design_canvas`.
+3. Run `irsim init` in your project so `AGENTS.md` includes the managed irsim rules block (`agy` loads `AGENTS.md` automatically), and verify with `agy plugin list`.
+4. Start `agy` in the project and run `/irsim` (or `/irsim-comments`, `/irsim-doctor`, `/irsim-stop`).
 
 ## Use
 

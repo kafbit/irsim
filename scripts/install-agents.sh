@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Install the irsim connectors for the agent harnesses this checkout ships.
 #
-#   scripts/install-agents.sh            point irsim at this checkout and link OpenCode, Pi and Command Code
-#   scripts/install-agents.sh --codex    also add the Codex plugin marketplace and plugin
+#   scripts/install-agents.sh                point irsim at this checkout and link OpenCode, Pi and Command Code
+#   scripts/install-agents.sh --codex        also add the Codex plugin marketplace and plugin
+#   scripts/install-agents.sh --antigravity  also install the Antigravity CLI plugin
 #   scripts/install-agents.sh --uninstall
 #
 # The links point at this checkout, so editing plugin/harnesses/* takes effect on the next
@@ -16,12 +17,14 @@ irsim_bin="$bin_dir/irsim"
 previous="$bin_dir/.irsim-dev-previous"
 uninstall=0
 codex=0
+antigravity=0
 for arg in "$@"; do
   case "$arg" in
     --uninstall) uninstall=1 ;;
     --codex) codex=1 ;;
+    --antigravity) antigravity=1 ;;
     -h | --help)
-      sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'
+      sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
     *)
@@ -78,6 +81,7 @@ if [ "$uninstall" = 1 ]; then
   echo
   echo "The Codex plugin is removed with: codex plugin remove irsim-codex"
   echo "Its marketplace is removed with: codex plugin marketplace remove kafbit"
+  echo "The Antigravity plugin is removed with: agy plugin uninstall irsim"
   exit 0
 fi
 
@@ -108,6 +112,18 @@ else
   echo "Codex: add the plugin with"
   echo "  codex plugin marketplace add \"$root\""
   echo "  codex plugin add irsim-codex@kafbit"
+fi
+
+if [ "$antigravity" = 1 ]; then
+  if ! command -v agy >/dev/null 2>&1; then
+    echo "install-agents: agy is not on PATH" >&2
+    exit 1
+  fi
+  agy plugin install "$root/plugin/harnesses/antigravity"
+else
+  echo
+  echo "Antigravity CLI: install the plugin with"
+  echo "  agy plugin install \"$root/plugin/harnesses/antigravity\""
 fi
 
 echo

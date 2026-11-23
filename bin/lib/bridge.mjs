@@ -1,5 +1,5 @@
 import { execFileSync, spawn } from 'node:child_process'
-import { existsSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { connect } from 'node:net'
 import { basename, dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -18,6 +18,7 @@ export const AGENT_NAMES = {
   opencode: 'OpenCode',
   pi: 'Pi',
   'command-code': 'Command Code',
+  antigravity: 'Antigravity',
   other: 'Agent',
 }
 
@@ -382,13 +383,24 @@ const resolveTarget = async (port, wanted) => {
   throw new Error(`no page or board named "${name}", pages: ${ids}`)
 }
 
-const TOOL_ACTIONS = ['open', 'page', 'comments', 'reply', 'resolve', 'check', 'lint', 'doctor']
+const TOOL_ACTIONS = ['open', 'stop', 'page', 'comments', 'reply', 'resolve', 'check', 'lint', 'doctor']
 
 const runTool = async ({ action, ...args }) => {
   if (!TOOL_ACTIONS.includes(action)) {
     throw new Error(`action must be one of ${TOOL_ACTIONS.join(', ')}`)
   }
   if (action === 'doctor') return doctorLines(await runDoctor(args.cwd ?? process.cwd()))
+  if (action === 'stop') {
+    const cwd = args.cwd ?? process.cwd()
+    const root = projectRoot(cwd)
+    const session =
+      args.session || (args.agent === 'antigravity' ? readAntigravitySession(root) : '')
+    if (!session) return 'No active irsim session to stop.'
+    if (args.agent === 'antigravity') pauseAntigravitySession(root, session)
+    const port = await canvasPort(root)
+    if (await health(port)) await leave(port, session).catch(() => undefined)
+    return 'Stopped listening for irsim comments.'
+  }
   if (action === 'open') {
     const cwd = args.cwd ?? process.cwd()
     const root = projectRoot(cwd)
@@ -397,16 +409,19 @@ const runTool = async ({ action, ...args }) => {
       !args.page && !args.board && args.target ? await resolveTarget(port, args.target) : {}
     const page = args.page ?? target.page
     const board = args.board ?? target.board
-    if (args.session) {
-      await register(port, { agent: args.agent, session: args.session, cwd }).catch(() => undefined)
+    const session =
+      args.session || (args.agent === 'antigravity' ? readAntigravitySession(root) : '')
+    if (session) {
+      if (args.agent === 'antigravity') resumeAntigravitySession(root, session)
+      await register(port, { agent: args.agent, session, cwd }).catch(() => undefined)
     }
     const query = [
       ...(page && board ? [`board=${encodeURIComponent(board)}`] : []),
-      ...(args.session ? [`session=${encodeURIComponent(args.session)}`] : []),
+      ...(session ? [`session=${encodeURIComponent(session)}`] : []),
     ].join('&')
     const url = `${baseUrl(port)}${page ? `/p/${encodeURIComponent(page)}` : '/'}${query ? `?${query}` : ''}`
     openBrowser(url)
-    return `Canvas open at ${url}${args.session ? ', listening for comments.' : '.'}`
+    return `Canvas open at ${url}${session ? ', listening for comments.' : '.'}`
   }
   const cwd = args.cwd ?? process.cwd()
   const root = projectRoot(cwd)
@@ -604,19 +619,125 @@ const codexHook = async (event) => {
   return {}
 }
 
+const safeSessionKey = (session) => String(session).replace(/[^A-Za-z0-9_-]/g, '_')
+
+const antigravitySessionFile = (root) => join(root, '.irsim', 'antigravity-session')
+
+const antigravityPausedFile = (root, session) =>
+  join(root, '.irsim', 'antigravity-paused', safeSessionKey(session))
+
+const rememberAntigravitySession = (root, session) => {
+  try {
+    const file = antigravitySessionFile(root)
+    mkdirSync(dirname(file), { recursive: true })
+    writeFileSync(file, String(session))
+  } catch {}
+}
+
+const readAntigravitySession = (root) => {
+  try {
+    return readFileSync(antigravitySessionFile(root), 'utf8').trim()
+  } catch {
+    return ''
+  }
+}
+
+const pauseAntigravitySession = (root, session) => {
+  try {
+    const file = antigravityPausedFile(root, session)
+    mkdirSync(dirname(file), { recursive: true })
+    writeFileSync(file, '1')
+  } catch {}
+}
+
+const resumeAntigravitySession = (root, session) => {
+  try {
+    rmSync(antigravityPausedFile(root, session), { force: true })
+  } catch {}
+}
+
+const isAntigravityPaused = (root, session) => existsSync(antigravityPausedFile(root, session))
+
+/**
+ * Antigravity CLI hook: register on start, deliver comments before a model invocation and
+ * when the execution loop stops. Every path prints one JSON object for Antigravity to read.
+ */
+const antigravityHook = async (event) => {
+  const payload = await parseHookInput()
+  const cwd =
+    typeof payload.cwd === 'string' && payload.cwd
+      ? payload.cwd
+      : Array.isArray(payload.workspacePaths) && typeof payload.workspacePaths[0] === 'string'
+        ? payload.workspacePaths[0]
+        : process.cwd()
+  const session =
+    payload.conversationId ||
+    payload.session_id ||
+    payload.sessionId ||
+    process.env.IRSIM_SESSION
+  const root = projectRoot(cwd)
+  const port = await canvasPort(root)
+  const healthy = await health(port)
+  if (event === 'SessionStart') {
+    if (!existsSync(join(root, CONFIG_FILE)) && !existsSync(join(designFolder(root), 'canvas.json'))) return {}
+    if (session) {
+      rememberAntigravitySession(root, session)
+      resumeAntigravitySession(root, session)
+      if (healthy) await register(port, { agent: 'antigravity', session, cwd }).catch(() => undefined)
+      recordDesignStart(root, session)
+    }
+    return {
+      injectSteps: [{ systemMessage: { systemMessage: SESSION_CONTEXT } }],
+    }
+  }
+  if (!healthy || !session) return {}
+  if (isAntigravityPaused(root, session)) return {}
+  rememberAntigravitySession(root, session)
+  await register(port, { agent: 'antigravity', session, cwd }).catch(() => undefined)
+  if (event === 'PreInvocation') {
+    const result = await claim(port, session).catch(() => null)
+    if (!result || !result.count || !result.text) return {}
+    return {
+      injectSteps: [{ systemMessage: { systemMessage: result.text } }],
+    }
+  }
+  if (event === 'Stop') {
+    if (payload.continuationActive === true) return {}
+    if (
+      typeof payload.terminationReason === 'string' &&
+      payload.terminationReason &&
+      payload.terminationReason !== 'NO_TOOL_CALL'
+    ) {
+      return {}
+    }
+    const result = await claim(port, session).catch(() => null)
+    if (result && result.count && result.text) {
+      return { decision: 'continue', reason: result.text }
+    }
+    if (lintReportCount(root, session) >= LINT_REPORTS_PER_SESSION) return {}
+    if (!designChangedSinceStart(root, session)) return {}
+    const lint = await readLint(port)
+    if (!lint || !lint.problems.some((one) => one.severity === 'error')) return {}
+    countLintReport(root, session)
+    return { decision: 'continue', reason: `${lintLines(lint)}\nFix these, then stop.` }
+  }
+  return {}
+}
+
 const MCP_TOOL = {
   name: 'design_canvas',
   description:
-    'Reads and answers design canvas comments, checks boards, lints the design folder, and checks the project. Actions: open, page, comments, reply, resolve, check, lint, doctor. check renders a board (or every board of a page) in headless Chromium and returns errors, warnings and a screenshot path to look at, after the format problems of the design folder. lint lists the format problems of the board files and design/canvas.json. doctor checks the project rules, git setup and config. Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.',
+    'Reads and answers design canvas comments, checks boards, lints the design folder, and checks the project. Actions: open, stop, page, comments, reply, resolve, check, lint, doctor. check renders a board (or every board of a page) in headless Chromium and returns errors, warnings and a screenshot path to look at, after the format problems of the design folder. lint lists the format problems of the board files and design/canvas.json. doctor checks the project rules, git setup and config. Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.',
   inputSchema: {
     type: 'object',
     properties: {
       action: {
         type: 'string',
-        enum: ['open', 'page', 'comments', 'reply', 'resolve', 'check', 'lint', 'doctor'],
+        enum: ['open', 'stop', 'page', 'comments', 'reply', 'resolve', 'check', 'lint', 'doctor'],
       },
       page: { type: 'string', description: 'Page id, for open, page, comments and check.' },
       board: { type: 'string', description: 'Board name, for open and check.' },
+      target: { type: 'string', description: 'Page id or board name to resolve, for open.' },
       status: {
         type: 'string',
         enum: ['draft', 'queued', 'delivered', 'resolved'],
@@ -633,7 +754,7 @@ const MCP_TOOL = {
   },
 }
 
-const mcpServer = async () => {
+const mcpServer = async (agent = 'codex') => {
   const send = (message) => process.stdout.write(`${JSON.stringify(message)}\n`)
   const reply = (id, result) => send({ jsonrpc: '2.0', id, result })
   const error = (id, code, message) => send({ jsonrpc: '2.0', id, error: { code, message } })
@@ -673,10 +794,15 @@ const mcpServer = async () => {
           continue
         }
         try {
+          const session =
+            process.env.IRSIM_SESSION ||
+            (agent === 'antigravity'
+              ? readAntigravitySession(projectRoot(args.cwd ?? process.cwd()))
+              : '')
           const text = await runTool({
             ...args,
-            agent: 'codex',
-            ...(process.env.IRSIM_SESSION ? { session: process.env.IRSIM_SESSION } : {}),
+            agent,
+            ...(session ? { session } : {}),
           })
           reply(id, { content: [{ type: 'text', text }] })
         } catch (failure) {
@@ -715,12 +841,18 @@ export const runBridge = async (args) => {
   const cwd = typeof flags.cwd === 'string' ? resolve(flags.cwd) : process.cwd()
   if (command === 'hook') {
     const [agent = 'other', event = ''] = flags._
-    if (agent !== 'codex') throw new Error(`no hook adapter for ${agent}`)
-    process.stdout.write(`${JSON.stringify(await codexHook(event))}\n`)
-    return
+    if (agent === 'codex') {
+      process.stdout.write(`${JSON.stringify(await codexHook(event))}\n`)
+      return
+    }
+    if (agent === 'antigravity') {
+      process.stdout.write(`${JSON.stringify(await antigravityHook(event))}\n`)
+      return
+    }
+    throw new Error(`no hook adapter for ${agent}`)
   }
   if (command === 'mcp') {
-    await mcpServer()
+    await mcpServer(typeof flags.agent === 'string' ? flags.agent : 'codex')
     return
   }
   if (command === 'doctor') {
@@ -790,9 +922,10 @@ export const runBridge = async (args) => {
           '  claim --session <id> [--json]                          claim queued comments',
           '  release --session <id> --claim <json>                  put a claim that was not delivered back',
           '  leave --session <id>                                   unregister a session',
-          '  tool --action <name> [--page] [--board] [--id] [--body] run a design_canvas action (open, page, comments, reply, resolve, check, lint, doctor)',
+          '  tool --action <name> [--page] [--board] [--id] [--body] run a design_canvas action (open, stop, page, comments, reply, resolve, check, lint, doctor)',
           '  hook codex <Event>                                     serve one Codex hook (stdin JSON)',
-          '  mcp                                                    serve design_canvas over MCP (stdio)',
+          '  hook antigravity <Event>                               serve one Antigravity hook (stdin JSON)',
+          '  mcp [--agent <id>]                                     serve design_canvas over MCP (stdio)',
           '  doctor                                                 print the doctor report',
           '  url                                                    print the canvas URL',
         ].join('\n'),

@@ -6,7 +6,7 @@ import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 
 import { fileURLToPath } from 'node:url'
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { agentName, agentOf } from '../src/lib/agents'
 
 const CLI = fileURLToPath(new URL('../../bin/irsim', import.meta.url))
@@ -232,7 +232,7 @@ describe('bridge', () => {
       writeFileSync(canvas(), '{}')
       touch(1_000)
     })
-    afterAll(() => rmSync(project, { recursive: true, force: true }))
+    afterEach(() => rmSync(project, { recursive: true, force: true }))
     const start = () =>
       bridge(['hook', 'codex', 'SessionStart'], JSON.stringify({ session_id: session, cwd: project }))
     const stop = async (extra = {}) =>
@@ -316,6 +316,67 @@ describe('bridge', () => {
     expect(lines[1].result.tools[0].name).toBe('design_canvas')
     expect(lines[1].result.tools[0].inputSchema.properties.action.enum).toContain('check')
     expect(lines[1].result.tools[0].inputSchema.properties.action.enum).toContain('lint')
+    expect(lines[1].result.tools[0].inputSchema.properties.action.enum).toContain('stop')
+  })
+
+  describe('Antigravity hooks', () => {
+    const session = `agy-${process.pid}`
+    let project = ''
+    const canvas = () => join(project, 'design', 'canvas.json')
+    const touch = (seconds: number) => utimesSync(canvas(), seconds, seconds)
+    beforeEach(() => {
+      project = mkdtempSync(join(tmpdir(), 'irsim-agy-'))
+      mkdirSync(join(project, 'design'))
+      writeFileSync(join(project, '.irsim.json'), '{}')
+      writeFileSync(canvas(), '{}')
+      touch(1_000)
+    })
+    afterEach(() => rmSync(project, { recursive: true, force: true }))
+    const hook = async (event: string, extra: Record<string, unknown> = {}, extraEnv = {}) =>
+      JSON.parse(
+        await bridge(
+          ['hook', 'antigravity', event],
+          JSON.stringify({ conversationId: session, cwd: project, ...extra }),
+          extraEnv,
+        ),
+      )
+
+    it('registers Antigravity on SessionStart and injects the skills context', async () => {
+      const out = await hook('SessionStart')
+      expect(out.injectSteps[0].systemMessage.systemMessage).toContain('`irsim-design` skill')
+      expect(out.injectSteps[0].systemMessage.systemMessage).toContain('`irsim-workflow` skill')
+      const post = received.find((one) => one.path === '/api/sessions')
+      expect((post?.body as { label?: string } | undefined)?.label).toBe(`Antigravity · ${project.split('/').at(-1)} ${session.slice(0, 6)}`)
+    })
+
+    it('delivers comments on PreInvocation and pauses after stop', async () => {
+      await hook('SessionStart')
+      const before = await hook('PreInvocation')
+      expect(before).toEqual({ injectSteps: [{ systemMessage: { systemMessage: claimText } }] })
+      const stopped = (await bridge(['tool', 'stop', '--agent', 'antigravity', '--cwd', project])).trim()
+      expect(stopped).toBe('Stopped listening for irsim comments.')
+      expect(received.some((one) => one.method === 'DELETE' && one.path === `/api/sessions/${session}`)).toBe(true)
+      expect(await hook('PreInvocation')).toEqual({})
+      expect(await hook('Stop')).toEqual({})
+    })
+
+    it('continues on Stop when comments or lint errors exist and respects continuationActive and cancellation', async () => {
+      await hook('SessionStart')
+      expect(await hook('Stop', { terminationReason: 'NO_TOOL_CALL' })).toEqual({
+        decision: 'continue',
+        reason: claimText,
+      })
+      expect(await hook('Stop', { continuationActive: true })).toEqual({})
+      expect(await hook('Stop', { terminationReason: 'USER_CANCELED' })).toEqual({})
+      claimed = false
+      lintReport = { ok: false, problems: lintProblems }
+      touch(2_000)
+      const first = await hook('Stop', { terminationReason: 'NO_TOOL_CALL' })
+      expect(first.decision).toBe('continue')
+      expect(first.reason).toContain('error design/canvas.json')
+      expect((await hook('Stop')).decision).toBe('continue')
+      expect(await hook('Stop')).toEqual({})
+    })
   })
 })
 
