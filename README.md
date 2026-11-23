@@ -60,7 +60,7 @@ By hand:
 | Pi | `pi install npm:@kafbit/irsim-connectors` | Pi shows an update notice at startup, then `pi update --extensions` | `plugin/harnesses/pi/irsim.ts`, one extension, plus the skill |
 | OpenCode | `opencode plugin add @kafbit/irsim-connectors`, then link `plugin/skills/irsim-workflow` into `~/.config/opencode/skills/` | OpenCode checks at startup, then `opencode plugin update` | `plugin/harnesses/opencode/irsim.js`, one v2 plugin |
 | Command Code | `commandcode mods add @kafbit/irsim-connectors` | no update notice, run `commandcode mods update` | `plugin/harnesses/command-code/irsim.ts`, one mod, plus the skill |
-| Antigravity CLI (`agy`) | `agy mcp add irsim irsim bridge mcp` and link `plugin/skills/irsim-workflow` and `plugin/skills/irsim-design` into `~/.gemini/config/skills/` | `irsim update` (and `git pull` on the checkout for linked skills) | `irsim bridge mcp` (MCP server) + skills |
+| Antigravity CLI (`agy`) | `agy mcp add irsim irsim bridge mcp` and download the skills or run `agy plugin import claude` / `agy plugin install ./plugin` | `irsim update` (and re-run the download or `agy plugin` install) | `irsim bridge mcp` (MCP server) + skills |
 
 The Pi, OpenCode and Command Code connectors are one npm package, `@kafbit/irsim-connectors`, versioned with each irsim release. To work on a checkout instead, use `scripts/install-agents.sh` above.
 
@@ -77,15 +77,31 @@ Antigravity CLI connects to irsim through the stdio MCP server (`irsim bridge mc
    agy mcp add irsim irsim bridge mcp
    ```
 
-3. Link the skills from an `irsim` checkout globally (or into `.agents/skills/` for a single repository):
+3. Download or import the plugin skills (`irsim-workflow` and `irsim-design`):
 
-   ```bash
-   mkdir -p ~/.gemini/config/skills
-   ln -sfn "$(pwd)/plugin/skills/irsim-workflow" ~/.gemini/config/skills/irsim-workflow
-   ln -sfn "$(pwd)/plugin/skills/irsim-design" ~/.gemini/config/skills/irsim-design
-   ```
+   - **Download directly** (no checkout required, installs globally into `~/.gemini/config/skills/`):
 
-4. Run `irsim init` in your project so `AGENTS.md` includes the managed irsim rules block (`agy` loads `AGENTS.md` automatically), and verify with `agy mcp list`.
+     ```bash
+     mkdir -p ~/.gemini/config/skills/irsim-workflow ~/.gemini/config/skills/irsim-design
+     curl -fsSL https://raw.githubusercontent.com/kafbit/irsim/main/plugin/skills/irsim-workflow/SKILL.md \
+       -o ~/.gemini/config/skills/irsim-workflow/SKILL.md
+     curl -fsSL https://raw.githubusercontent.com/kafbit/irsim/main/plugin/skills/irsim-design/SKILL.md \
+       -o ~/.gemini/config/skills/irsim-design/SKILL.md
+     ```
+
+   - **Import from Claude Code** (when `irsim@kafbit` is already installed in Claude Code):
+
+     ```bash
+     agy plugin import claude
+     ```
+
+   - **Install from a local `irsim` checkout** (converts `plugin/.claude-plugin/plugin.json` and installs the skills; or symlink `plugin/skills/*` into `.agents/skills/` for a single repository):
+
+     ```bash
+     agy plugin install ./plugin
+     ```
+
+4. Run `irsim init` in your project so `AGENTS.md` includes the managed irsim rules block (`agy` loads `AGENTS.md` automatically), and verify with `agy mcp list` (and `agy plugin list` if installed as a plugin).
 
 This gives `agy` the `design_canvas` tool (`open`, `page`, `comments`, `reply`, `resolve`, `check`, `lint`, `doctor`) and both skills. Automatic comment delivery hooks are not yet implemented for Antigravity CLI, so read and reply to canvas comments with `design_canvas`.
 
