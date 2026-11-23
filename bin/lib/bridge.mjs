@@ -1,7 +1,7 @@
 import { execFileSync, spawn } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { connect } from 'node:net'
-import { homedir } from 'node:os'
+import { constants, homedir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { boardNameOf, listBoards } from './board-file.mjs'
@@ -864,14 +864,26 @@ const mcpServer = async (agent = 'codex') => {
   }
   // Antigravity has no session end hook. Its MCP server lives as long as the agy process, so
   // stdin closing or a stop signal means agy exited: take the session off the canvas.
+  // After a signal agy may kill the process soon, so that path skips the port scan and the
+  // health check: it uses the forced or recorded port and gives the DELETE one second.
   let leaving
-  const leaveOnExit = () => {
+  const leaveOnExit = ({ fast = false } = {}) => {
     leaving ??= (async () => {
       if (agent !== 'antigravity') return
       const { session, root } = readAntigravitySession(rootOf(process.cwd()))
       if (session) {
-        const port = await canvasPort(root)
-        if (await health(port)) await leave(port, session).catch(() => undefined)
+        if (fast) {
+          const port = validPort(process.env.IRSIM_PORT || process.env.DESIGN_PORT) ?? readRecorded(root)
+          if (port !== null) {
+            await request(port, `/api/sessions/${encodeURIComponent(session)}`, {
+              method: 'DELETE',
+              timeout: 1_000,
+            }).catch(() => undefined)
+          }
+        } else {
+          const port = await canvasPort(root)
+          if (await health(port)) await leave(port, session).catch(() => undefined)
+        }
       }
       forgetAntigravitySession()
     })()
@@ -880,7 +892,7 @@ const mcpServer = async (agent = 'codex') => {
   if (agent === 'antigravity') {
     for (const signal of ['SIGTERM', 'SIGINT', 'SIGHUP']) {
       process.once(signal, () => {
-        leaveOnExit().finally(() => process.exit(0))
+        leaveOnExit({ fast: true }).finally(() => process.exit(128 + constants.signals[signal]))
       })
     }
   }

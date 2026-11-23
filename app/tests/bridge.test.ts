@@ -320,10 +320,15 @@ describe('bridge', () => {
     }
   })
 
-  const mcp = (agent: string, input: unknown[], extraEnv = {}): Promise<Array<{ result: any }>> =>
+  const mcp = (
+    agent: string,
+    input: unknown[],
+    extraEnv = {},
+    cwd = ROOT,
+  ): Promise<Array<{ result: any }>> =>
     new Promise((resolve, reject) => {
       const child = spawn(process.execPath, [CLI, 'bridge', 'mcp', '--agent', agent], {
-        cwd: ROOT,
+        cwd,
         env: { ...env(), ...extraEnv },
       })
       let out = ''
@@ -334,6 +339,17 @@ describe('bridge', () => {
       child.stdin.end(`${input.map((one) => JSON.stringify(one)).join('\n')}\n`)
     })
 
+  // An Antigravity MCP server in a temp project with its own cache and agy pid, so a test never
+  // reads or deletes the session file of a real agy that runs the tests.
+  const isolatedAgy = () => {
+    const dir = mkdtempSync(join(tmpdir(), 'irsim-agy-mcp-'))
+    return {
+      dir,
+      env: { IRSIM_CACHE_DIR: join(dir, 'cache'), IRSIM_ANTIGRAVITY_PID: `test-${process.pid}` },
+      done: () => rmSync(dir, { recursive: true, force: true }),
+    }
+  }
+
   it('refuses an action the agent does not list', async () => {
     const [out] = await mcp('codex', [
       { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'design_canvas', arguments: { action: 'stop' } } },
@@ -343,19 +359,30 @@ describe('bridge', () => {
   })
 
   it('takes the Antigravity session off the canvas when agy stops the MCP server with a signal', async () => {
+    const agy = isolatedAgy()
     const child = spawn(process.execPath, [CLI, 'bridge', 'mcp', '--agent', 'antigravity'], {
-      cwd: ROOT,
-      env: { ...env(), ANTIGRAVITY_CONVERSATION_ID: 'agy-signal-1' },
+      cwd: agy.dir,
+      env: { ...env(), ...agy.env, ANTIGRAVITY_CONVERSATION_ID: 'agy-signal-1' },
     })
-    // Wait for the first answer, so the server is up, then stop it while stdin is still open.
-    await new Promise<void>((ready) => {
-      child.stdout.once('data', () => ready())
-      child.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'ping' })}\n`)
-    })
-    const closed = new Promise((done) => child.on('close', done))
-    child.kill('SIGTERM')
-    await closed
-    expect(received.some((one) => one.method === 'DELETE' && one.path === '/api/sessions/agy-signal-1')).toBe(true)
+    try {
+      const closed = new Promise<number | null>((done, fail) => {
+        child.on('error', fail)
+        child.on('close', (code) => done(code))
+      })
+      // Wait for the first answer, so the server is up, then stop it while stdin is still open.
+      await new Promise<void>((ready, fail) => {
+        child.on('error', fail)
+        child.on('close', () => fail(new Error('the MCP server exited before it answered')))
+        child.stdout.once('data', () => ready())
+        child.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'ping' })}\n`)
+      })
+      child.kill('SIGTERM')
+      expect(await closed).toBe(143)
+      expect(received.some((one) => one.method === 'DELETE' && one.path === '/api/sessions/agy-signal-1')).toBe(true)
+    } finally {
+      child.kill('SIGKILL')
+      agy.done()
+    }
   })
 
   it('lists stop only for Antigravity', async () => {
@@ -367,7 +394,12 @@ describe('bridge', () => {
   })
 
   it('takes the Antigravity session off the canvas when agy closes the MCP server', async () => {
-    await mcp('antigravity', [], { ANTIGRAVITY_CONVERSATION_ID: 'agy-exit-1' })
+    const agy = isolatedAgy()
+    try {
+      await mcp('antigravity', [], { ...agy.env, ANTIGRAVITY_CONVERSATION_ID: 'agy-exit-1' }, agy.dir)
+    } finally {
+      agy.done()
+    }
     expect(received.some((one) => one.method === 'DELETE' && one.path === '/api/sessions/agy-exit-1')).toBe(true)
   })
 
