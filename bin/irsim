@@ -50,6 +50,7 @@ commands:
   doctor [--json]                            check the project rules, git setup and config
   lint [--fix] [--json] [--design-dir <path>]
                                              check the design folder format (--fix renames legacy boards and runs build)
+  connect <agent> [--uninstall]              install or remove a bundled harness plugin (antigravity)
   bridge <command>                           connect an agent harness to the canvas (bridge --help)
   uninstall [--purge] [--yes] [--dry-run]    remove this install (--purge also removes the cache)
   version                                    print the installed version
@@ -790,6 +791,34 @@ const doctor = async (args) => {
   if (!report.ok) process.exit(1)
 }
 
+const connectAgent = (args) => {
+  if (args.length === 0 || args.includes('-h') || args.includes('--help')) {
+    process.stdout.write('usage: irsim connect antigravity [--uninstall]\n')
+    return
+  }
+  const opts = parse(args, { '--uninstall': 'bool' })
+  const agent = opts._[0]
+  if (opts._.length !== 1 || (agent !== 'antigravity' && agent !== 'agy')) {
+    fail(agent ? `unknown agent ${agent}, expected antigravity` : 'missing agent, expected antigravity', 2)
+  }
+  const agyArgs = opts.uninstall
+    ? ['plugin', 'uninstall', 'irsim']
+    : (() => {
+        const pluginDir = join(ROOT, 'plugin', 'harnesses', 'antigravity')
+        if (!existsSync(pluginDir)) fail(`Antigravity plugin not found at ${pluginDir}`)
+        return ['plugin', 'install', pluginDir]
+      })()
+  const res = spawnSync('agy', agyArgs, { stdio: 'inherit' })
+  if (res.error?.code === 'ENOENT') fail('agy is not installed or not on PATH')
+  if (res.error) fail(res.error.message)
+  if (res.status !== 0) {
+    fail(
+      `could not ${opts.uninstall ? 'uninstall' : 'install'} the Antigravity plugin`,
+      res.status ?? 1,
+    )
+  }
+}
+
 const confirm = (question) =>
   new Promise((done) => {
     const rl = createInterface({ input: process.stdin, output: process.stdout })
@@ -855,6 +884,9 @@ switch (command) {
     break
   case 'lint':
     await lint(rest)
+    break
+  case 'connect':
+    connectAgent(rest)
     break
   case 'bridge': {
     const { runBridge } = await import(

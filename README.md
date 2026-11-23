@@ -61,9 +61,9 @@ By hand:
 | Pi | `pi install npm:@kafbit/irsim-connectors` | Pi shows an update notice at startup, then `pi update --extensions` | `plugin/harnesses/pi/irsim.ts`, one extension, plus the skill |
 | OpenCode | `opencode plugin add @kafbit/irsim-connectors`, then link `plugin/skills/irsim-workflow` into `~/.config/opencode/skills/` | OpenCode checks at startup, then `opencode plugin update` | `plugin/harnesses/opencode/irsim.js`, one v2 plugin |
 | Command Code | `commandcode mods add @kafbit/irsim-connectors` | no update notice, run `commandcode mods update` | `plugin/harnesses/command-code/irsim.ts`, one mod, plus the skill |
-| Antigravity CLI (`agy`) | `agy plugin install ~/.local/share/irsim/current/plugin/harnesses/antigravity` (or `./plugin/harnesses/antigravity` from a checkout) | `irsim update` reinstalls it | `plugin/harnesses/antigravity` (hooks, MCP server, `/irsim*` commands, skills) |
+| Antigravity CLI (`agy`) | `irsim connect antigravity` (or `npx -y @kafbit/irsim-connectors antigravity`) | `irsim update` reinstalls it | `plugin/harnesses/antigravity` (hooks, MCP server, `/irsim*` commands, skills) |
 
-The Pi, OpenCode and Command Code connectors are one npm package, `@kafbit/irsim-connectors`, versioned with each irsim release. To work on a checkout instead, use `scripts/install-agents.sh` above.
+The Antigravity, Pi, OpenCode and Command Code connectors are also published in one npm package, `@kafbit/irsim-connectors`, versioned with each irsim release. To work on a checkout instead, use `scripts/install-agents.sh` above.
 
 Codex registers on `SessionStart`, receives comments as context before a model request and on a user prompt, and the `Stop` hook keeps it going while comments are queued. Its `/irsim` comes from `~/.codex/prompts/irsim.md`, which the installer links; the plugin also ships the same prompt. Antigravity CLI uses the same hook lifecycle (`SessionStart`, `PreInvocation`, `Stop`) through `plugin/harnesses/antigravity` and ships `/irsim`, `/irsim-stop`, `/irsim-doctor`, `/irsim-comments`, `irsim-workflow` and `irsim-design` as plugin skills plus `design_canvas` over MCP. The other connectors poll while listening. In OpenCode, Pi and Command Code, `/irsim [page or board]` opens the canvas and starts listening, `/irsim-stop` stops, and `/irsim-comments [page]` counts the open comments. The canvas labels each session with its agent.
 
@@ -75,8 +75,10 @@ Install the bundled Antigravity plugin (includes the `design_canvas` MCP server,
 2. Install the plugin into Antigravity CLI:
 
    ```bash
-   # From an installed irsim release:
-   agy plugin install ~/.local/share/irsim/current/plugin/harnesses/antigravity
+   irsim connect antigravity
+
+   # Or via npm:
+   npx -y @kafbit/irsim-connectors antigravity
 
    # Or from a local checkout of this repository:
    agy plugin install ./plugin/harnesses/antigravity
@@ -93,6 +95,7 @@ In the project root:
 irsim init [--design-dir <path>]
 irsim serve [--design-dir <path>] [--port <n>]
 irsim export [--design-dir <path>] [--out <dir>] [--title <text>]
+irsim connect antigravity [--uninstall]
 ```
 
 `irsim init` writes `.irsim.json` (`{ "designDir": "design" }`), adds `.irsim/` to `.gitignore`, and adds the managed block (`<!-- IRSIM_START -->` to `<!-- IRSIM_END -->`) to `AGENTS.md` and `CLAUDE.md` when they exist. A second run changes nothing.
