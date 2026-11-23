@@ -124,6 +124,9 @@ next:
   irsim init
   claude plugin marketplace add kafbit/irsim && claude plugin install irsim@kafbit
 MSG
+  if command -v agy >/dev/null 2>&1; then
+    echo "  agy plugin install \"$prefix/current/plugin/harnesses/antigravity\""
+  fi
 }
 
 install_remote() {
