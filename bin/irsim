@@ -635,14 +635,14 @@ const downloadAsset = (prefix, tag, asset, work, total) =>
 const updateAntigravityPlugin = (prefix) => {
   const path = join(prefix, 'current', 'plugin', 'harnesses', 'antigravity')
   if (!existsSync(path)) return
-  const manual = `agy plugin install ${path}`
+  const manual = `agy plugin install "${path}"`
   try {
-    const list = spawnSync('agy', ['plugin', 'list', '--json'], { encoding: 'utf8' })
+    const list = spawnSync('agy', ['plugin', 'list', '--json'], { encoding: 'utf8', timeout: 15_000 })
     if (list.error || list.status !== 0) return
     const parsed = JSON.parse(String(list.stdout))
     const plugins = Array.isArray(parsed) ? parsed : (parsed?.plugins ?? [])
     if (!plugins.some((entry) => entry === 'irsim' || entry?.name === 'irsim')) return
-    const install = spawnSync('agy', ['plugin', 'install', path], { encoding: 'utf8' })
+    const install = spawnSync('agy', ['plugin', 'install', path], { encoding: 'utf8', timeout: 15_000 })
     if (install.error || install.status !== 0) throw new Error('install failed')
     console.log('updated the Antigravity plugin')
   } catch {

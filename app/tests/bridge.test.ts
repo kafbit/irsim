@@ -422,6 +422,21 @@ describe('bridge', () => {
     expect(lines[1].result.tools[0].inputSchema.properties.action.enum).not.toContain('stop')
   })
 
+  it('normalizes --agent on mcp and keeps the codex default when empty', async () => {
+    const registeredAgent = async (agent: string) => {
+      received.length = 0
+      await mcp(
+        agent,
+        [{ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'design_canvas', arguments: { action: 'open' } } }],
+        { IRSIM_SESSION: 'mcp-agent-1', PATH: '' },
+      )
+      const post = received.find((one) => one.path === '/api/sessions')
+      return (post?.body as { agent?: string } | undefined)?.agent
+    }
+    expect(await registeredAgent('')).toBe('codex')
+    expect(await registeredAgent('unknown-agent')).toBe('other')
+  })
+
   describe('Antigravity hooks', () => {
     const session = `agy-${process.pid}`
     let project = ''
