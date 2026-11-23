@@ -30,6 +30,7 @@ It does not apply to a change that alters nothing a person sees (a refactor, a s
 - `design/canvas.json` groups a page's boards in sections: `"sections": [{ "id": "leads", "title": "Leads" }, { "id": "leads-incoming", "title": "Incoming", "parent": "leads", "color": "red" }]`. A board joins one with `"section": "leads-incoming"`.
 - Put one screen in one section, and each group of its states in a sub-section. Sections nest at most 3 levels.
 - `color` is one of `gray` (the default), `blue`, `green`, `amber`, `purple` and `red`. Use it to tell groups apart, for example `red` for error states.
+- A page in `design/canvas.json` has an optional `"icon"`, a Lucide icon name in kebab-case. Give every new page an icon that fits its subject, and change it when the user asks.
 - Place boards 80 units apart so frame titles and section labels have room.
 - A new board without x and y is placed under all existing boards of its page, and a move that overlaps another board pushes that board apart, so do not place boards by hand.
 

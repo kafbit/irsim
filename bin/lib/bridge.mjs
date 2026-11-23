@@ -1,6 +1,7 @@
 import { execFileSync, spawn } from 'node:child_process'
-import { existsSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { connect } from 'node:net'
+import { homedir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { boardNameOf, listBoards } from './board-file.mjs'
@@ -18,6 +19,7 @@ export const AGENT_NAMES = {
   opencode: 'OpenCode',
   pi: 'Pi',
   'command-code': 'Command Code',
+  antigravity: 'Antigravity',
   other: 'Agent',
 }
 
@@ -382,13 +384,29 @@ const resolveTarget = async (port, wanted) => {
   throw new Error(`no page or board named "${name}", pages: ${ids}`)
 }
 
-const TOOL_ACTIONS = ['open', 'page', 'comments', 'reply', 'resolve', 'check', 'lint', 'doctor']
+const TOOL_ACTIONS = ['open', 'stop', 'page', 'comments', 'reply', 'resolve', 'check', 'lint', 'doctor']
+
+/** The actions that read or change the calling session. */
+const SESSION_ACTIONS = ['open', 'stop', 'reply', 'resolve']
 
 const runTool = async ({ action, ...args }) => {
   if (!TOOL_ACTIONS.includes(action)) {
     throw new Error(`action must be one of ${TOOL_ACTIONS.join(', ')}`)
   }
   if (action === 'doctor') return doctorLines(await runDoctor(args.cwd ?? process.cwd()))
+  if (action === 'stop') {
+    const cwd = args.cwd ?? process.cwd()
+    const root = projectRoot(cwd)
+    const session =
+      args.session || (args.agent === 'antigravity' ? readAntigravitySession(root).session : '')
+    if (!session) return 'No active irsim session to stop.'
+    // Only the Antigravity hooks read the pause; the other agents register again on their next
+    // hook, and their `open` cannot find the session to resume it.
+    if (args.agent === 'antigravity') pauseSession(root, session)
+    const port = await canvasPort(root)
+    if (await health(port)) await leave(port, session).catch(() => undefined)
+    return 'Stopped listening for irsim comments.'
+  }
   if (action === 'open') {
     const cwd = args.cwd ?? process.cwd()
     const root = projectRoot(cwd)
@@ -397,16 +415,19 @@ const runTool = async ({ action, ...args }) => {
       !args.page && !args.board && args.target ? await resolveTarget(port, args.target) : {}
     const page = args.page ?? target.page
     const board = args.board ?? target.board
-    if (args.session) {
-      await register(port, { agent: args.agent, session: args.session, cwd }).catch(() => undefined)
+    const session =
+      args.session || (args.agent === 'antigravity' ? readAntigravitySession(root).session : '')
+    if (session) {
+      if (args.agent === 'antigravity') resumeSession(root, session)
+      await register(port, { agent: args.agent, session, cwd }).catch(() => undefined)
     }
     const query = [
       ...(page && board ? [`board=${encodeURIComponent(board)}`] : []),
-      ...(args.session ? [`session=${encodeURIComponent(args.session)}`] : []),
+      ...(session ? [`session=${encodeURIComponent(session)}`] : []),
     ].join('&')
     const url = `${baseUrl(port)}${page ? `/p/${encodeURIComponent(page)}` : '/'}${query ? `?${query}` : ''}`
     openBrowser(url)
-    return `Canvas open at ${url}${args.session ? ', listening for comments.' : '.'}`
+    return `Canvas open at ${url}${session ? ', listening for comments.' : '.'}`
   }
   const cwd = args.cwd ?? process.cwd()
   const root = projectRoot(cwd)
@@ -604,39 +625,243 @@ const codexHook = async (event) => {
   return {}
 }
 
-const MCP_TOOL = {
-  name: 'design_canvas',
-  description:
-    'Reads and answers design canvas comments, checks boards, lints the design folder, and checks the project. Actions: open, page, comments, reply, resolve, check, lint, doctor. check renders a board (or every board of a page) in headless Chromium and returns errors, warnings and a screenshot path to look at, after the format problems of the design folder. lint lists the format problems of the board files and design/canvas.json. doctor checks the project rules, git setup and config. Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.',
-  inputSchema: {
-    type: 'object',
-    properties: {
-      action: {
-        type: 'string',
-        enum: ['open', 'page', 'comments', 'reply', 'resolve', 'check', 'lint', 'doctor'],
-      },
-      page: { type: 'string', description: 'Page id, for open, page, comments and check.' },
-      board: { type: 'string', description: 'Board name, for open and check.' },
-      status: {
-        type: 'string',
-        enum: ['draft', 'queued', 'delivered', 'resolved'],
-        description: 'Filter for comments.',
-      },
-      id: { type: 'string', description: 'Comment id, for reply and resolve.' },
-      body: {
-        type: 'string',
-        description:
-          'Reply text, for reply and resolve. Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.',
-      },
-    },
-    required: ['action'],
-  },
+const safeSessionKey = (session) => String(session).replace(/[^A-Za-z0-9_-]/g, '_')
+
+/** A session stopped with the `stop` action stays paused until `open` resumes it. */
+const pausedFile = (root, session) => join(root, '.irsim', 'paused', safeSessionKey(session))
+
+const pauseSession = (root, session) => {
+  try {
+    const file = pausedFile(root, session)
+    mkdirSync(dirname(file), { recursive: true })
+    writeFileSync(file, '1')
+  } catch {}
 }
 
-const mcpServer = async () => {
+const resumeSession = (root, session) => {
+  try {
+    rmSync(pausedFile(root, session), { force: true })
+  } catch {}
+}
+
+const isPaused = (root, session) => existsSync(pausedFile(root, session))
+
+/** The parent chain of this process, nearest first, as `{ pid, name }`. Empty when unknown. */
+const ancestors = () => {
+  const chain = []
+  try {
+    if (process.platform === 'linux') {
+      let pid = process.ppid
+      while (pid > 1 && chain.length < 16) {
+        const stat = readFileSync(`/proc/${pid}/stat`, 'utf8')
+        const close = stat.lastIndexOf(')')
+        const name = stat.slice(stat.indexOf('(') + 1, close)
+        chain.push({ pid, name })
+        pid = Number(stat.slice(close + 2).split(' ')[1])
+      }
+      return chain
+    }
+    if (process.platform === 'win32') return chain
+    const parents = new Map()
+    for (const line of run('ps', ['-A', '-o', 'pid=,ppid=,comm=']).split('\n')) {
+      const match = line.trim().match(/^(\d+)\s+(\d+)\s+(.*)$/)
+      if (match) parents.set(Number(match[1]), { ppid: Number(match[2]), name: basename(match[3]) })
+    }
+    let pid = process.ppid
+    while (pid > 1 && chain.length < 16 && parents.has(pid)) {
+      const one = parents.get(pid)
+      chain.push({ pid, name: one.name })
+      pid = one.ppid
+    }
+  } catch {}
+  return chain
+}
+
+let antigravityPidCache
+/**
+ * The pid of the Antigravity CLI that runs this hook or MCP server. Hooks and the MCP server
+ * of one agy process share it, so it keys the session of that process. IRSIM_ANTIGRAVITY_PID
+ * overrides it, for tests.
+ */
+const antigravityPid = () => {
+  if (process.env.IRSIM_ANTIGRAVITY_PID) return process.env.IRSIM_ANTIGRAVITY_PID
+  if (antigravityPidCache === undefined) {
+    const owner = ancestors().find(({ name }) => /^(agy|antigravity)(\.exe)?$/i.test(name))
+    antigravityPidCache = owner ? String(owner.pid) : ''
+  }
+  return antigravityPidCache
+}
+
+const cacheDir = () =>
+  process.env.IRSIM_CACHE_DIR || join(process.env.XDG_CACHE_HOME || join(homedir(), '.cache'), 'irsim')
+
+/**
+ * Where the hooks of this agy process write its conversation. With an agy parent the file is
+ * keyed by its pid in the cache dir, so the MCP server finds it whatever its own working folder
+ * is. Without one it falls back to one file per project.
+ */
+const antigravitySessionFile = (root) => {
+  const pid = antigravityPid()
+  return pid
+    ? join(cacheDir(), 'antigravity-sessions', safeSessionKey(pid))
+    : join(root, '.irsim', 'antigravity-session')
+}
+
+const rememberAntigravitySession = (root, session) => {
+  try {
+    const file = antigravitySessionFile(root)
+    mkdirSync(dirname(file), { recursive: true })
+    writeFileSync(file, JSON.stringify({ session: String(session), root }))
+  } catch {}
+}
+
+/**
+ * The conversation of this agy process and its project root. The hooks see every new
+ * conversation, so what they wrote comes first; ANTIGRAVITY_CONVERSATION_ID is only a fallback,
+ * because it is fixed when agy starts the process.
+ */
+const readAntigravitySession = (root) => {
+  try {
+    const saved = JSON.parse(readFileSync(antigravitySessionFile(root), 'utf8'))
+    if (saved && typeof saved.session === 'string' && saved.session) {
+      return { session: saved.session, root: typeof saved.root === 'string' && saved.root ? saved.root : root }
+    }
+  } catch {}
+  return { session: process.env.ANTIGRAVITY_CONVERSATION_ID || '', root }
+}
+
+/** Removes the file of this agy process when it exits, so a reused pid does not read it. */
+const forgetAntigravitySession = () => {
+  const pid = antigravityPid()
+  if (!pid) return
+  try {
+    rmSync(join(cacheDir(), 'antigravity-sessions', safeSessionKey(pid)), { force: true })
+  } catch {}
+}
+
+/**
+ * Antigravity CLI hook: register on start, deliver comments before a model invocation and
+ * when the execution loop stops. Every path prints one JSON object for Antigravity to read.
+ */
+const antigravityHook = async (event) => {
+  const payload = await parseHookInput()
+  const cwd =
+    typeof payload.cwd === 'string' && payload.cwd
+      ? payload.cwd
+      : Array.isArray(payload.workspacePaths) && typeof payload.workspacePaths[0] === 'string'
+        ? payload.workspacePaths[0]
+        : process.cwd()
+  const session =
+    payload.conversationId ||
+    payload.session_id ||
+    payload.sessionId ||
+    process.env.IRSIM_SESSION
+  const root = projectRoot(cwd)
+  const port = await canvasPort(root)
+  const healthy = await health(port)
+  if (event === 'SessionStart') {
+    if (!existsSync(join(root, CONFIG_FILE)) && !existsSync(join(designFolder(root), 'canvas.json'))) return {}
+    if (session) {
+      rememberAntigravitySession(root, session)
+      if (healthy && !isPaused(root, session)) {
+        await register(port, { agent: 'antigravity', session, cwd }).catch(() => undefined)
+      }
+      recordDesignStart(root, session)
+    }
+    return {
+      injectSteps: [{ systemMessage: { systemMessage: SESSION_CONTEXT } }],
+    }
+  }
+  if (!healthy || !session) return {}
+  rememberAntigravitySession(root, session)
+  if (isPaused(root, session)) return {}
+  await register(port, { agent: 'antigravity', session, cwd }).catch(() => undefined)
+  if (event === 'PreInvocation') {
+    const result = await claim(port, session).catch(() => null)
+    if (!result || !result.count || !result.text) return {}
+    return {
+      injectSteps: [{ systemMessage: { systemMessage: result.text } }],
+    }
+  }
+  if (event === 'Stop') {
+    if (payload.continuationActive === true) return {}
+    if (
+      typeof payload.terminationReason === 'string' &&
+      payload.terminationReason &&
+      payload.terminationReason !== 'NO_TOOL_CALL'
+    ) {
+      return {}
+    }
+    const result = await claim(port, session).catch(() => null)
+    if (result && result.count && result.text) {
+      return { decision: 'continue', reason: result.text }
+    }
+    if (lintReportCount(root, session) >= LINT_REPORTS_PER_SESSION) return {}
+    if (!designChangedSinceStart(root, session)) return {}
+    const lint = await readLint(port)
+    if (!lint || !lint.problems.some((one) => one.severity === 'error')) return {}
+    countLintReport(root, session)
+    return { decision: 'continue', reason: `${lintLines(lint)}\nFix these, then stop.` }
+  }
+  return {}
+}
+
+/** The design_canvas tool. `stop` is listed only for an agent whose MCP server knows its session. */
+const mcpTool = (agent) => {
+  const actions = TOOL_ACTIONS.filter((one) => one !== 'stop' || agent === 'antigravity')
+  return {
+    name: 'design_canvas',
+    description:
+      `Reads and answers design canvas comments, checks boards, lints the design folder, and checks the project. Actions: ${actions.join(', ')}. check renders a board (or every board of a page) in headless Chromium and returns errors, warnings and a screenshot path to look at, after the format problems of the design folder. lint lists the format problems of the board files and design/canvas.json. doctor checks the project rules, git setup and config. Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          enum: actions,
+        },
+        page: { type: 'string', description: 'Page id, for open, page, comments and check.' },
+        board: { type: 'string', description: 'Board name, for open and check.' },
+        target: { type: 'string', description: 'Page id or board name to resolve, for open.' },
+        status: {
+          type: 'string',
+          enum: ['draft', 'queued', 'delivered', 'resolved'],
+          description: 'Filter for comments.',
+        },
+        id: { type: 'string', description: 'Comment id, for reply and resolve.' },
+        body: {
+          type: 'string',
+          description:
+            'Reply text, for reply and resolve. Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.',
+        },
+      },
+      required: ['action'],
+    },
+  }
+}
+
+const mcpServer = async (agent = 'codex') => {
   const send = (message) => process.stdout.write(`${JSON.stringify(message)}\n`)
   const reply = (id, result) => send({ jsonrpc: '2.0', id, result })
   const error = (id, code, message) => send({ jsonrpc: '2.0', id, error: { code, message } })
+  const tool = mcpTool(agent)
+  const roots = new Map()
+  const rootOf = (cwd) => {
+    if (!roots.has(cwd)) roots.set(cwd, projectRoot(cwd))
+    return roots.get(cwd)
+  }
+  const actions = tool.inputSchema.properties.action.enum
+  // The session and project the hooks of this agy process wrote. With an agy pid the file does
+  // not depend on the project, so no action needs projectRoot; without one only the session
+  // actions look it up.
+  const contextFor = (args) => {
+    if (agent !== 'antigravity') return { session: process.env.IRSIM_SESSION || '' }
+    if (!antigravityPid() && !SESSION_ACTIONS.includes(args.action)) {
+      return { session: process.env.IRSIM_SESSION || '' }
+    }
+    const found = readAntigravitySession(rootOf(args.cwd ?? process.cwd()))
+    return { session: process.env.IRSIM_SESSION || found.session, root: found.root }
+  }
   let buffer = ''
   process.stdin.setEncoding('utf8')
   for await (const chunk of process.stdin) {
@@ -665,18 +890,23 @@ const mcpServer = async () => {
       } else if (method === 'ping') {
         reply(id, {})
       } else if (method === 'tools/list') {
-        reply(id, { tools: [MCP_TOOL] })
+        reply(id, { tools: [tool] })
       } else if (method === 'tools/call') {
         const args = params?.arguments ?? {}
-        if (params?.name !== MCP_TOOL.name) {
+        if (params?.name !== tool.name) {
           error(id, -32602, `unknown tool ${params?.name}`)
           continue
         }
         try {
+          if (!actions.includes(args.action)) {
+            throw new Error(`action must be one of ${actions.join(', ')}`)
+          }
+          const { session, root } = contextFor(args)
           const text = await runTool({
             ...args,
-            agent: 'codex',
-            ...(process.env.IRSIM_SESSION ? { session: process.env.IRSIM_SESSION } : {}),
+            ...(root && !args.cwd ? { cwd: root } : {}),
+            agent,
+            ...(session ? { session } : {}),
           })
           reply(id, { content: [{ type: 'text', text }] })
         } catch (failure) {
@@ -686,6 +916,16 @@ const mcpServer = async () => {
         error(id, -32601, `unknown method ${method}`)
       }
     }
+  }
+  // Antigravity has no session end hook. Its MCP server lives as long as the agy process, so
+  // stdin closing means agy exited: take the session off the canvas.
+  if (agent === 'antigravity') {
+    const { session, root } = readAntigravitySession(rootOf(process.cwd()))
+    if (session) {
+      const port = await canvasPort(root)
+      if (await health(port)) await leave(port, session).catch(() => undefined)
+    }
+    forgetAntigravitySession()
   }
 }
 
@@ -715,12 +955,18 @@ export const runBridge = async (args) => {
   const cwd = typeof flags.cwd === 'string' ? resolve(flags.cwd) : process.cwd()
   if (command === 'hook') {
     const [agent = 'other', event = ''] = flags._
-    if (agent !== 'codex') throw new Error(`no hook adapter for ${agent}`)
-    process.stdout.write(`${JSON.stringify(await codexHook(event))}\n`)
-    return
+    if (agent === 'codex') {
+      process.stdout.write(`${JSON.stringify(await codexHook(event))}\n`)
+      return
+    }
+    if (agent === 'antigravity') {
+      process.stdout.write(`${JSON.stringify(await antigravityHook(event))}\n`)
+      return
+    }
+    throw new Error(`no hook adapter for ${agent}`)
   }
   if (command === 'mcp') {
-    await mcpServer()
+    await mcpServer(typeof flags.agent === 'string' ? flags.agent : 'codex')
     return
   }
   if (command === 'doctor') {
@@ -790,9 +1036,10 @@ export const runBridge = async (args) => {
           '  claim --session <id> [--json]                          claim queued comments',
           '  release --session <id> --claim <json>                  put a claim that was not delivered back',
           '  leave --session <id>                                   unregister a session',
-          '  tool --action <name> [--page] [--board] [--id] [--body] run a design_canvas action (open, page, comments, reply, resolve, check, lint, doctor)',
+          '  tool --action <name> [--page] [--board] [--id] [--body] run a design_canvas action (open, stop, page, comments, reply, resolve, check, lint, doctor)',
           '  hook codex <Event>                                     serve one Codex hook (stdin JSON)',
-          '  mcp                                                    serve design_canvas over MCP (stdio)',
+          '  hook antigravity <Event>                               serve one Antigravity hook (stdin JSON)',
+          '  mcp [--agent <id>]                                     serve design_canvas over MCP (stdio)',
           '  doctor                                                 print the doctor report',
           '  url                                                    print the canvas URL',
         ].join('\n'),

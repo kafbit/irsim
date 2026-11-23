@@ -1,12 +1,12 @@
-import { execFile, spawnSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
+import { execFile, spawn, spawnSync } from 'node:child_process'
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 
 import { fileURLToPath } from 'node:url'
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { agentName, agentOf } from '../src/lib/agents'
 
 const CLI = fileURLToPath(new URL('../../bin/irsim', import.meta.url))
@@ -232,7 +232,7 @@ describe('bridge', () => {
       writeFileSync(canvas(), '{}')
       touch(1_000)
     })
-    afterAll(() => rmSync(project, { recursive: true, force: true }))
+    afterEach(() => rmSync(project, { recursive: true, force: true }))
     const start = () =>
       bridge(['hook', 'codex', 'SessionStart'], JSON.stringify({ session_id: session, cwd: project }))
     const stop = async (extra = {}) =>
@@ -300,6 +300,61 @@ describe('bridge', () => {
     })
   })
 
+  it('does not pause a Codex session on stop, so its next hook registers it again', async () => {
+    const project = mkdtempSync(join(tmpdir(), 'irsim-codex-stop-'))
+    try {
+      mkdirSync(join(project, 'design'))
+      writeFileSync(join(project, '.irsim.json'), '{}')
+      writeFileSync(join(project, 'design', 'canvas.json'), '{}')
+      const session = `codex-stop-${process.pid}`
+      expect((await bridge(['tool', 'stop', '--session', session, '--cwd', project])).trim()).toBe(
+        'Stopped listening for irsim comments.',
+      )
+      expect(received.some((one) => one.method === 'DELETE' && one.path === `/api/sessions/${session}`)).toBe(true)
+      const out = JSON.parse(
+        await bridge(['hook', 'codex', 'PreModelRequest'], JSON.stringify({ session_id: session, cwd: project })),
+      )
+      expect(out.hookSpecificOutput.additionalContext).toBe(claimText)
+    } finally {
+      rmSync(project, { recursive: true, force: true })
+    }
+  })
+
+  const mcp = (agent: string, input: unknown[], extraEnv = {}): Promise<Array<{ result: any }>> =>
+    new Promise((resolve, reject) => {
+      const child = spawn(process.execPath, [CLI, 'bridge', 'mcp', '--agent', agent], {
+        cwd: ROOT,
+        env: { ...env(), ...extraEnv },
+      })
+      let out = ''
+      child.stdout.setEncoding('utf8')
+      child.stdout.on('data', (chunk) => (out += chunk))
+      child.on('error', reject)
+      child.on('close', () => resolve(out.trim().split('\n').filter(Boolean).map((line) => JSON.parse(line))))
+      child.stdin.end(`${input.map((one) => JSON.stringify(one)).join('\n')}\n`)
+    })
+
+  it('refuses an action the agent does not list', async () => {
+    const [out] = await mcp('codex', [
+      { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'design_canvas', arguments: { action: 'stop' } } },
+    ])
+    expect((out.result as { isError?: boolean }).isError).toBe(true)
+    expect(received.some(({ method }) => method === 'DELETE')).toBe(false)
+  })
+
+  it('lists stop only for Antigravity', async () => {
+    const list = [{ jsonrpc: '2.0', id: 1, method: 'tools/list' }]
+    const actions = async (agent: string) =>
+      (await mcp(agent, list))[0].result.tools[0].inputSchema.properties.action.enum as string[]
+    expect(await actions('codex')).not.toContain('stop')
+    expect(await actions('antigravity')).toContain('stop')
+  })
+
+  it('takes the Antigravity session off the canvas when agy closes the MCP server', async () => {
+    await mcp('antigravity', [], { ANTIGRAVITY_CONVERSATION_ID: 'agy-exit-1' })
+    expect(received.some((one) => one.method === 'DELETE' && one.path === '/api/sessions/agy-exit-1')).toBe(true)
+  })
+
   it('serves design_canvas over MCP', () => {
     const out = spawnSync(process.execPath, [CLI, 'bridge', 'mcp'], {
       encoding: 'utf8',
@@ -316,6 +371,116 @@ describe('bridge', () => {
     expect(lines[1].result.tools[0].name).toBe('design_canvas')
     expect(lines[1].result.tools[0].inputSchema.properties.action.enum).toContain('check')
     expect(lines[1].result.tools[0].inputSchema.properties.action.enum).toContain('lint')
+    expect(lines[1].result.tools[0].inputSchema.properties.action.enum).not.toContain('stop')
+  })
+
+  describe('Antigravity hooks', () => {
+    const session = `agy-${process.pid}`
+    let project = ''
+    const canvas = () => join(project, 'design', 'canvas.json')
+    const touch = (seconds: number) => utimesSync(canvas(), seconds, seconds)
+    beforeEach(() => {
+      project = mkdtempSync(join(tmpdir(), 'irsim-agy-'))
+      mkdirSync(join(project, 'design'))
+      writeFileSync(join(project, '.irsim.json'), '{}')
+      writeFileSync(canvas(), '{}')
+      touch(1_000)
+    })
+    afterEach(() => rmSync(project, { recursive: true, force: true }))
+    const hook = async (event: string, extra: Record<string, unknown> = {}, extraEnv = {}) =>
+      JSON.parse(
+        await bridge(
+          ['hook', 'antigravity', event],
+          JSON.stringify({ conversationId: session, cwd: project, ...extra }),
+          extraEnv,
+        ),
+      )
+
+    it('registers Antigravity on SessionStart and injects the skills context', async () => {
+      const out = await hook('SessionStart')
+      expect(out.injectSteps[0].systemMessage.systemMessage).toContain('`irsim-design` skill')
+      expect(out.injectSteps[0].systemMessage.systemMessage).toContain('`irsim-workflow` skill')
+      const post = received.find((one) => one.path === '/api/sessions')
+      expect((post?.body as { label?: string } | undefined)?.label).toBe(`Antigravity · ${project.split('/').at(-1)} ${session.slice(0, 6)}`)
+    })
+
+    it('delivers comments on PreInvocation and pauses after stop', async () => {
+      await hook('SessionStart')
+      const before = await hook('PreInvocation')
+      expect(before).toEqual({ injectSteps: [{ systemMessage: { systemMessage: claimText } }] })
+      const stopped = (await bridge(['tool', 'stop', '--agent', 'antigravity', '--cwd', project])).trim()
+      expect(stopped).toBe('Stopped listening for irsim comments.')
+      expect(received.some((one) => one.method === 'DELETE' && one.path === `/api/sessions/${session}`)).toBe(true)
+      expect(await hook('PreInvocation')).toEqual({})
+      expect(await hook('Stop')).toEqual({})
+    })
+
+    it('keeps a stopped conversation paused when it starts again', async () => {
+      await hook('SessionStart')
+      await bridge(['tool', 'stop', '--agent', 'antigravity', '--cwd', project])
+      received.length = 0
+      await hook('SessionStart')
+      expect(received.some(({ path }) => path === '/api/sessions')).toBe(false)
+      expect(await hook('PreInvocation')).toEqual({})
+    })
+
+    const inAgy = (pid: string) => ({ IRSIM_ANTIGRAVITY_PID: pid, IRSIM_CACHE_DIR: join(project, 'cache') })
+
+    it('keeps one session per agy process, so stop acts on its own conversation', async () => {
+      await hook('SessionStart', { conversationId: 'conv-a' }, inAgy('111'))
+      await hook('SessionStart', { conversationId: 'conv-b' }, inAgy('222'))
+      await hook('PreInvocation', { conversationId: 'conv-b' }, inAgy('222'))
+      const dir = join(project, 'cache', 'antigravity-sessions')
+      expect(readdirSync(dir).sort()).toEqual(['111', '222'])
+      expect(JSON.parse(readFileSync(join(dir, '111'), 'utf8')).session).toBe('conv-a')
+      received.length = 0
+      await bridge(['tool', 'stop', '--agent', 'antigravity', '--cwd', project], '', inAgy('111'))
+      expect(received.filter(({ method }) => method === 'DELETE').map(({ path }) => path)).toEqual([
+        '/api/sessions/conv-a',
+      ])
+      expect(await hook('PreInvocation', { conversationId: 'conv-a' }, inAgy('111'))).toEqual({})
+      expect(await hook('PreInvocation', { conversationId: 'conv-b' }, inAgy('222'))).toEqual({
+        injectSteps: [{ systemMessage: { systemMessage: claimText } }],
+      })
+    })
+
+    it('stops the conversation the hooks saw last, from any MCP working folder', async () => {
+      await hook('SessionStart', { conversationId: 'conv-new' }, inAgy('333'))
+      received.length = 0
+      // The MCP server runs in the repo folder, not the project, and its env var is stale.
+      const [out] = await mcp(
+        'antigravity',
+        [{ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'design_canvas', arguments: { action: 'stop' } } }],
+        { ...inAgy('333'), ANTIGRAVITY_CONVERSATION_ID: 'conv-old' },
+      )
+      expect((out.result as { content: Array<{ text: string }> }).content[0].text).toBe(
+        'Stopped listening for irsim comments.',
+      )
+      const deleted = received.filter(({ method }) => method === 'DELETE').map(({ path }) => path)
+      expect(deleted).toContain('/api/sessions/conv-new')
+      expect(deleted).not.toContain('/api/sessions/conv-old')
+      // The MCP server exited, so the file of its agy pid is gone; the pause stays.
+      expect(readdirSync(join(project, 'cache', 'antigravity-sessions'))).not.toContain('333')
+      expect(await hook('PreInvocation', { conversationId: 'conv-new' }, inAgy('333'))).toEqual({})
+    })
+
+    it('continues on Stop when comments or lint errors exist and respects continuationActive and cancellation', async () => {
+      await hook('SessionStart')
+      expect(await hook('Stop', { terminationReason: 'NO_TOOL_CALL' })).toEqual({
+        decision: 'continue',
+        reason: claimText,
+      })
+      expect(await hook('Stop', { continuationActive: true })).toEqual({})
+      expect(await hook('Stop', { terminationReason: 'USER_CANCELED' })).toEqual({})
+      claimed = false
+      lintReport = { ok: false, problems: lintProblems }
+      touch(2_000)
+      const first = await hook('Stop', { terminationReason: 'NO_TOOL_CALL' })
+      expect(first.decision).toBe('continue')
+      expect(first.reason).toContain('error design/canvas.json')
+      expect((await hook('Stop')).decision).toBe('continue')
+      expect(await hook('Stop')).toEqual({})
+    })
   })
 })
 
@@ -323,11 +488,13 @@ describe('agents', () => {
   it('treats a missing agent as the old Claude plugin', () => {
     expect(agentOf(undefined)).toBe('claude-code')
     expect(agentOf('codex')).toBe('codex')
+    expect(agentOf('antigravity')).toBe('antigravity')
     expect(agentOf('unknown-agent')).toBe('other')
   })
 
   it('names each agent', () => {
     expect(agentName('command-code')).toBe('Command Code')
+    expect(agentName('antigravity')).toBe('Antigravity')
     expect(agentName(undefined)).toBe('Claude Code')
   })
 })

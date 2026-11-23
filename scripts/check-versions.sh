@@ -21,6 +21,7 @@ check() {
 check plugin/package.json
 check plugin/.claude-plugin/plugin.json
 check plugin/harnesses/codex/.codex-plugin/plugin.json
+check plugin/harnesses/antigravity/plugin.json
 check bin/package.json
 
 if [ "$failed" = 1 ]; then

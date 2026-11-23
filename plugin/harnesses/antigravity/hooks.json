@@ -1,0 +1,25 @@
+{
+  "irsim": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "irsim bridge hook antigravity SessionStart",
+        "timeout": 15
+      }
+    ],
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "irsim bridge hook antigravity PreInvocation",
+        "timeout": 10
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "irsim bridge hook antigravity Stop",
+        "timeout": 15
+      }
+    ]
+  }
+}

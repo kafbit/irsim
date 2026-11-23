@@ -4,6 +4,7 @@ export const AGENT_IDS = [
   'opencode',
   'pi',
   'command-code',
+  'antigravity',
   'other',
 ] as const
 
@@ -15,6 +16,7 @@ export const AGENT_NAMES: Record<AgentId, string> = {
   opencode: 'OpenCode',
   pi: 'Pi',
   'command-code': 'Command Code',
+  antigravity: 'Antigravity',
   other: 'Agent',
 }
 
