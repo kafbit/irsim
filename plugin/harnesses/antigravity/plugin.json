@@ -2,7 +2,7 @@
   "$schema": "https://antigravity.google/schemas/v1/plugin.json",
   "name": "irsim",
   "displayName": "irsim",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Opens the irsim design canvas, adds design_canvas over MCP, and delivers canvas comments to your session.",
   "logo": "assets/logo.svg",
   "suggestedPrompts": [
