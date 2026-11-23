@@ -1,6 +1,7 @@
 import { execFileSync, spawn } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { connect } from 'node:net'
+import { homedir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { boardNameOf, listBoards } from './board-file.mjs'
@@ -397,9 +398,11 @@ const runTool = async ({ action, ...args }) => {
     const cwd = args.cwd ?? process.cwd()
     const root = projectRoot(cwd)
     const session =
-      args.session || (args.agent === 'antigravity' ? readAntigravitySession(root) : '')
+      args.session || (args.agent === 'antigravity' ? readAntigravitySession(root).session : '')
     if (!session) return 'No active irsim session to stop.'
-    pauseSession(root, session)
+    // Only the Antigravity hooks read the pause; the other agents register again on their next
+    // hook, and their `open` cannot find the session to resume it.
+    if (args.agent === 'antigravity') pauseSession(root, session)
     const port = await canvasPort(root)
     if (await health(port)) await leave(port, session).catch(() => undefined)
     return 'Stopped listening for irsim comments.'
@@ -413,9 +416,9 @@ const runTool = async ({ action, ...args }) => {
     const page = args.page ?? target.page
     const board = args.board ?? target.board
     const session =
-      args.session || (args.agent === 'antigravity' ? readAntigravitySession(root) : '')
+      args.session || (args.agent === 'antigravity' ? readAntigravitySession(root).session : '')
     if (session) {
-      resumeSession(root, session)
+      if (args.agent === 'antigravity') resumeSession(root, session)
       await register(port, { agent: args.agent, session, cwd }).catch(() => undefined)
     }
     const query = [
@@ -586,9 +589,7 @@ const codexHook = async (event) => {
   if (event === 'SessionStart') {
     if (!existsSync(join(root, CONFIG_FILE)) && !existsSync(join(designFolder(root), 'canvas.json'))) return {}
     if (session) {
-      if (healthy && !isPaused(root, session)) {
-        await register(port, { agent: 'codex', session, cwd }).catch(() => undefined)
-      }
+      if (healthy) await register(port, { agent: 'codex', session, cwd }).catch(() => undefined)
       recordDesignStart(root, session)
     }
     return { hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: SESSION_CONTEXT } }
@@ -599,7 +600,6 @@ const codexHook = async (event) => {
     await leave(port, session).catch(() => undefined)
     return {}
   }
-  if (isPaused(root, session)) return {}
   // A canvas started after the session began has no session yet; register before claiming so
   // the session keeps its label and agent.
   await register(port, { agent: 'codex', session, cwd }).catch(() => undefined)
@@ -692,11 +692,18 @@ const antigravityPid = () => {
   return antigravityPidCache
 }
 
-/** One file per agy process, or one per project when this process has no agy parent. */
+const cacheDir = () =>
+  process.env.IRSIM_CACHE_DIR || join(process.env.XDG_CACHE_HOME || join(homedir(), '.cache'), 'irsim')
+
+/**
+ * Where the hooks of this agy process write its conversation. With an agy parent the file is
+ * keyed by its pid in the cache dir, so the MCP server finds it whatever its own working folder
+ * is. Without one it falls back to one file per project.
+ */
 const antigravitySessionFile = (root) => {
   const pid = antigravityPid()
   return pid
-    ? join(root, '.irsim', 'antigravity-sessions', safeSessionKey(pid))
+    ? join(cacheDir(), 'antigravity-sessions', safeSessionKey(pid))
     : join(root, '.irsim', 'antigravity-session')
 }
 
@@ -704,18 +711,32 @@ const rememberAntigravitySession = (root, session) => {
   try {
     const file = antigravitySessionFile(root)
     mkdirSync(dirname(file), { recursive: true })
-    writeFileSync(file, String(session))
+    writeFileSync(file, JSON.stringify({ session: String(session), root }))
   } catch {}
 }
 
-/** The conversation of this agy process: its own env var first, then what its hooks wrote. */
+/**
+ * The conversation of this agy process and its project root. The hooks see every new
+ * conversation, so what they wrote comes first; ANTIGRAVITY_CONVERSATION_ID is only a fallback,
+ * because it is fixed when agy starts the process.
+ */
 const readAntigravitySession = (root) => {
-  if (process.env.ANTIGRAVITY_CONVERSATION_ID) return process.env.ANTIGRAVITY_CONVERSATION_ID
   try {
-    return readFileSync(antigravitySessionFile(root), 'utf8').trim()
-  } catch {
-    return ''
-  }
+    const saved = JSON.parse(readFileSync(antigravitySessionFile(root), 'utf8'))
+    if (saved && typeof saved.session === 'string' && saved.session) {
+      return { session: saved.session, root: typeof saved.root === 'string' && saved.root ? saved.root : root }
+    }
+  } catch {}
+  return { session: process.env.ANTIGRAVITY_CONVERSATION_ID || '', root }
+}
+
+/** Removes the file of this agy process when it exits, so a reused pid does not read it. */
+const forgetAntigravitySession = () => {
+  const pid = antigravityPid()
+  if (!pid) return
+  try {
+    rmSync(join(cacheDir(), 'antigravity-sessions', safeSessionKey(pid)), { force: true })
+  } catch {}
 }
 
 /**
@@ -829,11 +850,17 @@ const mcpServer = async (agent = 'codex') => {
     if (!roots.has(cwd)) roots.set(cwd, projectRoot(cwd))
     return roots.get(cwd)
   }
-  // Only these actions use the session, so the others skip the lookup.
-  const sessionFor = (args) => {
-    if (process.env.IRSIM_SESSION) return process.env.IRSIM_SESSION
-    if (agent !== 'antigravity' || !SESSION_ACTIONS.includes(args.action)) return ''
-    return readAntigravitySession(rootOf(args.cwd ?? process.cwd()))
+  const actions = tool.inputSchema.properties.action.enum
+  // The session and project the hooks of this agy process wrote. With an agy pid the file does
+  // not depend on the project, so no action needs projectRoot; without one only the session
+  // actions look it up.
+  const contextFor = (args) => {
+    if (agent !== 'antigravity') return { session: process.env.IRSIM_SESSION || '' }
+    if (!antigravityPid() && !SESSION_ACTIONS.includes(args.action)) {
+      return { session: process.env.IRSIM_SESSION || '' }
+    }
+    const found = readAntigravitySession(rootOf(args.cwd ?? process.cwd()))
+    return { session: process.env.IRSIM_SESSION || found.session, root: found.root }
   }
   let buffer = ''
   process.stdin.setEncoding('utf8')
@@ -871,9 +898,13 @@ const mcpServer = async (agent = 'codex') => {
           continue
         }
         try {
-          const session = sessionFor(args)
+          if (!actions.includes(args.action)) {
+            throw new Error(`action must be one of ${actions.join(', ')}`)
+          }
+          const { session, root } = contextFor(args)
           const text = await runTool({
             ...args,
+            ...(root && !args.cwd ? { cwd: root } : {}),
             agent,
             ...(session ? { session } : {}),
           })
@@ -889,12 +920,12 @@ const mcpServer = async (agent = 'codex') => {
   // Antigravity has no session end hook. Its MCP server lives as long as the agy process, so
   // stdin closing means agy exited: take the session off the canvas.
   if (agent === 'antigravity') {
-    const root = rootOf(process.cwd())
-    const session = readAntigravitySession(root)
+    const { session, root } = readAntigravitySession(rootOf(process.cwd()))
     if (session) {
       const port = await canvasPort(root)
       if (await health(port)) await leave(port, session).catch(() => undefined)
     }
+    forgetAntigravitySession()
   }
 }
 

@@ -24,7 +24,7 @@ for arg in "$@"; do
     --codex) codex=1 ;;
     --antigravity) antigravity=1 ;;
     -h | --help)
-      sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
+      sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
     *)
