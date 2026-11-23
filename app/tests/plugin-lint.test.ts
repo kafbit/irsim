@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { lintLines } from '../../plugin/hooks/api'
 import type { Engine } from '../../plugin/hooks/api'
@@ -90,4 +91,15 @@ describe('design_canvas lint', () => {
       expect(await runTool($, { action: 'check', board: 'Leads' })).toBe('Leads ok 5 ms · no screenshot')
     }
   })
+})
+
+describe('harness skill copies', () => {
+  const read = (path: string) => readFileSync(new URL(`../../plugin/${path}`, import.meta.url), 'utf8')
+  for (const harness of ['codex', 'antigravity']) {
+    for (const skill of ['irsim-design', 'irsim-workflow']) {
+      it(`${harness} has the current ${skill}, run scripts/sync-skills.sh when this fails`, () => {
+        expect(read(`harnesses/${harness}/skills/${skill}/SKILL.md`)).toBe(read(`skills/${skill}/SKILL.md`))
+      })
+    }
+  }
 })

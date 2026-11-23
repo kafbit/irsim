@@ -16,6 +16,6 @@
   },
   "homepage": "https://github.com/kafbit/irsim",
   "repository": "https://github.com/kafbit/irsim",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "keywords": ["irsim", "design", "canvas", "boards", "hooks", "mcp"]
 }
