@@ -386,11 +386,16 @@ describe('bridge', () => {
   })
 
   it('lists stop only for Antigravity', async () => {
+    const agy = isolatedAgy()
     const list = [{ jsonrpc: '2.0', id: 1, method: 'tools/list' }]
-    const actions = async (agent: string) =>
-      (await mcp(agent, list))[0].result.tools[0].inputSchema.properties.action.enum as string[]
-    expect(await actions('codex')).not.toContain('stop')
-    expect(await actions('antigravity')).toContain('stop')
+    const actions = async (agent: string, extraEnv = {}, cwd = ROOT) =>
+      (await mcp(agent, list, extraEnv, cwd))[0].result.tools[0].inputSchema.properties.action.enum as string[]
+    try {
+      expect(await actions('codex')).not.toContain('stop')
+      expect(await actions('antigravity', agy.env, agy.dir)).toContain('stop')
+    } finally {
+      agy.done()
+    }
   })
 
   it('takes the Antigravity session off the canvas when agy closes the MCP server', async () => {
@@ -442,6 +447,7 @@ describe('bridge', () => {
     let project = ''
     const canvas = () => join(project, 'design', 'canvas.json')
     const touch = (seconds: number) => utimesSync(canvas(), seconds, seconds)
+    const agyEnv = () => ({ IRSIM_CACHE_DIR: join(project, 'cache'), IRSIM_ANTIGRAVITY_PID: `test-${process.pid}` })
     beforeEach(() => {
       project = mkdtempSync(join(tmpdir(), 'irsim-agy-'))
       mkdirSync(join(project, 'design'))
@@ -455,7 +461,7 @@ describe('bridge', () => {
         await bridge(
           ['hook', 'antigravity', event],
           JSON.stringify({ conversationId: session, cwd: project, ...extra }),
-          extraEnv,
+          { ...agyEnv(), ...extraEnv },
         ),
       )
 
@@ -471,7 +477,7 @@ describe('bridge', () => {
       await hook('SessionStart')
       const before = await hook('PreInvocation')
       expect(before).toEqual({ injectSteps: [{ systemMessage: { systemMessage: claimText } }] })
-      const stopped = (await bridge(['tool', 'stop', '--agent', 'antigravity', '--cwd', project])).trim()
+      const stopped = (await bridge(['tool', 'stop', '--agent', 'antigravity', '--cwd', project], '', agyEnv())).trim()
       expect(stopped).toBe('Stopped listening for irsim comments.')
       expect(received.some((one) => one.method === 'DELETE' && one.path === `/api/sessions/${session}`)).toBe(true)
       expect(await hook('PreInvocation')).toEqual({})
@@ -480,7 +486,7 @@ describe('bridge', () => {
 
     it('keeps a stopped conversation paused when it starts again', async () => {
       await hook('SessionStart')
-      await bridge(['tool', 'stop', '--agent', 'antigravity', '--cwd', project])
+      await bridge(['tool', 'stop', '--agent', 'antigravity', '--cwd', project], '', agyEnv())
       received.length = 0
       await hook('SessionStart')
       expect(received.some(({ path }) => path === '/api/sessions')).toBe(false)
@@ -543,6 +549,86 @@ describe('bridge', () => {
       expect(first.reason).toContain('error design/canvas.json')
       expect((await hook('Stop')).decision).toBe('continue')
       expect(await hook('Stop')).toEqual({})
+    })
+
+    it('remembers the conversation on PreInvocation even while the canvas is down', async () => {
+      const out = await hook('PreInvocation', { conversationId: 'conv-offline' }, { ...inAgy('555'), IRSIM_PORT: '1' })
+      expect(out).toEqual({})
+      expect(JSON.parse(readFileSync(join(project, 'cache', 'antigravity-sessions', '555'), 'utf8'))).toEqual({
+        session: 'conv-offline',
+        root: project,
+      })
+    })
+
+    it('keeps the Antigravity session alive with a heartbeat until stop pauses it', async () => {
+      await hook('SessionStart', { conversationId: 'conv-hb' }, inAgy('444'))
+      received.length = 0
+      const child = spawn(process.execPath, [CLI, 'bridge', 'mcp', '--agent', 'antigravity'], {
+        cwd: ROOT,
+        env: { ...env(), ...inAgy('444'), IRSIM_HEARTBEAT_MS: '50' },
+      })
+      let buffer = ''
+      const replies: Array<{ id?: number; result?: unknown }> = []
+      child.stdout.setEncoding('utf8')
+      child.stdout.on('data', (chunk) => {
+        buffer += chunk
+        let newline = buffer.indexOf('\n')
+        while (newline !== -1) {
+          const line = buffer.slice(0, newline).trim()
+          buffer = buffer.slice(newline + 1)
+          newline = buffer.indexOf('\n')
+          if (line) replies.push(JSON.parse(line))
+        }
+      })
+      try {
+        const deadline = Date.now() + 2_000
+        while (
+          !received.some(
+            (one) =>
+              one.method === 'POST' &&
+              one.path === '/api/sessions' &&
+              (one.body as { id?: string; agent?: string; cwd?: string } | null)?.id === 'conv-hb',
+          )
+        ) {
+          if (Date.now() > deadline) throw new Error('timed out waiting for Antigravity heartbeat')
+          await new Promise((done) => setTimeout(done, 20))
+        }
+        const post = received.find(
+          (one) =>
+            one.method === 'POST' &&
+            one.path === '/api/sessions' &&
+            (one.body as { id?: string } | null)?.id === 'conv-hb',
+        )
+        expect(post?.body).toMatchObject({ id: 'conv-hb', agent: 'antigravity', cwd: project })
+
+        const stopped = new Promise<void>((done, fail) => {
+          const started = Date.now()
+          const check = () => {
+            if (replies.some((one) => one.id === 1)) return done()
+            if (Date.now() - started > 2_000) return fail(new Error('timed out waiting for stop reply'))
+            setTimeout(check, 10)
+          }
+          check()
+        })
+        child.stdin.write(
+          `${JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'design_canvas', arguments: { action: 'stop' } } })}\n`,
+        )
+        await stopped
+        expect(received.some((one) => one.method === 'DELETE' && one.path === '/api/sessions/conv-hb')).toBe(true)
+
+        received.length = 0
+        await new Promise((done) => setTimeout(done, 180))
+        expect(received.some((one) => one.method === 'POST' && one.path === '/api/sessions')).toBe(false)
+
+        const closed = new Promise<void>((done, fail) => {
+          child.on('error', fail)
+          child.on('close', () => done())
+        })
+        child.stdin.end()
+        await closed
+      } finally {
+        child.kill('SIGKILL')
+      }
     })
   })
 })
