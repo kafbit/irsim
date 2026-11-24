@@ -21,6 +21,7 @@ describe('bridge', () => {
   const claimText = 'Design canvas: 1 comment on page canvas-app (batch b1).'
   let claimed = true
   let lintReport: unknown = { ok: true, problems: [] }
+  let onSessionPost: (() => Promise<void>) | null = null
   const lintProblems = [
     { severity: 'error', file: 'design/canvas.json', path: 'pages[0].boards[0]', rule: 'board-title', message: 'the board has no title', fix: 'irsim lint --fix' },
     { severity: 'warning', file: 'design/Leads.html', path: 'title', rule: 'title-empty', message: 'the title is empty', fix: '' },
@@ -40,6 +41,12 @@ describe('bridge', () => {
         }
         if (request.url === '/api/health') return json({ ok: true, root: ROOT })
         if (request.url === '/api/sessions' && request.method === 'POST') {
+          if (onSessionPost) {
+            const wait = onSessionPost
+            onSessionPost = null
+            void wait().then(() => json({ id: (body as { id: string }).id }))
+            return
+          }
           return json({ id: (body as { id: string }).id })
         }
         if (request.url === '/api/comments/claim' && request.method === 'POST') {
@@ -76,6 +83,7 @@ describe('bridge', () => {
     received.length = 0
     claimed = true
     lintReport = { ok: true, problems: [] }
+    onSessionPost = null
   })
 
   const env = () => ({ ...process.env, IRSIM_PORT: String(port) })
@@ -627,6 +635,72 @@ describe('bridge', () => {
         child.stdin.end()
         await closed
       } finally {
+        child.kill('SIGKILL')
+      }
+    })
+
+    it('waits for an in-flight heartbeat POST before stop sends DELETE', async () => {
+      await hook('SessionStart', { conversationId: 'conv-race' }, inAgy('777'))
+      let markPostStarted = () => {}
+      const postStarted = new Promise<void>((done) => {
+        markPostStarted = done
+      })
+      let releasePost = () => {}
+      const postReleased = new Promise<void>((done) => {
+        releasePost = done
+      })
+      let deleteBeforePostFinished = false
+      onSessionPost = async () => {
+        markPostStarted()
+        await postReleased
+        deleteBeforePostFinished = received.some(
+          (one) => one.method === 'DELETE' && one.path === '/api/sessions/conv-race',
+        )
+      }
+      const child = spawn(process.execPath, [CLI, 'bridge', 'mcp', '--agent', 'antigravity'], {
+        cwd: ROOT,
+        env: { ...env(), ...inAgy('777'), IRSIM_HEARTBEAT_MS: '50' },
+      })
+      let buffer = ''
+      const replies: Array<{ id?: number; result?: unknown }> = []
+      child.stdout.setEncoding('utf8')
+      child.stdout.on('data', (chunk) => {
+        buffer += chunk
+        let newline = buffer.indexOf('\n')
+        while (newline !== -1) {
+          const line = buffer.slice(0, newline).trim()
+          buffer = buffer.slice(newline + 1)
+          newline = buffer.indexOf('\n')
+          if (line) replies.push(JSON.parse(line))
+        }
+      })
+      try {
+        await postStarted
+        const stopped = new Promise<void>((done, fail) => {
+          const started = Date.now()
+          const check = () => {
+            if (replies.some((one) => one.id === 1)) return done()
+            if (Date.now() - started > 2_000) return fail(new Error('timed out waiting for stop reply'))
+            setTimeout(check, 10)
+          }
+          check()
+        })
+        child.stdin.write(
+          `${JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'design_canvas', arguments: { action: 'stop' } } })}\n`,
+        )
+        await new Promise((done) => setTimeout(done, 40))
+        releasePost()
+        await stopped
+        expect(deleteBeforePostFinished).toBe(false)
+        expect(received.some((one) => one.method === 'DELETE' && one.path === '/api/sessions/conv-race')).toBe(true)
+        const closed = new Promise<void>((done, fail) => {
+          child.on('error', fail)
+          child.on('close', () => done())
+        })
+        child.stdin.end()
+        await closed
+      } finally {
+        releasePost()
         child.kill('SIGKILL')
       }
     })

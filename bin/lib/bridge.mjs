@@ -973,6 +973,10 @@ const mcpServer = async (agent = 'codex') => {
             throw new Error(`action must be one of ${actions.join(', ')}`)
           }
           const { session, root } = contextFor(args)
+          if (agent === 'antigravity' && args.action === 'stop' && session && root) {
+            pauseSession(root, session)
+            if (beatInFlight) await beatInFlight
+          }
           const text = await runTool({
             ...args,
             ...(root && !args.cwd ? { cwd: root } : {}),
