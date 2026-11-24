@@ -12,6 +12,7 @@ const PORT_COUNT = 100
 const START_TIMEOUT_MS = 30_000
 const START_STEP_MS = 500
 const PROBE_TIMEOUT_MS = 400
+const HEARTBEAT_MS = 15_000
 
 export const AGENT_NAMES = {
   'claude-code': 'Claude Code',
@@ -739,6 +740,9 @@ const forgetAntigravitySession = () => {
   } catch {}
 }
 
+const isIrsimProject = (root) =>
+  existsSync(join(root, CONFIG_FILE)) || existsSync(join(designFolder(root), 'canvas.json'))
+
 /**
  * Antigravity CLI hook: register on start, deliver comments before a model invocation and
  * when the execution loop stops. Every path prints one JSON object for Antigravity to read.
@@ -760,7 +764,7 @@ const antigravityHook = async (event) => {
   const port = await canvasPort(root)
   const healthy = await health(port)
   if (event === 'SessionStart') {
-    if (!existsSync(join(root, CONFIG_FILE)) && !existsSync(join(designFolder(root), 'canvas.json'))) return {}
+    if (!isIrsimProject(root)) return {}
     if (session) {
       rememberAntigravitySession(root, session)
       if (healthy && !isPaused(root, session)) {
@@ -772,8 +776,11 @@ const antigravityHook = async (event) => {
       injectSteps: [{ systemMessage: { systemMessage: SESSION_CONTEXT } }],
     }
   }
-  if (!healthy || !session) return {}
-  rememberAntigravitySession(root, session)
+  if (!session) return {}
+  if (antigravityPid() || healthy || isIrsimProject(root)) {
+    rememberAntigravitySession(root, session)
+  }
+  if (!healthy) return {}
   if (isPaused(root, session)) return {}
   await register(port, { agent: 'antigravity', session, cwd }).catch(() => undefined)
   if (event === 'PreInvocation') {
@@ -862,14 +869,42 @@ const mcpServer = async (agent = 'codex') => {
     const found = readAntigravitySession(rootOf(args.cwd ?? process.cwd()))
     return { session: process.env.IRSIM_SESSION || found.session, root: found.root }
   }
+  const rawHeartbeat = Number(process.env.IRSIM_HEARTBEAT_MS)
+  const heartbeatMs = Number.isFinite(rawHeartbeat) && rawHeartbeat > 0 ? rawHeartbeat : HEARTBEAT_MS
+  let heartbeat
+  let beatInFlight = null
+  const beat = () => {
+    if (leaving || beatInFlight) return
+    beatInFlight = (async () => {
+      const found = readAntigravitySession(rootOf(process.cwd()))
+      const session = process.env.IRSIM_SESSION || found.session
+      const root = found.root
+      if (!session || !root || isPaused(root, session)) return
+      const forced = validPort(process.env.IRSIM_PORT || process.env.DESIGN_PORT)
+      const port = forced ?? readRecorded(root)
+      if (port === null) return
+      if (forced !== null) {
+        if (!(await health(port))) return
+      } else {
+        const probed = await probePort(port)
+        if (probed.state !== 'canvas' || real(probed.root) !== real(root)) return
+      }
+      if (leaving || isPaused(root, session)) return
+      await register(port, { agent, session, cwd: root }).catch(() => undefined)
+    })().finally(() => {
+      beatInFlight = null
+    })
+  }
   // Antigravity has no session end hook. Its MCP server lives as long as the agy process, so
   // stdin closing or a stop signal means agy exited: take the session off the canvas.
   // After a signal agy may kill the process soon, so that path skips the port scan and the
   // health check: it uses the forced or recorded port and gives the DELETE one second.
   let leaving
   const leaveOnExit = ({ fast = false } = {}) => {
+    if (heartbeat) clearInterval(heartbeat)
     leaving ??= (async () => {
       if (agent !== 'antigravity') return
+      if (!fast && beatInFlight) await beatInFlight
       const { session, root } = readAntigravitySession(rootOf(process.cwd()))
       if (session) {
         if (fast) {
@@ -890,6 +925,8 @@ const mcpServer = async (agent = 'codex') => {
     return leaving
   }
   if (agent === 'antigravity') {
+    heartbeat = setInterval(beat, heartbeatMs)
+    heartbeat.unref?.()
     for (const signal of ['SIGTERM', 'SIGINT', 'SIGHUP']) {
       process.once(signal, () => {
         leaveOnExit({ fast: true }).finally(() => process.exit(128 + constants.signals[signal]))
@@ -936,6 +973,10 @@ const mcpServer = async (agent = 'codex') => {
             throw new Error(`action must be one of ${actions.join(', ')}`)
           }
           const { session, root } = contextFor(args)
+          if (agent === 'antigravity' && args.action === 'stop' && session && root) {
+            pauseSession(root, session)
+            if (beatInFlight) await beatInFlight
+          }
           const text = await runTool({
             ...args,
             ...(root && !args.cwd ? { cwd: root } : {}),
