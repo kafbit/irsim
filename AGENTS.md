@@ -50,9 +50,20 @@ A page check can time out on a large page.
 Then check the changed boards one by one with `design_canvas {action: "check", board: "<Board>"}`, and check both pages when possible.
 3. Stop and wait for the user's confirmation before writing app code, as the skill says.
 4. After the code change, compare the board and the running canvas at the same width with Playwright screenshots, light and dark.
-5. A new part, state or prop gets a board or a prop on the existing board, a row in the table above, and a position on its page and its section in `design/canvas.json`.
+5. A new part, state or prop gets a board or a prop on the existing board, a row in the table above, and a position on its page and its section in `design/canvas.json` that no other board covers.
 6. A removed or renamed part removes or renames its boards and its table row.
 7. Use the tools already installed on the machine. Playwright launches the installed Chrome, Chromium, Brave or Edge (`channel` or `executablePath`); do not download Playwright's Chromium or add a heavy dependency where a lighter path exists.
+
+## Layout checks
+
+On top of the format rules, `irsim lint` checks the geometry of a page and `design_canvas {action: "check"}` measures each rendered board.
+
+- A drag on the canvas moves the frames in it and nothing else: a frame dropped on top of another stays there, and the frame under it does not move. Auto layout is an explicit action, the page's Arrange. An agent that writes `design/canvas.json` is the other path: the canvas reads the write and pushes the frames it crowds, so an agent never leaves two boards on one spot.
+- `board-overlap` (warning): two boards of a page cover part of each other, so the board under them cannot be seen or approved. A person may have put them there, so it warns instead of failing the folder. Arrange the page, or drag one of them, before a review. `irsim lint --json` gives the board path and the shared area.
+- `board-rect` (error, warning): a board missing `x`, `y`, `width` or `height`, or with a size of 0, is an error; a width under 240 or a height under 160 warns, because a resize on the canvas cannot make it that small unless it is a deliberate small part.
+- `layout: the content is 1520 px wide, the frame is 1440 px, and 80 px are cut off` (warning): the board renders bigger than its frame, so the canvas and the thumbnail clip it. Make the frame in `design/canvas.json` fit the board, or shorten the board. A board that scrolls on purpose is the only case that keeps the warning.
+- Frames close but clear of each other are fine: a page groups related boards with 40 to 60 px gaps on purpose. Only shared area is a problem.
+- A section stores all four of `x`, `y`, `width` and `height` or none of them (`section-area`), and a board cannot name a section the page does not have (`section-missing`). The area the canvas draws for a section comes from its boards, so fix board positions rather than section numbers.
 
 ## Board conventions
 
@@ -85,4 +96,5 @@ The user accepts a board by looking at it in irsim (the Approve button or a repl
 
 - `design_canvas {action: "check", page: "canvas-app"}` and `design_canvas {action: "check", page: "canvas-system"}` report no errors and no warnings.
 - When a page check times out, the changed boards pass `design_canvas {action: "check", board: "<Board>"}` one by one.
+- `irsim lint` reports no `board-rect` error, no `board-overlap` warning is left on the boards you placed, and the boards you changed report no `layout:` cut-off warning.
 - The pull request description has the board checklist from `.github/pull_request_template.md` filled in.

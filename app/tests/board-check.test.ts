@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { POST as checkBoard } from '../src/app/api/boards/[board]/check/route'
 import { POST as checkPage } from '../src/app/api/pages/[pageId]/check/route'
-import { summarize, type Signals } from '../src/lib/board-check'
+import { overflowWarnings, summarize, type Signals } from '../src/lib/board-check'
 import { selfBase, targetOf } from '../src/lib/check-route'
 
 const clean: Signals = {
@@ -13,6 +13,7 @@ const clean: Signals = {
   pageErrors: [],
   failedRequests: [],
   empty: false,
+  layout: [],
 }
 
 describe('summarize', () => {
@@ -71,6 +72,42 @@ describe('summarize', () => {
     expect(result.ok).toBe(false)
     expect(result.errors).toEqual([])
     expect(result.warnings).toEqual(['the board renders no text and no image'])
+  })
+
+  it('a cut-off board is a warning and not ok', () => {
+    const warning = 'layout: the content is 900 px tall, the frame is 600 px, and 300 px are cut off'
+    const result = summarize('Tall', { ...clean, layout: [warning] }, 1)
+    expect(result.ok).toBe(false)
+    expect(result.errors).toEqual([])
+    expect(result.warnings).toEqual([warning])
+  })
+})
+
+describe('overflowWarnings', () => {
+  it('reports nothing up to the tolerance and one warning past it', () => {
+    const frame = { width: 800, height: 600 }
+    expect(overflowWarnings({ width: 800, height: 600 }, frame)).toEqual([])
+    expect(overflowWarnings({ width: 600, height: 602 }, frame)).toEqual([])
+    expect(overflowWarnings({ width: 803, height: 600 }, frame)).toHaveLength(1)
+  })
+
+  it('names each cut off axis with the pixels lost, wide before tall', () => {
+    expect(overflowWarnings({ width: 874, height: 600 }, { width: 800, height: 600 })).toEqual([
+      'layout: the content is 874 px wide, the frame is 800 px, and 74 px are cut off',
+    ])
+    expect(overflowWarnings({ width: 900, height: 800 }, { width: 800, height: 600 })).toEqual([
+      'layout: the content is 900 px wide, the frame is 800 px, and 100 px are cut off',
+      'layout: the content is 800 px tall, the frame is 600 px, and 200 px are cut off',
+    ])
+  })
+
+  it('ignores a measurement that is not a finite number', () => {
+    expect(
+      overflowWarnings(
+        { width: Number.NaN, height: Number.POSITIVE_INFINITY },
+        { width: 800, height: 600 },
+      ),
+    ).toEqual([])
   })
 })
 

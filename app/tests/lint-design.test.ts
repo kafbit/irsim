@@ -2,10 +2,14 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { findOverlaps, type PlacementRect } from '../src/lib/board-placement.mjs'
 import { lintDesign, readBoardMeta } from '../src/lib/lint-design.mjs'
 
 let base = ''
 let dir = ''
+// Boards default to their own spot on x so a test that does not care about placement does not
+// report a gap problem it did not ask for. Position tests pass x and y.
+let slot = 0
 
 const html = (title: string, preview: unknown = { width: 800, height: 600 }, extra = '') =>
   `<html lang="en" dir="ltr"><head><title>${title}</title></head><body><x-dc>${extra}</x-dc>` +
@@ -15,7 +19,17 @@ const board = (name: string, source = html(name)) => writeFileSync(join(dir, `${
 const EMPTY = { overrides: { colors: {}, radius: {}, type: {} }, bindings: {} }
 const canvas = (value: unknown) =>
   writeFileSync(join(dir, 'canvas.json'), typeof value === 'string' ? value : JSON.stringify({ ...EMPTY, ...(value as object) }))
-const entry = (name: string, extra: object = {}) => ({ name, title: name, x: 0, y: 0, width: 800, height: 600, ...extra })
+const entry = (name: string, extra: object = {}) => ({
+  name,
+  title: name,
+  x: slot++ * 900,
+  y: 0,
+  width: 800,
+  height: 600,
+  ...extra,
+})
+const at = (name: string, x: number, y: number, extra: object = {}) =>
+  entry(name, { x, y, ...extra })
 const page = (boards: object[], extra: object = {}) => ({ id: 'p', title: 'P', boards, ...extra })
 const rules = (result = lintDesign(dir)) => result.problems.map((p) => p.rule)
 
@@ -23,6 +37,7 @@ beforeEach(() => {
   base = mkdtempSync(join(tmpdir(), 'irsim-lint-'))
   dir = join(base, 'design')
   mkdirSync(dir)
+  slot = 0
 })
 afterEach(() => rmSync(base, { recursive: true, force: true }))
 
@@ -136,6 +151,97 @@ describe('lintDesign canvas.json', () => {
     canvas({ version: 1, pages: [page([entry('A', { width: 1, height: 1 })])] })
     const keys = lintDesign(dir).problems.map((p) => `${p.file}|${p.path}`)
     expect(keys).toEqual([...keys].sort())
+  })
+})
+
+describe('lintDesign frame overlaps', () => {
+  // Two boards of one page, the second at `spot`, both 800x600.
+  const pair = (spot: { x: number; y: number }) => {
+    board('A')
+    board('B')
+    canvas({ version: 1, pages: [page([at('A', 0, 0), at('B', spot.x, spot.y)])] })
+    return lintDesign(dir).problems.filter((p) => p.rule === 'board-overlap')
+  }
+
+  it.each([
+    ['edge to edge on x', { x: 800, y: 0 }, 0],
+    ['1 px into each other on x', { x: 799, y: 0 }, 1],
+    ['80 px clear on x', { x: 880, y: 0 }, 0],
+    ['the same spot', { x: 0, y: 0 }, 1],
+    ['edge to edge below', { x: 0, y: 600 }, 0],
+    ['1 px into each other below', { x: 0, y: 599 }, 1],
+    ['overlapping on x and clear on y', { x: 100, y: 700 }, 0],
+    ['clear on x and overlapping on y', { x: 900, y: 100 }, 0],
+    ['corner to corner at negative positions', { x: -800, y: -600 }, 0],
+    ['1 px into each other at negative positions', { x: -799, y: -599 }, 1],
+  ])('reports the pair %s as %i overlap problems', (_case, spot, expected) => {
+    expect(pair(spot)).toHaveLength(expected)
+  })
+
+  it('reports every pair of a stacked page once, at the later board, and still passes', () => {
+    board('A')
+    board('B')
+    board('C')
+    canvas({
+      version: 1,
+      pages: [page([at('A', 0, 0), at('B', 10, 0), at('C', 20, 0)])],
+    })
+    // A person can drop a frame on top of another, so a covered frame warns and does not fail the folder.
+    expect(lintDesign(dir).ok).toBe(true)
+    const found = lintDesign(dir).problems.filter((p) => p.rule === 'board-overlap')
+    expect(found.map((p) => p.path)).toEqual([
+      'pages[0].boards[1]',
+      'pages[0].boards[2]',
+      'pages[0].boards[2]',
+    ])
+    expect(found[0]).toMatchObject({
+      severity: 'warning',
+      message: expect.stringContaining('boards A and B cover'),
+      fix: expect.stringContaining('Arrange'),
+    })
+  })
+
+  it('leaves a board whose rect is not four positive numbers to board-rect', () => {
+    board('A')
+    board('B')
+    canvas({ version: 1, pages: [page([at('A', 0, 0), at('B', 0, 0, { width: 0, height: 'tall' })])] })
+    const found = lintDesign(dir).problems
+    expect(found.filter((p) => p.rule === 'board-overlap')).toEqual([])
+    // Sorted by path, so height lands before width.
+    expect(found.filter((p) => p.rule === 'board-rect').map((p) => p.path)).toEqual([
+      'pages[0].boards[1].height',
+      'pages[0].boards[1].width',
+    ])
+  })
+
+  it('does not compare boards of different pages', () => {
+    board('A')
+    board('B')
+    canvas({
+      version: 1,
+      pages: [page([at('A', 0, 0)]), { id: 'q', title: 'Q', boards: [at('B', 0, 0)] }],
+    })
+    expect(rules().filter((rule) => rule === 'board-overlap')).toEqual([])
+  })
+
+  it('flags the pairs the canvas itself treats as covering each other', () => {
+    const rects: PlacementRect[] = [
+      { name: 'A', x: 0, y: 0, width: 800, height: 600 },
+      { name: 'B', x: 700, y: 200, width: 400, height: 300 },
+      { name: 'C', x: 1600, y: 0, width: 300, height: 200 },
+      { name: 'D', x: -500, y: 900, width: 1200, height: 200 },
+      { name: 'E', x: 300, y: 1050, width: 200, height: 90 },
+    ]
+    for (const rect of rects) board(rect.name)
+    canvas({ version: 1, pages: [page(rects.map((rect) => at(rect.name, rect.x, rect.y, rect)))] })
+    const pairs = lintDesign(dir).problems
+      .filter((p) => p.rule === 'board-overlap')
+      .map((p) => /boards \S+ and \S+ cover/.exec(p.message)?.[0])
+    // Gap 0 is the same question: the frames that share area. A rule that drifted from the canvas
+    // predicate fails here rather than in a review.
+    expect(pairs).toEqual(
+      findOverlaps(rects, 0).map(([first, second]) => `boards ${first} and ${second} cover`),
+    )
   })
 })
 

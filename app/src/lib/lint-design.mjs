@@ -56,6 +56,34 @@ const isStringMap = (value) => isObject(value) && Object.values(value).every((on
 const OVERRIDES_FIX = 'set "overrides": {"colors": {}, "radius": {}, "type": {}}'
 const BINDINGS_FIX = 'set "bindings": {}'
 
+/** The shared area of two rects, or 0 on an axis where they do not overlap. */
+const overlapOn = (a, b, start, extent) =>
+  Math.max(0, Math.min(a[start] + a[extent], b[start] + b[extent]) - Math.max(a[start], b[start]))
+
+/**
+ * Warns for every pair of boards of a page whose rects share area. The board under the pair cannot be
+ * seen or approved, but a person can drop a frame on top of another and the canvas leaves it there,
+ * so this is a hint to tidy the page and not a broken folder. Frames close but clear of each other are
+ * fine: a page groups related boards with small gaps on purpose.
+ */
+const lintFrameOverlaps = (file, rects, add) => {
+  rects.forEach((first, i) => {
+    rects.slice(i + 1).forEach((second) => {
+      const width = overlapOn(first, second, 'x', 'width')
+      const height = overlapOn(first, second, 'y', 'height')
+      if (width === 0 || height === 0) return
+      add(
+        'warning',
+        file,
+        second.spot,
+        'board-overlap',
+        `boards ${first.name} and ${second.name} cover ${Math.round(width)}x${Math.round(height)} px of each other`,
+        "use the page's Arrange, or move one of them, so both frames are visible",
+      )
+    })
+  })
+}
+
 const lintCanvas = (designDir, boards, add) => {
   const file = 'canvas.json'
   const path = join(designDir, file)
@@ -132,6 +160,7 @@ const lintCanvas = (designDir, boards, add) => {
     }
     const sectionIds = lintSections(file, at, page.sections, add)
     const boardList = Array.isArray(page.boards) ? page.boards : []
+    const rects = []
     boardList.forEach((board, b) => {
       const spot = `${at}.boards[${b}]`
       if (!isObject(board)) {
@@ -166,7 +195,12 @@ const lintCanvas = (designDir, boards, add) => {
       if (board.section !== undefined && !sectionIds.has(board.section)) {
         add('error', file, `${spot}.section`, 'section-missing', `section ${JSON.stringify(board.section)} is not in the sections of page ${page.id}`, 'add the section to the page or remove the board section')
       }
+      // An incomplete rect is already a board-rect error; comparing it would add a second, wrong one.
+      if (['x', 'y', 'width', 'height'].every((key) => isNumber(board[key])) && board.width > 0 && board.height > 0) {
+        rects.push({ name: isText(name) ? name : spot, x: board.x, y: board.y, width: board.width, height: board.height, spot })
+      }
     })
+    lintFrameOverlaps(file, rects, add)
   })
   for (const board of boards) {
     if (!listed.has(board.name)) {

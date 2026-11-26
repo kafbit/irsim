@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { type CanvasEdit, resolveMoves } from '../lib/canvas-layout'
+import { type CanvasEdit } from '../lib/canvas-layout'
 import { editsOf, type Move, moveRect } from './frame-edit'
 import type { PlacedBoard, Rect } from './geometry'
 import { type ApplyResult, createHistory, type Outcome } from './history'
@@ -87,7 +87,6 @@ export function useBoardLayout(
   const errorTimer = useRef(0)
   const baseRef = useRef(base)
   const stateRef = useRef(sectionState)
-  const boardsRef = useRef<PlacedBoard[]>(base)
 
   /** Sections with a stored layout that these moves break: a frame moved or resized by hand, not the whole section. */
   const layoutClears = useCallback((moves: Move[]) => {
@@ -119,33 +118,7 @@ export function useBoardLayout(
   useEffect(() => {
     baseRef.current = base
     stateRef.current = sectionState
-    boardsRef.current = boards
   })
-
-  /** `moves` and the moves of the neighbours they push apart, as the server resolves them. */
-  const withNeighbours = useCallback((moves: Move[], drop?: { section: string | null }): Move[] => {
-    const rects = new Map(moves.map((move) => [move.name, move.rect]))
-    const current = boardsRef.current.map((board) => {
-      const moved = rects.get(board.name)
-      if (!moved) return board
-      const joined = drop ? { section: drop.section ?? undefined } : {}
-      return { ...board, ...moved, ...joined }
-    })
-    const pushed = resolveMoves(
-      current,
-      stateRef.current.sections,
-      moves.map((move) => move.name),
-      boardsRef.current,
-    )
-    const extra: Move[] = []
-    for (const [name, to] of pushed) {
-      const board = boardsRef.current.find((entry) => entry.name === name)
-      if (board && !rects.has(name)) {
-        extra.push({ name, rect: { ...rectOf(board), ...to }, before: rectOf(board) })
-      }
-    }
-    return [...moves, ...extra]
-  }, [])
 
   const applyLocal = useCallback((edit: CanvasEdit) => {
     setPlaced((current) => {
@@ -246,7 +219,8 @@ export function useBoardLayout(
       drop?: { section: string | null },
     ) => {
       const target = typeof label === 'object' ? label : drop
-      const moves = withNeighbours(dragged, target)
+      // A drag moves the frames in it, and only them: the canvas does not lay out the rest.
+      const moves = dragged
       const name = typeof label === 'string' ? label : undefined
       const names = dragged.map((move) => move.name)
       const text = name ?? describe(kind, names)
@@ -281,7 +255,7 @@ export function useBoardLayout(
       setLive(null)
       persist(moves, text)
     },
-    [boards, describe, editSections, flush, layoutClears, persist, sectionState.sectionOf, withNeighbours],
+    [boards, describe, editSections, flush, layoutClears, persist, sectionState.sectionOf],
   )
 
   const nudge = useCallback(
@@ -301,7 +275,7 @@ export function useBoardLayout(
         }
       })
       const items = new Map<string, { rect: Rect; before: Rect }>()
-      for (const { name, rect, before } of withNeighbours(moves)) {
+      for (const { name, rect, before } of moves) {
         items.set(name, { rect, before: waiting?.items.get(name)?.before ?? before })
       }
       for (const [name, earlier] of waiting?.items ?? []) {
@@ -315,7 +289,7 @@ export function useBoardLayout(
       window.clearTimeout(nudgeTimer.current)
       nudgeTimer.current = window.setTimeout(flush, NUDGE_QUIET_MS)
     },
-    [flush, withNeighbours],
+    [flush],
   )
 
   const walk = useCallback(
