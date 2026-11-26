@@ -4,7 +4,7 @@ import { openCanvas } from './canvas'
 
 export const TOOL_NAME = 'design_canvas'
 export const TOOL_DESCRIPTION =
-  'Reads and answers design canvas comments, checks boards, lints the design folder, and checks the project. Actions: open, page, comments, reply, resolve, check, lint, doctor. check renders a board (or every board of a page) in headless Chromium and returns errors, warnings and a screenshot path to look at, after the format problems of the design folder. lint lists the format problems of the board files and design/canvas.json. doctor checks the project rules, git setup and config. Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.'
+  'Reads and answers design canvas comments, checks boards, lints the design folder, and checks the project. Actions: open, page, comments, reply, resolve, check, lint, doctor. check renders a board (or every board of a page) in headless Chromium and returns errors, warnings and a screenshot path to look at, after the format and layout problems of the design folder. lint lists the format and layout problems of the board files and design/canvas.json. doctor checks the project rules, git setup and config. Reply in at most three short sentences. Put long detail in the board or a file and link to it, not in the reply.'
 
 export const TOOL_MATCH = /^mcp__.*__design_canvas$/
 

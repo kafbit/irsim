@@ -4,7 +4,7 @@ import { lintDesign } from '../../../lib/lint-design.mjs'
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-/** The format problems of the design folder, the same list `irsim lint --json` prints. */
+/** The format and layout problems of the design folder, the same list `irsim lint --json` prints. */
 export async function GET(): Promise<Response> {
   try {
     return Response.json(lintDesign(designDir()), { headers: { 'Cache-Control': 'no-store' } })
