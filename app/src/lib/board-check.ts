@@ -15,6 +15,9 @@ export const NO_CHROMIUM =
 
 export const EMPTY_WARNING = 'the board renders no text and no image'
 
+/** Content this many pixels over the frame is not reported: subpixel layout and a 1 px border. */
+export const OVERFLOW_TOLERANCE = 2
+
 export type BoardTarget = { name: string; width: number; height: number }
 
 /** What the page reported while the board booted. `fatal` is set when the board never became ready. */
@@ -25,6 +28,8 @@ export type Signals = {
   pageErrors: string[]
   failedRequests: string[]
   empty: boolean
+  /** Layout warnings: the rendered content does not fit the frame. */
+  layout: string[]
 }
 
 export type Inspection = Signals & { png?: Buffer }
@@ -44,6 +49,7 @@ const noSignals = (): Signals => ({
   pageErrors: [],
   failedRequests: [],
   empty: false,
+  layout: [],
 })
 
 /** A copy, so a listener that fires while the page closes cannot change a returned result. */
@@ -53,9 +59,37 @@ const snapshot = (signals: Signals): Signals => ({
   consoleErrors: [...signals.consoleErrors],
   pageErrors: [...signals.pageErrors],
   failedRequests: [...signals.failedRequests],
+  layout: [...signals.layout],
 })
 
 const unique = (values: string[]): string[] => [...new Set(values)]
+
+/**
+ * One warning per axis when the rendered content is larger than the frame. The canvas clips a frame,
+ * so what is outside it is cut off on the canvas and in the thumbnail. A measurement that is not a
+ * finite number reports nothing: a failed measure is not a layout problem.
+ */
+export const overflowWarnings = (
+  content: { width: number; height: number },
+  frame: { width: number; height: number },
+  tolerance = OVERFLOW_TOLERANCE,
+): string[] => {
+  const sides = [
+    { word: 'wide', content: content.width, frame: frame.width },
+    { word: 'tall', content: content.height, frame: frame.height },
+  ]
+  return sides
+    .filter(
+      (side) =>
+        Number.isFinite(side.content) &&
+        Number.isFinite(side.frame) &&
+        side.content - side.frame > tolerance,
+    )
+    .map(
+      (side) =>
+        `layout: the content is ${Math.round(side.content)} px ${side.word}, the frame is ${Math.round(side.frame)} px, and ${Math.round(side.content - side.frame)} px are cut off`,
+    )
+}
 
 /**
  * Console lines that repeat another signal: the runtime logs each problem as `[canvas:<where>]`,
@@ -81,7 +115,8 @@ export const summarize = (
     ...signals.consoleErrors.filter((message) => !isEcho(message)),
     ...signals.failedRequests,
   ])
-  const warnings = signals.empty ? [EMPTY_WARNING] : []
+  const emptyWarning = signals.empty ? [EMPTY_WARNING] : []
+  const warnings = unique([...signals.layout, ...emptyWarning])
   return {
     board,
     ok: errors.length === 0 && warnings.length === 0,
@@ -204,13 +239,28 @@ export const inspectBoard = async (
           )
         )
       })
+      // The scroll box of the page, which holds what overflow-clip hides outside the viewport.
+      const scrollOf = (element: Element | null | undefined) => ({
+        width: element?.scrollWidth ?? 0,
+        height: element?.scrollHeight ?? 0,
+      })
+      const html = scrollOf(document.documentElement)
+      const body = scrollOf(document.body)
       return {
         problems: [...own.__checkProblems],
         empty: (document.body?.innerText ?? '').trim() === '' && !paints,
+        content: {
+          width: Math.max(html.width, body.width),
+          height: Math.max(html.height, body.height),
+        },
       }
     })
     signals.problems = state.problems
     signals.empty = state.empty
+    signals.layout = overflowWarnings(state.content, {
+      width: target.width,
+      height: target.height,
+    })
     const png = await page.screenshot({ type: 'png' })
     return { ...snapshot(signals), png }
   } finally {

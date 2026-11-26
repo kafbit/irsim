@@ -450,7 +450,7 @@
           "x": 321,
           "y": 7423,
           "width": 400,
-          "height": 308,
+          "height": 344,
           "section": "frames-right-click-menu"
         },
         {
@@ -1077,7 +1077,7 @@
         {
           "name": "CanvasCompare",
           "title": "Canvas compare",
-          "x": -7251,
+          "x": -8751,
           "y": 12718,
           "width": 1440,
           "height": 900,
@@ -1087,7 +1087,7 @@
           "name": "CanvasCompareNarrow",
           "title": "Canvas compare: 390 width",
           "x": -5731,
-          "y": 12718,
+          "y": 15120,
           "width": 1440,
           "height": 900,
           "section": "full-screen-views-compare-view"
@@ -1231,7 +1231,7 @@
           "name": "CanvasAppSnapping",
           "title": "Canvas app: snapping to another frame",
           "x": 4465,
-          "y": 2494,
+          "y": 3502,
           "width": 1440,
           "height": 948,
           "section": "app-screens-interaction"
@@ -1314,7 +1314,7 @@
           "x": 321,
           "y": 8143,
           "width": 640,
-          "height": 308,
+          "height": 344,
           "section": "frames-right-click-menu"
         },
         {
