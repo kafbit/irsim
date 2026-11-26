@@ -49,7 +49,7 @@ commands:
   update [--check]                           install the latest release (needs gh)
   doctor [--json]                            check the project rules, git setup and config
   lint [--fix] [--json] [--design-dir <path>]
-                                             check the design folder format (--fix renames legacy boards and runs build)
+                                             check the design folder format and layout (--fix renames legacy boards and runs build)
   connect <agent> [--uninstall]              install or remove a bundled harness plugin (antigravity)
   bridge <command>                           connect an agent harness to the canvas (bridge --help)
   uninstall [--purge] [--yes] [--dry-run]    remove this install (--purge also removes the cache)
