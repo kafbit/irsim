@@ -58,7 +58,8 @@ Then check the changed boards one by one with `design_canvas {action: "check", b
 
 On top of the format rules, `irsim lint` checks the geometry of a page and `design_canvas {action: "check"}` measures each rendered board.
 
-- `board-overlap` (error): two boards of a page cover part of each other. A frame clips its canvas, so the board under it cannot be seen or approved. Move one of them clear, or select both and use the page's Arrange. The message names the shared area, and `irsim lint --json` gives the board path.
+- A drag on the canvas moves the frames in it and nothing else: a frame dropped on top of another stays there, and the frame under it does not move. Auto layout is an explicit action, the page's Arrange. An agent that writes `design/canvas.json` is the other path: the canvas reads the write and pushes the frames it crowds, so an agent never leaves two boards on one spot.
+- `board-overlap` (warning): two boards of a page cover part of each other, so the board under them cannot be seen or approved. A person may have put them there, so it warns instead of failing the folder. Arrange the page, or drag one of them, before a review. `irsim lint --json` gives the board path and the shared area.
 - `board-rect` (error, warning): a board missing `x`, `y`, `width` or `height`, or with a size of 0, is an error; a width under 240 or a height under 160 warns, because a resize on the canvas cannot make it that small unless it is a deliberate small part.
 - `layout: the content is 1520 px wide, the frame is 1440 px, and 80 px are cut off` (warning): the board renders bigger than its frame, so the canvas and the thumbnail clip it. Make the frame in `design/canvas.json` fit the board, or shorten the board. A board that scrolls on purpose is the only case that keeps the warning.
 - Frames close but clear of each other are fine: a page groups related boards with 40 to 60 px gaps on purpose. Only shared area is a problem.
@@ -95,5 +96,5 @@ The user accepts a board by looking at it in irsim (the Approve button or a repl
 
 - `design_canvas {action: "check", page: "canvas-app"}` and `design_canvas {action: "check", page: "canvas-system"}` report no errors and no warnings.
 - When a page check times out, the changed boards pass `design_canvas {action: "check", board: "<Board>"}` one by one.
-- `irsim lint` reports no `board-overlap` and no `board-rect` error, and the boards you changed report no `layout:` cut-off warning.
+- `irsim lint` reports no `board-rect` error, no `board-overlap` warning is left on the boards you placed, and the boards you changed report no `layout:` cut-off warning.
 - The pull request description has the board checklist from `.github/pull_request_template.md` filled in.

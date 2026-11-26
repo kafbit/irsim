@@ -623,6 +623,11 @@ export function syncFromDisk(previous: CanvasFile, next: CanvasFile): CanvasFile
  * membership, and section upserts and removals. Sections are applied first, so a board can join a
  * section created by the same edit. Fails with 404 for an unknown page or board, and with 400 for a
  * non-finite number, a size under 240 x 160, or a section that does not exist. `canvas` is not mutated.
+ *
+ * This is what a person does on the canvas, so it moves exactly the boards the edit names and nothing
+ * else: a frame dropped on top of another stays there. Auto layout is an explicit action, the page's
+ * Arrange or `tidy`. An agent's write to `canvas.json` is the other path, `syncFromDisk`, which does
+ * push the frames the write crowds.
  */
 export function applyEdit(canvas: CanvasFile, page: string, edit: CanvasEdit): Placement {
   const target = canvas.pages.find((candidate) => candidate.id === page)
@@ -708,17 +713,7 @@ export function applyEdit(canvas: CanvasFile, page: string, edit: CanvasEdit): P
     boards.push(next)
   }
 
-  const edited = [...edits]
-    .filter(([, item]) => GEOMETRY.some((key) => item[key] !== undefined))
-    .map(([name]) => name)
   const original = sections
-  if (edited.length > 0) {
-    const moved = resolveLayout(boards as PlacedRect[], sections, edited, target.boards as PlacedRect[])
-    for (const [index, board] of boards.entries()) {
-      const to = moved.boards.get(board.name)
-      if (to) boards[index] = { ...board, ...to }
-    }
-  }
   sections = shiftAreas(
     sections,
     target.boards as PlacedRect[],

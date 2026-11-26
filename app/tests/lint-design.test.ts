@@ -178,7 +178,7 @@ describe('lintDesign frame overlaps', () => {
     expect(pair(spot)).toHaveLength(expected)
   })
 
-  it('reports every pair of a stacked page once, at the later board', () => {
+  it('reports every pair of a stacked page once, at the later board, and still passes', () => {
     board('A')
     board('B')
     board('C')
@@ -186,6 +186,8 @@ describe('lintDesign frame overlaps', () => {
       version: 1,
       pages: [page([at('A', 0, 0), at('B', 10, 0), at('C', 20, 0)])],
     })
+    // A person can drop a frame on top of another, so a covered frame warns and does not fail the folder.
+    expect(lintDesign(dir).ok).toBe(true)
     const found = lintDesign(dir).problems.filter((p) => p.rule === 'board-overlap')
     expect(found.map((p) => p.path)).toEqual([
       'pages[0].boards[1]',
@@ -193,7 +195,7 @@ describe('lintDesign frame overlaps', () => {
       'pages[0].boards[2]',
     ])
     expect(found[0]).toMatchObject({
-      severity: 'error',
+      severity: 'warning',
       message: expect.stringContaining('boards A and B cover'),
       fix: expect.stringContaining('Arrange'),
     })

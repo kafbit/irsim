@@ -61,9 +61,10 @@ const overlapOn = (a, b, start, extent) =>
   Math.max(0, Math.min(a[start] + a[extent], b[start] + b[extent]) - Math.max(a[start], b[start]))
 
 /**
- * Reports every pair of boards of a page whose rects share area. A frame clips its canvas, so the
- * boards under the pair cannot be seen or approved; frames close but clear of each other are fine,
- * since a page groups related frames with small gaps on purpose.
+ * Warns for every pair of boards of a page whose rects share area. The board under the pair cannot be
+ * seen or approved, but a person can drop a frame on top of another and the canvas leaves it there,
+ * so this is a hint to tidy the page and not a broken folder. Frames close but clear of each other are
+ * fine: a page groups related boards with small gaps on purpose.
  */
 const lintFrameOverlaps = (file, rects, add) => {
   rects.forEach((first, i) => {
@@ -72,12 +73,12 @@ const lintFrameOverlaps = (file, rects, add) => {
       const height = overlapOn(first, second, 'y', 'height')
       if (width === 0 || height === 0) return
       add(
-        'error',
+        'warning',
         file,
         second.spot,
         'board-overlap',
         `boards ${first.name} and ${second.name} cover ${Math.round(width)}x${Math.round(height)} px of each other`,
-        'move one of them clear of the other, or select both and use Arrange',
+        "use the page's Arrange, or move one of them, so both frames are visible",
       )
     })
   })

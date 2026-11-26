@@ -288,7 +288,10 @@ describe('moving a board smaller than the minimum', () => {
   })
 })
 
-describe('applyEdit collisions', () => {
+// A person's drag goes through applyEdit, and it moves exactly the boards the edit names: a frame
+// dropped on top of another leaves that frame where it is. The push lives in the agent path,
+// `syncFromDisk`, and in `resolveLayout`, which the page's Arrange uses.
+describe('applyEdit moves only the boards the edit names', () => {
   const row = (): CanvasFile => ({
     version: 1,
     pages: [
@@ -311,36 +314,11 @@ describe('applyEdit collisions', () => {
   const boardOf = (canvas: CanvasFile, name: string) =>
     canvas.pages[0]?.boards.find((entry) => entry.name === name)
 
-  it('does not push a board that was already closer than the gap before the edit', () => {
-    const canvas: CanvasFile = {
-      version: 1,
-      pages: [
-        {
-          id: 'p',
-          title: 'P',
-          boards: [
-            { name: 'A', x: 0, y: 0, width: 400, height: 300 },
-            { name: 'B', x: 440, y: 0, width: 400, height: 300 },
-          ],
-        },
-      ],
-    }
-    const next = placed(applyEdit(canvas, 'p', { boards: [{ name: 'A', x: 1, y: 0 }] }))
-    expect(boardOf(next, 'B')).toMatchObject({ x: 440, y: 0 })
-  })
-
-  it('moves the stored area of a pushed section with its boards', () => {
-    const canvas = row()
-    const page = canvas.pages[0]!
-    page.sections = [{ id: 's', title: 'S', x: 1960, y: -40, width: 960, height: 380 } as never]
-    const next = placed(applyEdit(canvas, 'p', { boards: [{ name: 'B', x: 1700, y: 0 }] }))
-    const section = (next.pages[0]?.sections as { id: string; x: number; y: number }[]).find(
-      (entry) => entry.id === 's',
-    )
-    const m1 = boardOf(next, 'M1') as { x: number; y: number }
-    expect(m1.x).toBeGreaterThan(2000)
-    expect(section?.x).toBe(1960 + (m1.x - 2000))
-    expect(section?.y).toBe(-40 + (m1.y - 0))
+  it('leaves the board the dragged one lands on exactly where it was', () => {
+    const next = placed(applyEdit(row(), 'p', { boards: [{ name: 'A', x: 200, y: 0 }] }))
+    expect(boardOf(next, 'A')).toMatchObject({ x: 200, y: 0 })
+    expect(boardOf(next, 'B')).toMatchObject({ x: 480, y: 0 })
+    expect(boardOf(next, 'C')).toMatchObject({ x: 0, y: 380 })
   })
 
   it('moves the stored area of a section when an edit moves all its boards by the same distance', () => {
@@ -364,13 +342,6 @@ describe('applyEdit collisions', () => {
     expect(boardOf(next, 'M1')).toMatchObject({ x: 2000, y: 0 })
   })
 
-  it('keeps the edited board where it is and moves the board it overlaps', () => {
-    const next = placed(applyEdit(row(), 'p', { boards: [{ name: 'A', x: 200, y: 0 }] }))
-    expect(boardOf(next, 'A')).toMatchObject({ x: 200, y: 0 })
-    expect(boardOf(next, 'B')).toMatchObject({ x: 680, y: 0 })
-    expect(boardOf(next, 'C')).toMatchObject({ x: 0, y: 380 })
-  })
-
   it('changes nothing else when the edit overlaps nothing', () => {
     const next = placed(applyEdit(row(), 'p', { boards: [{ name: 'A', x: 0, y: -400 }] }))
     expect(boardOf(next, 'B')).toMatchObject({ x: 480, y: 0 })
@@ -382,14 +353,11 @@ describe('applyEdit collisions', () => {
     expect(boardOf(next, 'Y')).toMatchObject({ x: 5100, y: 100 })
   })
 
-  it('moves the boards of a section together as one rect', () => {
+  it('leaves the section a dragged board covers where it is', () => {
     const next = placed(applyEdit(row(), 'p', { boards: [{ name: 'B', x: 1900, y: 0 }] }))
     expect(boardOf(next, 'B')).toMatchObject({ x: 1900, y: 0 })
-    const m1 = boardOf(next, 'M1')
-    const m2 = boardOf(next, 'M2')
-    expect(m1?.x).toBeGreaterThan(2000)
-    expect((m2?.x as number) - (m1?.x as number)).toBe(480)
-    expect(m1?.y).toBe(0)
+    expect(boardOf(next, 'M1')).toMatchObject({ x: 2000, y: 0 })
+    expect(boardOf(next, 'M2')).toMatchObject({ x: 2480, y: 0 })
   })
 })
 
@@ -480,6 +448,21 @@ describe('syncFromDisk', () => {
     const out = syncFromDisk(filed(base, sections), next)
     expect(out && at(out, 'b1')).toEqual({ x: 1308, y: 0 })
     expect(out && at(out, 'a1')).toEqual({ x: 800, y: 0 })
+  })
+
+  it('moves the stored area of a section with the boards the agent write pushes', () => {
+    const areas = [
+      { id: 'A', title: 'A' },
+      { id: 'B', title: 'B', x: 960, y: -40, width: 400, height: 280 },
+    ]
+    const next = filed([rect('a1', 800, 0, 'A'), rect('b1', 1000, 0, 'B')], areas)
+    const out = syncFromDisk(filed([rect('a1', 0, 0, 'A'), rect('b1', 1000, 0, 'B')], areas), next)
+    const pushed = out && at(out, 'b1')
+    const area = ((out?.pages[0]?.sections ?? []) as { id: string; x: number; y: number }[]).find(
+      (entry) => entry.id === 'B',
+    )
+    expect(pushed).toEqual({ x: 1308, y: 0 })
+    expect(area).toMatchObject({ x: 960 + 308, y: -40 })
   })
 
   it('places a new board with a section and no position beside its section', () => {
