@@ -37,7 +37,9 @@ const HELP = `irsim: design boards for your repository
 usage: irsim <command> [options]
 
 commands:
-  serve [--design-dir <path>] [--port <n>]   start the canvas (registers new boards in canvas.json first)
+  serve [--design-dir <path>] [--port <n>] [--fresh]
+                                             start the canvas (registers new boards in canvas.json first;
+                                             --fresh clears the dev cache of a git checkout)
   build [--design-dir <path>]                create or update canvas.json from the boards on disk
   export [--design-dir <path>] [--out <dir>] [--title <text>]
                                              build a standalone static preview of the boards
@@ -344,7 +346,7 @@ const restartRunning = async (port, url, stamp) => {
 }
 
 const serve = async (args) => {
-  const opts = parse(args, { '--design-dir': 'value', '--port': 'value' })
+  const opts = parse(args, { '--design-dir': 'value', '--port': 'value', '--fresh': 'bool' })
   const cwd = process.cwd()
   const root = projectRoot(cwd)
   const design = resolveDesignDir(cwd, opts['design-dir'])
@@ -377,40 +379,42 @@ const serve = async (args) => {
     IRSIM_LAUNCHER: join(ROOT, 'bin', 'irsim'),
     IRSIM_PREFIX: prefix ?? '',
   }
+  const dev = !existsSync(SERVER)
+  if (dev && !existsSync(join(APP, 'package.json'))) fail(`no server found in ${ROOT}`)
+  const devCheckout = dev ? await import(pathToFileURL(join(ROOT, 'bin', 'lib', 'dev-checkout.mjs')).href) : null
+  const prepareDev = (fresh) => {
+    if (devCheckout.depsStale(APP)) {
+      console.log(`irsim: installing the app dependencies in ${APP}`)
+      if (!devCheckout.installDeps(APP)) console.error(`irsim: bun install failed, run it in ${APP}`)
+    }
+    if (fresh && devCheckout.clearDevCache(APP)) console.log('irsim: cleared the dev cache')
+    const head = devCheckout.checkoutHead(ROOT)
+    env.IRSIM_BUILD = head ? `dev-${head.slice(0, 12)}` : ''
+  }
   let command
   let argv
   let childCwd
-  if (existsSync(SERVER)) {
+  if (!dev) {
     command = process.execPath
     argv = [SERVER]
     childCwd = dirname(SERVER)
-  } else if (existsSync(join(APP, 'package.json'))) {
+  } else {
+    prepareDev(Boolean(opts.fresh))
     const next = join(APP, 'node_modules', '.bin', 'next')
     if (!existsSync(next)) fail(`run bun install in ${APP} first`)
     command = next
     argv = ['dev', '--port', String(port)]
     childCwd = APP
-  } else {
-    fail(`no server found in ${ROOT}`)
   }
   console.log(`irsim: ${url}`)
-  const child = spawn(command, argv, { cwd: childCwd, env, stdio: 'inherit' })
-  let active = child
+  let active = null
+  let pidFile = null
+  let movedTo = null
   for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP'])
-    process.on(signal, () => active.kill(signal))
-  child.on('error', (error) => {
-    console.error(`irsim: could not start the server: ${error.message}`)
-    process.exit(1)
-  })
-  let pidFile = prefix && child.pid ? join(ROOT, '.pids', String(child.pid)) : null
-  if (pidFile) {
-    try {
-      mkdirSync(dirname(pidFile), { recursive: true })
-      writeFileSync(pidFile, '')
-    } catch {
-      pidFile = null
-    }
-  }
+    process.on(signal, () => {
+      movedTo = null
+      active?.kill(signal)
+    })
   const relaunch = () => {
     const next = spawn(join(prefix, 'current', 'bin', 'irsim'), ['serve', ...args], {
       cwd: process.cwd(),
@@ -427,15 +431,47 @@ const serve = async (args) => {
       else process.exit(nextCode ?? (nextSignal ? 1 : 0))
     })
   }
-  child.on('exit', (code, signal) => {
-    if (pidFile) rmSync(pidFile, { force: true })
-    if (code === RESTART_CODE && prefix) {
-      if (process.env.IRSIM_RELAUNCHED === '1') process.exit(RESTART_CODE)
-      relaunch()
-      return
+  const start = () => {
+    const child = spawn(command, argv, { cwd: childCwd, env, stdio: 'inherit' })
+    active = child
+    child.on('error', (error) => {
+      console.error(`irsim: could not start the server: ${error.message}`)
+      process.exit(1)
+    })
+    pidFile = prefix && child.pid ? join(ROOT, '.pids', String(child.pid)) : null
+    if (pidFile) {
+      try {
+        mkdirSync(dirname(pidFile), { recursive: true })
+        writeFileSync(pidFile, '')
+      } catch {
+        pidFile = null
+      }
     }
-    process.exit(code ?? (signal ? 1 : 0))
-  })
+    child.on('exit', (code, signal) => {
+      if (pidFile) rmSync(pidFile, { force: true })
+      if (movedTo !== null) {
+        movedTo = null
+        prepareDev(true)
+        start()
+        return
+      }
+      if (code === RESTART_CODE && prefix) {
+        if (process.env.IRSIM_RELAUNCHED === '1') process.exit(RESTART_CODE)
+        relaunch()
+        return
+      }
+      process.exit(code ?? (signal ? 1 : 0))
+    })
+  }
+  start()
+  if (dev) {
+    devCheckout.watchCheckout(ROOT, (head) => {
+      if (movedTo !== null) return
+      movedTo = head
+      console.log(`irsim: the checkout moved to ${head.slice(0, 12)}, restarting the dev server on a clean cache`)
+      active?.kill('SIGTERM')
+    })
+  }
 }
 
 const block = () => {
